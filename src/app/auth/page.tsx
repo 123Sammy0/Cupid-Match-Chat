@@ -9,6 +9,7 @@ export default function AuthPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [accessCode, setAccessCode] = useState("");
   const [roomCode, setRoomCode] = useState(""); // Only for signup
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +34,7 @@ export default function AuthPage() {
           setIsLoading(false);
           return;
         }
-        const res = await signupAction(username, password, roomCode);
+        const res = await signupAction(username, password, accessCode, roomCode);
         if (res.success) {
           router.push("/room");
         } else {
@@ -96,6 +97,21 @@ export default function AuthPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••" 
+                className="w-full p-2 border rounded-lg bg-white/50"
+              />
+            </label>
+          )}
+
+          {!isLogin && (
+            <label className="field-label block mb-4">
+              <span className="block text-sm font-medium mb-1">Access code (from Admin)</span>
+              <input 
+                type="password" 
+                maxLength={4}
+                required 
+                value={accessCode}
+                onChange={(e) => setAccessCode(e.target.value)}
+                placeholder="••••" 
                 className="w-full p-2 border rounded-lg bg-white/50"
               />
             </label>
