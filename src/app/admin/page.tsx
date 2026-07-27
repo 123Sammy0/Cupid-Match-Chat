@@ -2,9 +2,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { lockAccountAction } from "@/app/actions/admin";
 
-export const runtime = 'edge';
-
-
 export default async function AdminDashboard() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

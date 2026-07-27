@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 
-export const runtime = 'edge';
-
-
 export async function GET(req: Request) {
   // Optional: Verify Vercel cron auth header
   // const authHeader = req.headers.get('authorization');
