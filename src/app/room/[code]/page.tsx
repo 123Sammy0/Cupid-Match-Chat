@@ -2,6 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ChatClient from "./ChatClient";
 
+export const runtime = 'edge';
+
+
 export default async function ChatRoomPage({ params }: { params: { code: string } }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
