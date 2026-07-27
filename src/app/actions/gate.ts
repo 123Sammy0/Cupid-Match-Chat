@@ -1,10 +1,8 @@
 "use server";
 
-import { createAdminClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
-import crypto from "crypto";
 
-// Rate limiting (simple in-memory version for the prototype - in prod use Redis/Vercel KV or DB table)
+// Rate limiting (simple in-memory version for the prototype)
 const rateLimitMap = new Map<string, { count: number; lockedUntil: number }>();
 
 export async function verifyAccessCode(pin: string) {
@@ -16,30 +14,8 @@ export async function verifyAccessCode(pin: string) {
     return { success: false, message: "Too many attempts. Try again later." };
   }
 
-  const supabase = createAdminClient();
-  const { data: setting } = await supabase
-    .from('app_settings')
-    .select('value_encrypted')
-    .eq('key', 'access_code_verifier')
-    .single();
-
-  const hashedPin = crypto.createHash('sha256').update(pin).digest('hex');
-
-  // If no code exists yet, this is the very first time! We set it.
-  if (!setting) {
-    await supabase.from('app_settings').insert({
-      key: 'access_code_verifier',
-      value_encrypted: hashedPin
-    });
-    
-    // Set cookie to indicate gate passed
-    const cookieStore = await cookies();
-    cookieStore.set('gate_passed', 'true', { httpOnly: true, secure: true, maxAge: 60 * 60 * 24 });
-    return { success: true };
-  }
-
-  // Validate against existing hash
-  if (setting.value_encrypted === hashedPin) {
+  // Hardcoded gate entry code as requested by admin
+  if (pin === "1212") {
     // Reset rate limit
     rateLimitMap.delete(ip);
     

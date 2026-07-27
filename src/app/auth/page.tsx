@@ -2,15 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { loginAction, signupAction } from "@/app/actions/auth";
+import { loginAction } from "@/app/actions/auth";
 
 export default function AuthPage() {
-  const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [accessCode, setAccessCode] = useState("");
-  const [roomCode, setRoomCode] = useState(""); // Only for signup
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -22,25 +18,11 @@ export default function AuthPage() {
     setIsLoading(true);
 
     try {
-      if (isLogin) {
-        const res = await loginAction(username, password);
-        if (res.success) {
-          router.push("/room");
-        } else {
-          setError(res.message || "Login failed");
-        }
+      const res = await loginAction(username, password);
+      if (res.success) {
+        router.push("/room");
       } else {
-        if (password !== confirmPassword) {
-          setError("Passwords do not match");
-          setIsLoading(false);
-          return;
-        }
-        const res = await signupAction(username, password, accessCode, roomCode);
-        if (res.success) {
-          router.push("/room");
-        } else {
-          setError(res.message || "Signup failed");
-        }
+        setError(res.message || "Login failed");
       }
     } catch (err) {
       setError("An unexpected error occurred");
@@ -59,9 +41,9 @@ export default function AuthPage() {
         </button>
         <div className="auth-mark text-black text-center text-2xl mb-4" aria-hidden="true">✦</div>
         <p className="eyebrow text-gray-500 text-xs tracking-widest uppercase text-center mb-2">Private space</p>
-        <h2 className="text-2xl font-bold mb-2 text-center text-black">{isLogin ? "Welcome back" : "Create Account"}</h2>
+        <h2 className="text-2xl font-bold mb-2 text-center text-black">Welcome back</h2>
         <p className="text-sm text-gray-500 mb-6 text-center">
-          {isLogin ? "Enter your details to open your room." : "This space is limited to two people."}
+          Enter your details to open your room.
         </p>
 
         {error && <div className="mb-4 p-3 bg-gray-100 text-black border border-gray-300 rounded text-sm text-center font-medium">{error}</div>}
@@ -79,7 +61,7 @@ export default function AuthPage() {
             />
           </label>
 
-          <label className="field-label block mb-4 relative">
+          <label className="field-label block mb-6 relative">
             <span className="block text-sm font-semibold mb-1 text-black">Password</span>
             <div className="relative">
               <input 
@@ -103,64 +85,12 @@ export default function AuthPage() {
                 )}
               </button>
             </div>
-            {!isLogin && (
-              <p className={`text-xs mt-1 ${password.length >= 6 ? 'text-black' : 'text-gray-500'}`}>
-                Must be at least 6 characters
-              </p>
-            )}
           </label>
 
-          {!isLogin && (
-            <label className="field-label block mb-4">
-              <span className="block text-sm font-semibold mb-1 text-black">Confirm password</span>
-              <input 
-                type={showPassword ? "text" : "password"} 
-                required 
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••" 
-                className="w-full p-3 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
-              />
-            </label>
-          )}
-
-          {!isLogin && (
-            <label className="field-label block mb-4">
-              <span className="block text-sm font-semibold mb-1 text-black">Access code (from Admin)</span>
-              <input 
-                type={showPassword ? "text" : "password"} 
-                maxLength={4}
-                required 
-                value={accessCode}
-                onChange={(e) => setAccessCode(e.target.value)}
-                placeholder="••••" 
-                className="w-full p-3 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
-              />
-            </label>
-          )}
-
-          {!isLogin && (
-            <label className="field-label block mb-6">
-              <span className="block text-sm font-semibold mb-1 text-black">Room code (Optional on first setup)</span>
-              <input 
-                type="text" 
-                value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value)}
-                placeholder="e.g. moonlight-27" 
-                className="w-full p-3 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
-              />
-            </label>
-          )}
-
           <button className="w-full p-3 rounded-full bg-black text-white font-bold hover:bg-gray-800 transition-colors" type="submit" disabled={isLoading}>
-            {isLoading ? "Please wait..." : (isLogin ? "Log in" : "Create account")}
+            {isLoading ? "Please wait..." : "Log in"}
           </button>
         </form>
-
-        <button className="text-sm font-medium text-gray-500 mt-6 block w-full text-center hover:text-black transition-colors" onClick={() => { setIsLogin(!isLogin); setError(""); }}>
-          {isLogin ? "New here? Create an account" : "Already have an account? Log in"}
-        </button>
-        
       </section>
     </div>
   );
