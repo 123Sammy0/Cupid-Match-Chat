@@ -9,7 +9,7 @@ export async function fetchPexelsImages(query: string, page: number = 1, perPage
     return {
       photos: Array.from({ length: perPage }).map((_, i) => ({
         id: `mock-${query}-${page}-${i}`,
-        src: { large2x: `https://images.unsplash.com/photo-1506744626753-143d675f7823?auto=format&fit=crop&w=600&q=80` },
+        src: { large2x: `https://placehold.co/400x600/eaeaea/a8a8a8?text=Add+API+Key` },
         url: "#",
       })),
       error: "API key missing. Please add PEXELS_API_KEY to .env.local"

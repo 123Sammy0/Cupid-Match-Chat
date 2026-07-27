@@ -148,8 +148,8 @@ export default function Home() {
       <section className="pins-section" id="collection" aria-label="Books and inspiration">
         <div className="pins-grid" id="pinsGrid" role="list" aria-label="Pin collection">
           {pins.map((pin) => (
-            <div key={pin.id} className="pin" style={{position: 'relative'}}>
-              <img src={pin.src?.large2x || pin.src} alt={pin.alt || "Aesthetic"} loading="lazy" style={{display: 'block', width: '100%', borderRadius: '16px'}} />
+            <div key={pin.id} className="pin-card" style={{position: 'relative'}}>
+              <img src={pin.src?.large2x || pin.src?.large || pin.src} alt={pin.alt || "Aesthetic"} loading="lazy" style={{display: 'block', width: '100%', borderRadius: '16px'}} />
               <div className="pin-overlay" style={{
                 position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, 
                 transition: 'opacity 0.2s', display: 'flex', flexDirection: 'column', 
