@@ -14,7 +14,7 @@ const lato = Lato({
 });
 
 export const metadata: Metadata = {
-  title: "little library.",
+  title: "Little Library",
   description: "A private collection of slow things",
 };
 
@@ -24,11 +24,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${playfair.variable} ${lato.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en">
+      <body className={`${playfair.variable} ${lato.variable} antialiased`}>
+        {children}
+      </body>
     </html>
   );
 }
