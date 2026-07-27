@@ -13,7 +13,7 @@ export default async function ChatRoomPage({ params }: { params: { code: string 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
 
   return (
-    <div className="h-screen w-full bg-[#FAF6EE] flex flex-col">
+    <div className="h-screen w-full bg-white flex flex-col">
       <ChatClient roomCode={params.code} user={user} profile={profile} />
     </div>
   );

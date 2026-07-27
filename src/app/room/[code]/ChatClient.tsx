@@ -69,18 +69,18 @@ export default function ChatClient({ roomCode, user, profile }: { roomCode: stri
   };
 
   return (
-    <section className="flex flex-col h-full max-w-3xl mx-auto w-full bg-white shadow-xl relative">
-      <header className="flex items-center justify-between p-4 border-b bg-[#FAF6EE]">
-        <button onClick={() => router.push('/room')} className="p-2 rounded-full hover:bg-black/5" aria-label="Back to rooms">
+    <section className="flex flex-col h-full max-w-3xl mx-auto w-full bg-white shadow-xl relative border-x border-gray-200">
+      <header className="flex items-center justify-between p-4 border-b bg-white text-black">
+        <button onClick={() => router.push('/room')} className="p-2 rounded-full hover:bg-gray-100 text-black" aria-label="Back to rooms">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="m15 18-6-6 6-6"/>
           </svg>
         </button>
 
         <div className="text-center">
-          <p className="font-semibold text-lg">{roomCode}</p>
-          <span className="text-xs text-green-600 flex items-center justify-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-green-500"></span> active now
+          <p className="font-bold text-lg text-black">{roomCode}</p>
+          <span className="text-xs text-gray-500 flex items-center justify-center gap-1 font-medium">
+            <span className="w-2 h-2 rounded-full bg-black"></span> active now
           </span>
         </div>
 
@@ -92,7 +92,7 @@ export default function ChatClient({ roomCode, user, profile }: { roomCode: stri
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-white/50">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-white">
         {messages.map((m) => {
           const isMine = m.sender_id === user.id;
           return (
