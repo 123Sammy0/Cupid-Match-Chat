@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#FAF6EE" />
+    <meta name="description" content="Little Library — a private collection of books, quotes, and gentle inspiration." />
+    <title>Little Library</title>
+
+    <!-- Fonts: Playfair Display + DM Sans + DM Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+
+    <!-- ══════════════════ LITTLE LIBRARY ══════════════════ -->
+    <main id="libraryView">
+
+      <!-- Top bar -->
+      <header class="topbar" role="banner">
+        <div class="topbar-left">
+          <button class="hamburger" id="mobileMenu" aria-label="Open navigation" aria-expanded="false">
+            <span></span><span></span><span></span>
+          </button>
+          <a class="brand" href="#top" aria-label="Little Library home">
+            little library<span class="brand-dot">.</span>
+          </a>
+        </div>
+
+        <!-- Search -->
+        <div class="search-wrap" role="search">
+          <span class="search-icon" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+          </span>
+          <label for="searchInput" class="sr-only">Search books, quotes, notes</label>
+          <input type="search" id="searchInput" placeholder="Search books, quotes, notes…" autocomplete="off" />
+        </div>
+
+        <!-- Right actions -->
+        <div class="topbar-right">
+          <nav class="topnav" aria-label="Primary navigation">
+            <a href="#shelves" class="nav-link active">Browse</a>
+            <a href="#collection" class="nav-link">Collections</a>
+            <a href="#notes" class="nav-link">Notes</a>
+          </nav>
+
+          <button class="icon-btn" aria-label="Saved items">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+            </svg>
+          </button>
+
+          <!-- Discreet private entry — ✦ -->
+          <button class="icon-btn quiet-door-btn" id="quietDoor" aria-label="Private entry" title="Private room (Shift+.)">
+            <span class="quiet-star" aria-hidden="true">✦</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Mobile drawer -->
+      <div class="mobile-drawer" id="mobileDrawer" aria-hidden="true" aria-label="Mobile navigation">
+        <nav>
+          <a href="#shelves">Browse</a>
+          <a href="#collection">Collections</a>
+          <a href="#notes">Notes</a>
+        </nav>
+      </div>
+      <div class="drawer-overlay" id="drawerOverlay" aria-hidden="true"></div>
+
+      <!-- Category chip bar -->
+      <div class="chip-bar" id="shelves" role="navigation" aria-label="Browse by category">
+        <div class="chip-scroll">
+          <button class="chip active" data-cat="all">All</button>
+          <button class="chip" data-cat="reading">Reading now</button>
+          <button class="chip" data-cat="nature">Quiet places</button>
+          <button class="chip" data-cat="quotes">Quotes</button>
+          <button class="chip" data-cat="collections">Collections</button>
+          <button class="chip" data-cat="notes">Notes</button>
+          <button class="chip" data-cat="classics">Classics</button>
+          <button class="chip" data-cat="weekend">Weekend</button>
+        </div>
+      </div>
+
+      <!-- Hero -->
+      <section class="hero" id="top" aria-label="Welcome">
+        <div class="hero-text">
+          <p class="eyebrow">A private collection of slow things</p>
+          <h1>Pages to keep,<br /><em>places to return&nbsp;to.</em></h1>
+          <p class="hero-sub">A small shelf of books, thoughts, and gentle visual notes for unhurried days.</p>
+          <div class="hero-actions">
+            <button class="btn btn-primary">Explore collection</button>
+            <button class="btn btn-ghost">View shelves</button>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-hidden="true">
+          <div class="hero-card hero-card-1">
+            <img src="https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg?auto=compress&cs=tinysrgb&w=500" alt="Books on a shelf" loading="eager" />
+          </div>
+          <div class="hero-card hero-card-2">
+            <img src="https://images.pexels.com/photos/762687/pexels-photo-762687.jpeg?auto=compress&cs=tinysrgb&w=500" alt="Open book with coffee" loading="eager" />
+          </div>
+          <div class="hero-card hero-card-3">
+            <img src="https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=300" alt="Reading nook" loading="eager" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Pinterest masonry pin grid -->
+      <section class="pins-section" id="collection" aria-label="Books and inspiration">
+        <div class="pins-grid" id="pinsGrid" role="list" aria-label="Pin collection">
+          <!-- Dynamically populated by JS -->
+          <div class="skeleton-pin" style="height:300px"></div>
+          <div class="skeleton-pin" style="height:220px"></div>
+          <div class="skeleton-pin" style="height:360px"></div>
+          <div class="skeleton-pin" style="height:250px"></div>
+          <div class="skeleton-pin" style="height:290px"></div>
+          <div class="skeleton-pin" style="height:400px"></div>
+          <div class="skeleton-pin" style="height:260px"></div>
+          <div class="skeleton-pin" style="height:330px"></div>
+          <div class="skeleton-pin" style="height:210px"></div>
+          <div class="skeleton-pin" style="height:280px"></div>
+        </div>
+
+        <!-- Load more -->
+        <div class="load-more-wrap">
+          <button class="btn-load-more" id="loadMoreBtn" aria-label="Load more pins">
+            <span>Load more</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 5v14M5 12l7 7 7-7"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- Shelf note / second quiet door -->
+      <section class="shelf-note" id="notes" aria-label="Library footer note">
+        <p class="shelf-text">Saved slowly, read often, shared quietly.</p>
+        <div class="shelf-divider" aria-hidden="true"></div>
+        <button class="shelf-door" id="quietDoor2" aria-label="Open private room">
+          <span aria-hidden="true">✦</span>
+        </button>
+      </section>
+
+      <!-- Footer -->
+      <footer class="site-footer" role="contentinfo">
+        <p class="footer-brand">little library<span>.</span></p>
+        <p class="footer-copy">A personal collection for two.</p>
+      </footer>
+
+    </main>
+
+    <!-- ══════════════════ PIN DETAIL OVERLAY ══════════════════ -->
+    <div class="overlay-backdrop hidden" id="overlayBackdrop" aria-hidden="true"></div>
+    <div class="pin-overlay hidden" id="pinOverlay" role="dialog" aria-modal="true" aria-labelledby="pinDetailTitle">
+      <div class="pin-overlay-inner">
+        <button class="pin-overlay-close" id="pinOverlayClose" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+
+        <div class="pin-overlay-img-wrap">
+          <img id="pinOverlayImg" src="" alt="" />
+        </div>
+
+        <div class="pin-overlay-meta">
+          <div class="pin-overlay-tags" id="pinOverlayTags"></div>
+          <h2 id="pinDetailTitle" class="pin-overlay-title"></h2>
+          <p class="pin-overlay-note" id="pinOverlayNote"></p>
+          <div class="pin-overlay-author">
+            <div class="pin-author-avatar" id="pinAuthorAvatar"></div>
+            <div>
+              <p class="pin-author-name" id="pinAuthorName"></p>
+              <p class="pin-author-label">Photo · Pexels</p>
+            </div>
+          </div>
+          <div class="pin-overlay-actions">
+            <button class="pin-action-save" id="pinActionSave">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+              </svg>
+              Save
+            </button>
+            <button class="pin-action-share">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+              Share
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════ AUTH SCREEN ══════════════════ -->
+    <section id="authView" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <div class="auth-card">
+        <button class="close-btn" data-close aria-label="Return to library">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+        <div class="auth-mark" aria-hidden="true">✦</div>
+        <p class="eyebrow">Private space</p>
+        <h2 id="authTitle">Welcome back</h2>
+        <p id="authSubtitle">Enter your details to open your room.</p>
+
+        <form id="authForm" novalidate>
+          <label class="field-label">
+            Username
+            <input id="username" type="text" autocomplete="username" required placeholder="your name" aria-required="true" />
+          </label>
+
+          <label class="field-label">
+            Password
+            <div class="password-wrap">
+              <input id="password" type="password" autocomplete="current-password" required placeholder="••••••••" aria-required="true" />
+              <button type="button" class="pw-toggle" aria-label="Show password">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+          </label>
+
+          <label class="field-label" id="confirmField" hidden>
+            Confirm password
+            <input id="confirmPassword" type="password" autocomplete="new-password" placeholder="••••••••" />
+          </label>
+
+          <label class="field-label">
+            Access code
+            <input id="accessCode" type="password" required placeholder="private code" aria-required="true" />
+          </label>
+
+          <button class="btn btn-primary btn-full" type="submit" id="authSubmit">Log in</button>
+        </form>
+
+        <button class="toggle-link" id="toggleAuth">New here? Create an account</button>
+        <p class="form-message" id="authMessage" role="alert" aria-live="assertive"></p>
+      </div>
+    </section>
+
+    <!-- ══════════════════ ROOM SCREEN ══════════════════ -->
+    <section id="roomView" class="screen hidden" role="dialog" aria-modal="true" aria-labelledby="roomTitle">
+      <div class="auth-card room-card">
+        <button class="close-btn" id="roomBack" aria-label="Back to library">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+
+        <div class="room-header">
+          <div class="auth-mark" aria-hidden="true">✦</div>
+          <div>
+            <p class="eyebrow">Private room</p>
+            <h2 id="roomTitle">Your private space</h2>
+            <p class="room-subtitle" id="roomGreet">Welcome back.</p>
+          </div>
+        </div>
+
+        <!-- Two room options -->
+        <div class="room-options">
+
+          <!-- Create a new room -->
+          <div class="room-option" id="createRoomCard">
+            <div class="room-option-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
+              </svg>
+            </div>
+            <div class="room-option-body">
+              <p class="room-option-title">Create a room</p>
+              <p class="room-option-desc">Start a new private chat. Share the code with your person.</p>
+            </div>
+            <button class="btn btn-primary" id="createRoomBtn" type="button">Create</button>
+          </div>
+
+          <!-- Divider -->
+          <div class="room-divider"><span>or</span></div>
+
+          <!-- Join an existing room -->
+          <div class="room-option" id="joinRoomCard">
+            <div class="room-option-icon" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                <polyline points="10 17 15 12 10 7"/>
+                <line x1="15" y1="12" x2="3" y2="12"/>
+              </svg>
+            </div>
+            <div class="room-option-body">
+              <p class="room-option-title">Join a room</p>
+              <p class="room-option-desc">Enter a code your partner shared with you.</p>
+            </div>
+          </div>
+
+          <!-- Join code input (hidden by default, shown on click) -->
+          <form id="joinRoomForm" class="join-form hidden" novalidate>
+            <label class="field-label">
+              Enter room code
+              <input id="joinRoomCode" type="text" required placeholder="e.g. moonlight-27" autocomplete="off" />
+            </label>
+            <button class="btn btn-primary btn-full" type="submit">Join chat</button>
+          </form>
+
+        </div>
+
+        <!-- Generated code banner (shown after Create) -->
+        <div class="room-code-banner hidden" id="newCodeBanner">
+          <p class="room-code-banner-label">Your room code</p>
+          <div class="room-code-display">
+            <span id="generatedCode" class="room-code-value"></span>
+            <button class="copy-btn" id="copyCodeBtn" aria-label="Copy code" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              Copy
+            </button>
+          </div>
+          <p class="room-code-hint">Share this code with your person. When they enter the same code, you'll be connected.</p>
+          <button class="btn btn-primary btn-full" id="enterCreatedRoom" type="button">Enter room</button>
+        </div>
+
+        <button class="toggle-link logout-link" id="logout">Log out</button>
+        <p class="form-message" id="roomMessage" role="alert" aria-live="assertive"></p>
+      </div>
+    </section>
+
+    <!-- ══════════════════ CHAT SCREEN ══════════════════ -->
+    <section id="chatView" class="chat hidden" role="main" aria-label="Chat room">
+
+      <header class="chat-header">
+        <button id="chatBack" class="round-btn" aria-label="Back to rooms">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </button>
+
+        <div class="chat-info">
+          <p id="chatCodeLabel" class="chat-room-name">Private room</p>
+          <span class="chat-status">
+            <i class="status-dot" aria-hidden="true"></i>
+            <span id="chatStatusText">active now</span>
+          </span>
+        </div>
+
+        <div class="chat-actions">
+          <button class="round-btn" id="audioCall" aria-label="Audio call">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.77a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+          </button>
+          <button class="round-btn" id="videoCall" aria-label="Video call">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m22 8-6 4 6 4V8z"/><rect x="2" y="6" width="14" height="12" rx="2" ry="2"/>
+            </svg>
+          </button>
+          <button class="round-btn avatar-btn" id="chatMenu" aria-label="Profile" aria-expanded="false">
+            <span id="chatAvatarInitial" class="avatar-initial">U</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Messages -->
+      <div id="messageList" class="message-list" role="log" aria-live="polite" aria-label="Messages"></div>
+
+      <!-- Typing Indicator -->
+      <div id="typingIndicator" class="typing-indicator hidden" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+
+      <!-- Composer -->
+      <form class="composer" id="messageForm" aria-label="Message composer">
+        <button type="button" class="composer-btn" id="attachBtn" aria-label="Add attachment">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/>
+          </svg>
+        </button>
+
+        <div class="composer-input-wrap">
+          <input id="messageInput" type="text" placeholder="Write something…" autocomplete="off" aria-label="Message" />
+          <button type="button" class="emoji-btn" id="emojiBtn" aria-label="Emoji">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M8 13s1.5 2 4 2 4-2 4-2"/>
+              <line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+            </svg>
+          </button>
+        </div>
+
+        <button class="send-btn" type="submit" aria-label="Send">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m22 2-7 20-4-9-9-4 20-7z"/><path d="M22 2 11 13"/>
+          </svg>
+        </button>
+      </form>
+
+      <!-- Profile popover -->
+      <div class="chat-popover hidden" id="chatPopover" role="menu">
+        <div class="popover-header">
+          <div class="popover-avatar" id="popoverAvatar">U</div>
+          <div>
+            <p class="popover-username" id="popoverUsername">Username</p>
+            <span class="popover-role" id="popoverRole">member</span>
+          </div>
+        </div>
+        <hr class="popover-divider" />
+        <button role="menuitem" id="goRooms">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          Change chat code
+        </button>
+        <button role="menuitem" id="quickExit">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Quick Exit
+        </button>
+        <button role="menuitem" id="logoutChat" class="danger-item">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Log out
+        </button>
+      </div>
+
+      <!-- Emoji picker -->
+      <div class="emoji-picker hidden" id="emojiPicker" role="dialog" aria-label="Emoji picker">
+        <div class="emoji-grid" id="emojiGrid"></div>
+      </div>
+
+    </section>
+
+    <!-- ══════════════════ TOAST ══════════════════ -->
+    <div class="toast hidden" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
