@@ -59,14 +59,14 @@
 
   /* Semantic */
   --bg:           var(--white);
-  --bg-alt:       var(--parchment);
-  --text:         var(--ink);
-  --text-muted:   #5A6B5D;
-  --text-faint:   #8A9E8D;
-  --accent:       var(--eucalyptus);
-  --accent-warm:  var(--peach);
-  --border:       var(--ink-15);
-  --border-faint: var(--ink-08);
+  --bg-alt:       #FFF5F5;
+  --text:         #4A0E0E;
+  --text-muted:   #8C3838;
+  --text-faint:   #B76666;
+  --accent:       #E53935;
+  --accent-warm:  #D32F2F;
+  --border:       #FFCDD2;
+  --border-faint: #FFEBEE;
 
   /* Typography */
   --font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
@@ -122,6 +122,7 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
+  scroll-padding-top: var(--topbar-h);
   -webkit-text-size-adjust: 100%;
 }
 
