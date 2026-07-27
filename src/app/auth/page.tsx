@@ -9,7 +9,6 @@ export default function AuthPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [accessCode, setAccessCode] = useState("");
   const [roomCode, setRoomCode] = useState(""); // Only for signup
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +21,7 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
-        const res = await loginAction(username, password, accessCode);
+        const res = await loginAction(username, password);
         if (res.success) {
           router.push("/room");
         } else {
@@ -34,7 +33,7 @@ export default function AuthPage() {
           setIsLoading(false);
           return;
         }
-        const res = await signupAction(username, password, accessCode, roomCode);
+        const res = await signupAction(username, password, roomCode);
         if (res.success) {
           router.push("/room");
         } else {
@@ -101,19 +100,6 @@ export default function AuthPage() {
               />
             </label>
           )}
-
-          <label className="field-label block mb-4">
-            <span className="block text-sm font-medium mb-1">Access code (4-digit)</span>
-            <input 
-              type="password" 
-              maxLength={4}
-              required 
-              value={accessCode}
-              onChange={(e) => setAccessCode(e.target.value)}
-              placeholder="••••" 
-              className="w-full p-2 border rounded-lg bg-white/50"
-            />
-          </label>
 
           {!isLogin && (
             <label className="field-label block mb-4">

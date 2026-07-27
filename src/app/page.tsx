@@ -103,16 +103,16 @@ export default function Home() {
       {/* Pinterest masonry pin grid */}
       <section className="pins-section" id="collection" aria-label="Books and inspiration">
         <div className="pins-grid" id="pinsGrid" role="list" aria-label="Pin collection">
-          <div className="skeleton-pin" style={{height:"300px"}}></div>
-          <div className="skeleton-pin" style={{height:"220px"}}></div>
-          <div className="skeleton-pin" style={{height:"360px"}}></div>
-          <div className="skeleton-pin" style={{height:"250px"}}></div>
-          <div className="skeleton-pin" style={{height:"290px"}}></div>
-          <div className="skeleton-pin" style={{height:"400px"}}></div>
-          <div className="skeleton-pin" style={{height:"260px"}}></div>
-          <div className="skeleton-pin" style={{height:"330px"}}></div>
-          <div className="skeleton-pin" style={{height:"210px"}}></div>
-          <div className="skeleton-pin" style={{height:"280px"}}></div>
+          <div className="pin-card"><div className="pin-img-wrap"><img src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=600&auto=format&fit=crop" alt="Book reading" /></div></div>
+          <div className="pin-card"><div className="pin-img-wrap"><img src="https://images.unsplash.com/photo-1455390582262-044cdead27d8?q=80&w=600&auto=format&fit=crop" alt="Coffee and book" /></div></div>
+          <div className="pin-card"><div className="pin-img-wrap"><img src="https://images.unsplash.com/photo-1512820790803-83ca734da794?q=80&w=600&auto=format&fit=crop" alt="Library" /></div></div>
+          <div className="pin-card"><div className="pin-img-wrap"><img src="https://images.unsplash.com/photo-1495446815901-a7297e633e8d?q=80&w=600&auto=format&fit=crop" alt="Books pile" /></div></div>
+          <div className="pin-card"><div className="pin-img-wrap"><img src="https://images.unsplash.com/photo-1524578971036-7c98f80cb8e0?q=80&w=600&auto=format&fit=crop" alt="Journaling" /></div></div>
+          <div className="pin-card"><div className="pin-img-wrap"><img src="https://images.unsplash.com/photo-1476275466078-4007374efac4?q=80&w=600&auto=format&fit=crop" alt="Vintage books" /></div></div>
+          <div className="pin-card"><div className="pin-img-wrap"><img src="https://images.unsplash.com/photo-1589998059171-989d887dda6e?q=80&w=600&auto=format&fit=crop" alt="Open dictionary" /></div></div>
+          <div className="pin-card"><div className="pin-img-wrap"><img src="https://images.unsplash.com/photo-1511108690759-009324a90311?q=80&w=600&auto=format&fit=crop" alt="Letter" /></div></div>
+          <div className="pin-card"><div className="pin-img-wrap"><img src="https://images.unsplash.com/photo-1535905557558-afc4877a26fc?q=80&w=600&auto=format&fit=crop" alt="Bookstore" /></div></div>
+          <div className="pin-card"><div className="pin-img-wrap"><img src="https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=600&auto=format&fit=crop" alt="Reading book" /></div></div>
         </div>
 
         {/* Load more */}

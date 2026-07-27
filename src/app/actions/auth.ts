@@ -3,25 +3,10 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import crypto from "crypto";
 
-export async function loginAction(username: string, password: string, accessCode: string) {
+export async function loginAction(username: string, password: string) {
   try {
     const supabase = createAdminClient();
     
-    // 1. Verify access code
-    const { data: setting } = await supabase
-      .from('app_settings')
-      .select('value_encrypted')
-      .eq('key', 'access_code_verifier')
-      .single();
-
-    if (!setting) return { success: false, message: "System not initialized" };
-    
-    const hashedPin = crypto.createHash('sha256').update(accessCode).digest('hex');
-    if (setting.value_encrypted !== hashedPin) {
-      // Neutral message per requirements
-      return { success: false, message: "The login details don’t match." };
-    }
-
     // 2. Login via Supabase Auth
     const email = `${username.toLowerCase()}@cupid.local`;
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -46,7 +31,7 @@ export async function loginAction(username: string, password: string, accessCode
   }
 }
 
-export async function signupAction(username: string, password: string, accessCode: string, roomCode: string) {
+export async function signupAction(username: string, password: string, roomCode: string) {
   try {
     const supabase = createAdminClient();
 
@@ -54,20 +39,6 @@ export async function signupAction(username: string, password: string, accessCod
     const { count } = await supabase.from('profiles').select('id', { count: 'exact' });
     if (count && count >= 2) {
       return { success: false, message: "Registration is closed." };
-    }
-
-    // 2. Verify access code matches existing
-    const { data: setting } = await supabase
-      .from('app_settings')
-      .select('value_encrypted')
-      .eq('key', 'access_code_verifier')
-      .single();
-
-    if (!setting) return { success: false, message: "System not initialized" };
-    
-    const hashedPin = crypto.createHash('sha256').update(accessCode).digest('hex');
-    if (setting.value_encrypted !== hashedPin) {
-      return { success: false, message: "Invalid access code." };
     }
 
     // 3. Create user in Supabase Auth
