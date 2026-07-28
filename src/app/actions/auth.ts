@@ -10,7 +10,7 @@ export async function loginAction(username: string, password: string) {
     const authClient = await createClient();
     
     // 2. Login via Supabase Auth
-    const email = `${username.toLowerCase()}@cupid.local`;
+    const email = `${username.toLowerCase()}@cupid.com`;
     const { data, error } = await authClient.auth.signInWithPassword({ email, password });
     
     if (error || !data.user) {
@@ -51,7 +51,7 @@ export async function signupAction(username: string, password: string) {
     }
 
     // 3. Create user in Supabase Auth
-    const email = `${username.toLowerCase()}@cupid.local`;
+    const email = `${username.toLowerCase()}@cupid.com`;
     const { data, error } = await authClient.auth.signUp({
       email,
       password,
