@@ -168,7 +168,10 @@ export default function AuthPage() {
                 type="text" 
                 required 
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setFormError("");
+                }}
                 placeholder="e.g. moonlight" 
                 className={`w-full p-3 border rounded-xl bg-gray-50 text-black focus:outline-none focus:ring-2 focus:ring-black/10 transition-colors ${!isLogin && usernameStatus === 'unavailable' ? 'border-red-300 focus:border-red-500' : 'border-gray-200 focus:border-gray-400'}`}
               />
@@ -195,9 +198,12 @@ export default function AuthPage() {
                 type={showPassword ? "text" : "password"} 
                 required 
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setFormError("");
+                }}
                 placeholder="••••••••" 
-                className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-black focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-black/10 pr-10 transition-colors"
+                className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 text-black focus:outline-none focus:border-[#1877F2] focus:ring-2 focus:ring-[#1877F2]/20 pr-10 transition-colors"
               />
               <button 
                 type="button" 
@@ -249,9 +255,12 @@ export default function AuthPage() {
                   type={showPassword ? "text" : "password"} 
                   required 
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setFormError("");
+                  }}
                   placeholder="••••••••" 
-                  className={`w-full p-3 border rounded-xl bg-gray-50 text-black focus:outline-none focus:ring-2 focus:ring-black/10 pr-10 transition-colors ${showMismatch ? 'border-red-300 focus:border-red-500' : doPasswordsMatch ? 'border-green-300 focus:border-green-500' : 'border-gray-200 focus:border-gray-400'}`}
+                  className={`w-full p-3 border rounded-xl bg-gray-50 text-black focus:outline-none focus:ring-2 focus:ring-[#1877F2]/20 pr-10 transition-colors ${showMismatch ? 'border-red-300 focus:border-red-500' : doPasswordsMatch ? 'border-green-300 focus:border-green-500' : 'border-gray-200 focus:border-[#1877F2]'}`}
                 />
                 {confirmPassword.length > 0 && (
                   <div className="absolute right-3 top-3.5">
@@ -287,7 +296,7 @@ export default function AuthPage() {
           )}
 
           <button 
-            className={`w-full py-3.5 rounded-xl font-bold transition-all active:scale-[0.98] mt-2 shadow-sm ${isLoading ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}
+            className={`w-full py-3.5 rounded-lg font-bold transition-all active:scale-[0.98] mt-4 shadow-sm ${isLoading ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-[#1877F2] text-white hover:bg-[#166FE5]'}`}
             type="submit" 
             disabled={isLoading}
           >
