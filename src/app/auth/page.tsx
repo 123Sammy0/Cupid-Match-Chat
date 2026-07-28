@@ -8,8 +8,7 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [accessCode, setAccessCode] = useState("");
-  const [roomCode, setRoomCode] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -29,7 +28,13 @@ export default function AuthPage() {
           setError(res.message || "Login failed");
         }
       } else {
-        const res = await signupAction(username, password, accessCode, roomCode);
+        if (password !== confirmPassword) {
+          setError("Passwords do not match");
+          setIsLoading(false);
+          return;
+        }
+        
+        const res = await signupAction(username, password);
         if (res.success) {
           router.push("/room");
         } else {
@@ -100,33 +105,23 @@ export default function AuthPage() {
           </label>
 
           {!isLogin && (
-            <>
-              <label className="field-label block mb-4">
-                <span className="block text-sm font-semibold mb-1 text-black">Access Code</span>
+            <label className="field-label block mb-6 relative">
+              <span className="block text-sm font-semibold mb-1 text-black">Confirm Password</span>
+              <div className="relative">
                 <input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   required 
-                  value={accessCode}
-                  onChange={(e) => setAccessCode(e.target.value)}
-                  placeholder="Gate code" 
-                  className="w-full p-3 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••" 
+                  className="w-full p-3 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black pr-10"
                 />
-              </label>
-              <label className="field-label block mb-6">
-                <span className="block text-sm font-semibold mb-1 text-black">Room Secret (Optional)</span>
-                <input 
-                  type="password" 
-                  value={roomCode}
-                  onChange={(e) => setRoomCode(e.target.value)}
-                  placeholder="Secret for new room" 
-                  className="w-full p-3 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
-                />
-              </label>
-            </>
+              </div>
+            </label>
           )}
 
           <button className="w-full p-3 rounded-full bg-black text-white font-bold hover:bg-gray-800 transition-colors mb-4" type="submit" disabled={isLoading}>
-            {isLoading ? "Please wait..." : (isLogin ? "Log in" : "Sign up")}
+            {isLoading ? "Please wait..." : (isLogin ? "Log in" : "Create Account")}
           </button>
         </form>
 

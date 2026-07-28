@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import crypto from "crypto";
 
 export async function loginAction(username: string, password: string) {
@@ -32,29 +33,21 @@ export async function loginAction(username: string, password: string) {
   }
 }
 
-export async function signupAction(username: string, password: string, accessCode: string, roomCode: string) {
+export async function signupAction(username: string, password: string) {
   try {
     const supabase = createAdminClient();
     const authClient = await createClient();
+    const cookieStore = await cookies();
+
+    // 0. Verify gate was passed
+    if (cookieStore.get('gate_passed')?.value !== 'true') {
+      return { success: false, message: "Please enter the gate access code first." };
+    }
 
     // 1. Check max users (only 2 allowed)
     const { count } = await supabase.from('profiles').select('id', { count: 'exact' });
     if (count && count >= 2) {
       return { success: false, message: "Registration is closed." };
-    }
-
-    // 2. Verify access code matches existing
-    const { data: setting } = await supabase
-      .from('app_settings')
-      .select('value_encrypted')
-      .eq('key', 'access_code_verifier')
-      .single();
-
-    if (!setting) return { success: false, message: "System not initialized" };
-    
-    const hashedPin = crypto.createHash('sha256').update(accessCode).digest('hex');
-    if (setting.value_encrypted !== hashedPin) {
-      return { success: false, message: "Invalid access code." };
     }
 
     // 3. Create user in Supabase Auth
@@ -83,15 +76,7 @@ export async function signupAction(username: string, password: string, accessCod
       await supabase.auth.admin.deleteUser(data.user.id);
       return { success: false, message: "Failed to create profile." };
     }
-    
-    // 5. Set initial room code if first user
-    if (role === 'admin' && roomCode) {
-       const hashedRoom = crypto.createHash('sha256').update(roomCode).digest('hex');
-       await supabase.from('app_settings').upsert({
-         key: 'room_secret_verifier',
-         value_encrypted: hashedRoom
-       });
-    }
+
 
     return { success: true };
   } catch (err) {
