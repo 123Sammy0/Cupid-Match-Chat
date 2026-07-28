@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { loginAction } from "@/app/actions/auth";
+import { loginAction, signupAction } from "@/app/actions/auth";
 
 export default function AuthPage() {
+  const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [accessCode, setAccessCode] = useState("");
+  const [roomCode, setRoomCode] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -18,11 +21,20 @@ export default function AuthPage() {
     setIsLoading(true);
 
     try {
-      const res = await loginAction(username, password);
-      if (res.success) {
-        router.push("/room");
+      if (isLogin) {
+        const res = await loginAction(username, password);
+        if (res.success) {
+          router.push("/room");
+        } else {
+          setError(res.message || "Login failed");
+        }
       } else {
-        setError(res.message || "Login failed");
+        const res = await signupAction(username, password, accessCode, roomCode);
+        if (res.success) {
+          router.push("/room");
+        } else {
+          setError(res.message || "Signup failed");
+        }
       }
     } catch (err) {
       setError("An unexpected error occurred");
@@ -32,8 +44,8 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-white text-black">
-      <section className="auth-card border border-gray-200 shadow-sm bg-white" role="dialog" aria-modal="true" style={{maxWidth: '400px', width: '100%', padding: '32px', borderRadius: '16px', position: 'relative'}}>
+    <div className="flex h-screen w-full items-center justify-center bg-white text-black overflow-y-auto">
+      <section className="auth-card border border-gray-200 shadow-sm bg-white m-4" role="dialog" aria-modal="true" style={{maxWidth: '400px', width: '100%', padding: '32px', borderRadius: '16px', position: 'relative'}}>
         <button className="close-btn" aria-label="Return to library" onClick={() => router.push("/")} style={{position: 'absolute', top: '16px', right: '16px', color: 'black', background: 'transparent', border: 'none', cursor: 'pointer'}}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M18 6 6 18M6 6l12 12"/>
@@ -41,9 +53,9 @@ export default function AuthPage() {
         </button>
         <div className="auth-mark text-black text-center text-2xl mb-4" aria-hidden="true">✦</div>
         <p className="eyebrow text-gray-500 text-xs tracking-widest uppercase text-center mb-2">Private space</p>
-        <h2 className="text-2xl font-bold mb-2 text-center text-black">Welcome back</h2>
+        <h2 className="text-2xl font-bold mb-2 text-center text-black">{isLogin ? "Welcome back" : "Create Account"}</h2>
         <p className="text-sm text-gray-500 mb-6 text-center">
-          Enter your details to open your room.
+          {isLogin ? "Enter your details to open your room." : "Sign up to join the private room."}
         </p>
 
         {error && <div className="mb-4 p-3 bg-gray-100 text-black border border-gray-300 rounded text-sm text-center font-medium">{error}</div>}
@@ -61,7 +73,7 @@ export default function AuthPage() {
             />
           </label>
 
-          <label className="field-label block mb-6 relative">
+          <label className="field-label block mb-4 relative">
             <span className="block text-sm font-semibold mb-1 text-black">Password</span>
             <div className="relative">
               <input 
@@ -87,10 +99,49 @@ export default function AuthPage() {
             </div>
           </label>
 
-          <button className="w-full p-3 rounded-full bg-black text-white font-bold hover:bg-gray-800 transition-colors" type="submit" disabled={isLoading}>
-            {isLoading ? "Please wait..." : "Log in"}
+          {!isLogin && (
+            <>
+              <label className="field-label block mb-4">
+                <span className="block text-sm font-semibold mb-1 text-black">Access Code</span>
+                <input 
+                  type="password" 
+                  required 
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value)}
+                  placeholder="Gate code" 
+                  className="w-full p-3 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
+                />
+              </label>
+              <label className="field-label block mb-6">
+                <span className="block text-sm font-semibold mb-1 text-black">Room Secret (Optional)</span>
+                <input 
+                  type="password" 
+                  value={roomCode}
+                  onChange={(e) => setRoomCode(e.target.value)}
+                  placeholder="Secret for new room" 
+                  className="w-full p-3 border border-gray-300 rounded-lg bg-white text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
+                />
+              </label>
+            </>
+          )}
+
+          <button className="w-full p-3 rounded-full bg-black text-white font-bold hover:bg-gray-800 transition-colors mb-4" type="submit" disabled={isLoading}>
+            {isLoading ? "Please wait..." : (isLogin ? "Log in" : "Sign up")}
           </button>
         </form>
+
+        <div className="text-center">
+          <button 
+            type="button" 
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setError("");
+            }} 
+            className="text-sm text-gray-500 hover:text-black underline transition-colors"
+          >
+            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Log in"}
+          </button>
+        </div>
       </section>
     </div>
   );

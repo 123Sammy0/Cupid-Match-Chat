@@ -31,19 +31,25 @@
 /* ══ TOKENS ════════════════════════════════════════════════ */
 :root {
   /* Primary palette — Organic Editorial */
-  --ink:          #1C2B1F;
-  --ink-80:       rgba(28, 43, 31, 0.80);
-  --ink-40:       rgba(28, 43, 31, 0.40);
-  --ink-15:       rgba(28, 43, 31, 0.15);
-  --ink-08:       rgba(28, 43, 31, 0.08);
-  --ink-04:       rgba(28, 43, 31, 0.04);
+  --white:        #FFFFFF;
+  --black:        #111111;
+  --red:          #E60023; /* Pinterest Red */
+  --red-hover:    #B3001B;
+  --gray-light:   #F0F0F0;
+  --gray:         #767676;
 
-  --cream:        #FAF6EE;
-  --parchment:    #F0E8D8;
-  --paper:        #E8DEC8;
-  --sand:         #C9B99A;
-
-  --eucalyptus:   #4F8B6E;
+  /* Semantic - 70% White, 20% Red, 10% Black */
+  --bg:           #FFFFFF;
+  --bg-alt:       #FFFFFF;
+  --text:         var(--black);
+  --text-muted:   var(--gray);
+  --text-faint:   #AAAAAA;
+  --ink:          var(--black);
+  --ink-04:       rgba(0,0,0,0.04);
+  --ink-08:       rgba(0,0,0,0.08);
+  --ink-15:       rgba(0, 0, 0, 0.15);
+  
+  --eucalyptus:   var(--red);
   --eucalyptus-l: #7AAF94;
   --moss:         #3E4B3A;
 
@@ -54,18 +60,12 @@
   --gold-l:       #C8B06A;
   --chartreuse:   #D8C878;
 
-  --white:        #FFFFFF;
-  --black:        #0A0F0B;
+  --sand:         #C9B99A;
 
   /* Semantic */
-  --bg:           var(--cream);
-  --bg-alt:       var(--parchment);
-  --text:         var(--ink);
-  --text-muted:   #5A6B5D;
-  --text-faint:   #8A9E8D;
-  --accent:       var(--eucalyptus);
+  --accent:       var(--red);
   --accent-warm:  var(--peach);
-  --border:       var(--ink-15);
+  --border:       var(--gray-light);
   --border-faint: var(--ink-08);
 
   /* Typography */
@@ -248,9 +248,7 @@ button, input, select, textarea {
   align-items: center;
   gap: var(--space-5);
   padding: 0 var(--space-6);
-  background: rgba(250, 246, 238, 0.92);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  background: #FFFFFF;
   border-bottom: 1px solid var(--border-faint);
 }
 
@@ -397,7 +395,7 @@ button, input, select, textarea {
   left: 0;
   width: 260px;
   height: calc(100dvh - var(--topbar-h));
-  background: var(--cream);
+  background: #FFFFFF;
   border-right: 1px solid var(--border-faint);
   z-index: 200;
   transform: translateX(-100%);
@@ -435,9 +433,7 @@ button, input, select, textarea {
   position: sticky;
   top: var(--topbar-h);
   z-index: 90;
-  background: rgba(250, 246, 238, 0.90);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  background: #FFFFFF;
   border-bottom: 1px solid var(--border-faint);
 }
 
@@ -468,14 +464,12 @@ button, input, select, textarea {
   transition: color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
 }
 .chip:hover {
-  color: var(--ink);
-  background: var(--ink-04);
-  border-color: var(--ink-08);
+  background: var(--bg-alt);
+  color: var(--black);
 }
 .chip.active {
+  background: var(--red);
   color: var(--white);
-  background: var(--ink);
-  border-color: var(--ink);
 }
 
 /* ══ HERO ════════════════════════════════════════════════════ */

@@ -4,6 +4,24 @@ import { useEffect, useState, useRef } from "react";
 import Head from "next/head";
 import { fetchPexelsImages } from "@/app/actions/pexels";
 
+const STUDENT_QUOTES = [
+  "Study hard, stay focused. 📚",
+  "Ilm hasil karo, chahe China jana pade. - Arabic Proverb",
+  "Man jadda wa jada (Whoever strives shall succeed) 🌟",
+  "Push yourself, because no one else is going to do it for you.",
+  "Padhai is not a chore, it's a step towards your dream. ✨",
+  "Sabar ka phal meetha hota hai.",
+  "Your future is created by what you do today.",
+  "Tough times never last, but tough people do.",
+  "Al-ilm noorun (Knowledge is light) 💡",
+  "Mehnat itni khamoshi se karo ki kamyabi shor macha de.",
+  "Every expert was once a beginner.",
+  "Dream big. Work hard. Stay focused.",
+  "Waqt sabko milta hai zindagi badalne ke liye...",
+  "Talab-e-ilm har musalman par farz hai. 📖",
+  "Fall seven times, stand up eight."
+];
+
 export default function Home() {
   const [isDrawerOpen, setDrawerOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("all");
@@ -65,7 +83,7 @@ export default function Home() {
         };
         fetchMore();
       }
-    }, { rootMargin: '200px' });
+    }, { rootMargin: '1200px' });
     
     if (loadMoreRef.current) observerRef.current.observe(loadMoreRef.current);
     
@@ -135,7 +153,6 @@ export default function Home() {
           <p className="hero-sub">A small shelf of books, thoughts, and gentle visual notes for unhurried days.</p>
           <div className="hero-actions">
             <button className="btn btn-primary" style={{backgroundColor: "var(--red)"}}>Explore collection</button>
-            <button className="btn btn-ghost">View shelves</button>
           </div>
         </div>
         <div className="hero-visual" aria-hidden="true">
@@ -147,9 +164,23 @@ export default function Home() {
 
       <section className="pins-section" id="collection" aria-label="Books and inspiration">
         <div className="pins-grid" id="pinsGrid" role="list" aria-label="Pin collection">
-          {pins.map((pin) => (
+          {pins.map((pin, index) => (
             <div key={pin.id} className="pin-card" style={{position: 'relative'}}>
               <img src={pin.src?.large2x || pin.src?.large || pin.src} alt={pin.alt || "Aesthetic"} loading="lazy" style={{display: 'block', width: '100%', borderRadius: '16px'}} />
+              
+              <div style={{
+                position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '24px', pointerEvents: 'none', zIndex: 1
+              }}>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(4px)', padding: '16px',
+                  borderRadius: '12px', textAlign: 'center', fontFamily: 'var(--font-display)',
+                  color: 'var(--ink)', fontSize: '14px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  width: '100%'
+                }}>
+                  {STUDENT_QUOTES[index % STUDENT_QUOTES.length]}
+                </div>
+              </div>
               <div className="pin-overlay" style={{
                 position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, 
                 transition: 'opacity 0.2s', display: 'flex', flexDirection: 'column', 
@@ -175,9 +206,12 @@ export default function Home() {
         
         <div ref={loadMoreRef} className="load-more-wrap" style={{padding: '40px 0', textAlign: 'center', minHeight: '100px'}}>
           {isLoading && (
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="3" style={{animation: 'spin 1s linear infinite', margin: '0 auto'}}>
-              <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10" />
-            </svg>
+            <button className="btn btn-ghost" disabled style={{ opacity: 0.7, cursor: 'default' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{animation: 'spin 1s linear infinite', marginRight: '8px', display: 'inline-block'}}>
+                <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10" />
+              </svg>
+              Loading more images...
+            </button>
           )}
           {!hasMore && pins.length > 0 && <p style={{color: 'var(--text-muted)'}}>You've reached the end.</p>}
         </div>
