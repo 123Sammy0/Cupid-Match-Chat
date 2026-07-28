@@ -11,8 +11,25 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [numCols, setNumCols] = useState(5);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const updateCols = () => {
+      if (window.innerWidth < 640) setNumCols(2);
+      else if (window.innerWidth < 1000) setNumCols(3);
+      else if (window.innerWidth < 1280) setNumCols(4);
+      else setNumCols(5);
+    };
+    updateCols();
+    window.addEventListener("resize", updateCols);
+    return () => window.removeEventListener("resize", updateCols);
+  }, []);
+
+  // Split pins into columns
+  const columnArrays = Array.from({ length: numCols }, () => [] as any[]);
+  pins.forEach((pin, i) => columnArrays[i % numCols].push(pin));
 
   const toggleDrawer = () => setDrawerOpen(!isDrawerOpen);
 
@@ -149,30 +166,34 @@ export default function Home() {
       </section>
 
       <section className="pins-section" id="collection" aria-label="Books and inspiration">
-        <div className="pins-grid" id="pinsGrid" role="list" aria-label="Pin collection">
-          {pins.map((pin, index) => (
-            <div key={pin.id} className="pin-card" style={{position: 'relative'}}>
-              <img src={pin.src?.large2x || pin.src?.large || pin.src} alt={pin.alt || "Aesthetic"} loading="lazy" style={{display: 'block', width: '100%', borderRadius: '16px'}} />
+        <div className="flex justify-center w-full" style={{ gap: '14px', alignItems: 'flex-start' }} id="pinsGrid" role="list" aria-label="Pin collection">
+          {columnArrays.map((colPins, colIndex) => (
+            <div key={colIndex} className="flex flex-col flex-1 min-w-0" style={{ gap: '14px' }}>
+              {colPins.map((pin) => (
+                <div key={pin.id} className="pin-card" style={{position: 'relative', margin: 0, breakInside: 'avoid'}}>
+                  <img src={pin.src?.large2x || pin.src?.large || pin.src} alt={pin.alt || "Aesthetic"} loading="lazy" style={{display: 'block', width: '100%', borderRadius: '16px'}} />
 
-              <div className="pin-overlay" style={{
-                position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, 
-                transition: 'opacity 0.2s', display: 'flex', flexDirection: 'column', 
-                justifyContent: 'space-between', padding: '12px', borderRadius: '16px'
-              }}>
-                <button style={{
-                  alignSelf: 'flex-end', background: 'var(--red)', color: 'white', border: 'none', 
-                  borderRadius: '24px', padding: '10px 16px', fontWeight: 'bold', cursor: 'pointer'
-                }}>Save</button>
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                  <a href={pin.url || "#"} target="_blank" rel="noopener noreferrer" style={{
-                    background: 'rgba(255,255,255,0.9)', color: 'black', padding: '8px 12px', 
-                    borderRadius: '20px', fontWeight: 'bold', fontSize: '12px', textDecoration: 'none'
-                  }}>Visit site</a>
-                  <button style={{width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.9)', border: 'none', cursor: 'pointer'}}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="black" style={{margin: 'auto'}}><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
-                  </button>
+                  <div className="pin-overlay" style={{
+                    position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, 
+                    transition: 'opacity 0.2s', display: 'flex', flexDirection: 'column', 
+                    justifyContent: 'space-between', padding: '12px', borderRadius: '16px'
+                  }}>
+                    <button style={{
+                      alignSelf: 'flex-end', background: 'var(--red)', color: 'white', border: 'none', 
+                      borderRadius: '24px', padding: '10px 16px', fontWeight: 'bold', cursor: 'pointer'
+                    }}>Save</button>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                      <a href={pin.url || "#"} target="_blank" rel="noopener noreferrer" style={{
+                        background: 'rgba(255,255,255,0.9)', color: 'black', padding: '8px 12px', 
+                        borderRadius: '20px', fontWeight: 'bold', fontSize: '12px', textDecoration: 'none'
+                      }}>Visit site</a>
+                      <button style={{width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.9)', border: 'none', cursor: 'pointer'}}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="black" style={{margin: 'auto'}}><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
           ))}
         </div>
