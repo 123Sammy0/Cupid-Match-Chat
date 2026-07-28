@@ -44,14 +44,15 @@ export async function signupAction(username: string, password: string) {
       return { success: false, message: "Please enter the gate access code first." };
     }
 
-    // 1. Check max users (only 2 allowed)
+    // 1. Check if first user to assign admin role
     const { count } = await supabase.from('profiles').select('id', { count: 'exact' });
-    if (count && count >= 2) {
-      return { success: false, message: "Registration is closed." };
-    }
+    const role = (count === 0) ? 'admin' : 'partner';
+
+    // 2. Format and validate username
+    const cleanUsername = username.toLowerCase().replace(/\s+/g, '');
+    const email = `${cleanUsername}@cupid.com`;
 
     // 3. Create user in Supabase Auth
-    const email = `${username.toLowerCase()}@cupid.com`;
     const { data, error } = await authClient.auth.signUp({
       email,
       password,
@@ -62,10 +63,9 @@ export async function signupAction(username: string, password: string) {
     }
 
     // 4. Create profile
-    const role = (count === 0) ? 'admin' : 'partner';
     const { error: profileError } = await supabase.from('profiles').insert({
       id: data.user.id,
-      username,
+      username: cleanUsername,
       role,
       active: true,
       last_login_at: new Date().toISOString()
@@ -77,9 +77,35 @@ export async function signupAction(username: string, password: string) {
       return { success: false, message: "Failed to create profile." };
     }
 
-
     return { success: true };
   } catch (err) {
     return { success: false, message: "An unexpected error occurred." };
+  }
+}
+
+export async function checkUsernameAvailability(username: string) {
+  try {
+    const supabase = createAdminClient();
+    const cleanUsername = username.toLowerCase().replace(/\s+/g, '');
+    
+    // Reserved usernames
+    const reserved = ['admin', 'system', 'support', 'root', 'cupid'];
+    if (reserved.includes(cleanUsername)) {
+      return { available: false, message: "This username is reserved." };
+    }
+
+    if (cleanUsername.length < 3) {
+      return { available: false, message: "Username must be at least 3 characters." };
+    }
+
+    const { data } = await supabase.from('profiles').select('id').eq('username', cleanUsername).single();
+    if (data) {
+      return { available: false, message: "Username is already taken." };
+    }
+
+    return { available: true };
+  } catch (err) {
+    // If no row is found, .single() throws an error (PGRST116), which means it's available!
+    return { available: true };
   }
 }

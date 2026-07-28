@@ -1,104 +1,167 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { getConversations, getPendingRequests, acceptChatRequest, rejectChatRequest } from "@/app/actions/chat";
+import NewChatModal from "@/components/NewChatModal";
 
-function generateRoomCode() {
-  const words = ["moonlight", "stardust", "velvet", "ocean", "silent", "forest", "whisper", "echo", "ember", "dawn"];
-  const word = words[Math.floor(Math.random() * words.length)];
-  const num = Math.floor(Math.random() * 90) + 10;
-  return `${word}-${num}`;
-}
-
-export default function RoomSelector() {
-  const [showJoin, setShowJoin] = useState(false);
-  const [joinCode, setJoinCode] = useState("");
-  const [createdCode, setCreatedCode] = useState("");
+export default function ChatHome() {
   const router = useRouter();
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [showNewChat, setShowNewChat] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleJoin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (joinCode.trim()) {
-      router.push(`/room/${joinCode.trim()}`);
+  const loadData = async () => {
+    setIsLoading(true);
+    const [convs, reqs] = await Promise.all([
+      getConversations(),
+      getPendingRequests()
+    ]);
+    setConversations(convs);
+    setPendingRequests(reqs);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+    // Ideally we would set up a realtime subscription here for new requests and messages
+  }, []);
+
+  const handleAcceptRequest = async (id: string) => {
+    const res = await acceptChatRequest(id);
+    if (res.success) {
+      loadData();
     }
   };
 
-  const handleCreate = () => {
-    const code = generateRoomCode();
-    setCreatedCode(code);
-    setShowJoin(false);
-  };
-
-  const enterCreated = () => {
-    if (createdCode) {
-      router.push(`/room/${createdCode}`);
+  const handleRejectRequest = async (id: string) => {
+    const res = await rejectChatRequest(id);
+    if (res.success) {
+      setPendingRequests(prev => prev.filter(r => r.id !== id));
     }
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-white text-black">
-      <section className="auth-card room-card border border-gray-200 shadow-sm bg-white" role="dialog" aria-modal="true" style={{maxWidth: '450px', width: '100%', padding: '32px', borderRadius: '16px'}}>
-        <div className="room-header mb-6">
-          <div className="auth-mark text-black text-2xl mb-4" aria-hidden="true">✦</div>
-          <div>
-            <p className="eyebrow text-gray-500 text-xs tracking-widest uppercase mb-2">Private room</p>
-            <h2 className="text-2xl font-bold mb-1 text-black">Your private space</h2>
-            <p className="room-subtitle text-gray-500 text-sm">Welcome back.</p>
-          </div>
-        </div>
-
-        <div className="room-options flex flex-col gap-4">
-          <div className="room-option border border-gray-300 rounded-lg p-4 cursor-pointer hover:border-black transition-colors" onClick={handleCreate}>
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-semibold text-black">Create a room</p>
-                <p className="text-sm text-gray-500">Start a new private chat.</p>
-              </div>
-              <button className="px-4 py-2 bg-black text-white rounded-full text-sm font-semibold hover:bg-gray-800 transition-colors">Create</button>
+    <div className="flex h-screen w-full items-center justify-center bg-[#FAF6EE] text-black">
+      <section className="bg-white shadow-xl relative w-full max-w-[450px] h-full sm:h-[90vh] sm:rounded-[32px] overflow-hidden flex flex-col border border-gray-100">
+        
+        {/* Top Bar */}
+        <header className="px-6 pt-8 pb-4 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <span className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center font-bold">✦</span>
+              <h1 className="text-xl font-bold tracking-tight">Messages</h1>
             </div>
+            <button onClick={() => router.push('/settings')} className="p-2 -mr-2 text-gray-400 hover:text-black transition-colors rounded-full hover:bg-gray-100" aria-label="Settings">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
           </div>
+          
+          <div className="relative">
+            <input 
+              type="text" 
+              placeholder="Search conversations..." 
+              className="w-full bg-gray-100 text-black rounded-2xl py-3 px-10 focus:outline-none focus:ring-2 focus:ring-black/5 transition-all"
+            />
+            <svg className="absolute left-3.5 top-3.5 text-gray-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          </div>
+        </header>
 
-          <div className="room-divider text-center text-sm text-gray-400 my-2"><span>or</span></div>
-
-          <div className="room-option border border-gray-300 rounded-lg p-4 cursor-pointer hover:border-black transition-colors" onClick={() => { setShowJoin(true); setCreatedCode(""); }}>
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="font-semibold text-black">Join a room</p>
-                <p className="text-sm text-gray-500">Enter a code you were given.</p>
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-4 pb-24">
+          
+          {/* Pending Requests */}
+          {pendingRequests.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-2 mb-3">Requests ({pendingRequests.length})</h3>
+              <div className="space-y-2">
+                {pendingRequests.map(req => (
+                  <div key={req.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center font-bold">
+                        {req.profiles?.username?.charAt(0).toUpperCase()}
+                      </div>
+                      <p className="font-semibold">{req.profiles?.username}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleRejectRequest(req.id)} className="w-8 h-8 flex items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                      </button>
+                      <button onClick={() => handleAcceptRequest(req.id)} className="w-8 h-8 flex items-center justify-center rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-
-          {showJoin && (
-            <form onSubmit={handleJoin} className="mt-4 p-4 border border-gray-300 rounded-lg bg-white">
-              <label className="block text-sm font-semibold mb-2 text-black">
-                Enter room code
-                <input 
-                  type="text" 
-                  value={joinCode}
-                  onChange={(e) => setJoinCode(e.target.value)}
-                  required 
-                  placeholder="e.g. moonlight-27" 
-                  className="w-full mt-2 p-3 border border-gray-300 rounded-lg text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
-                />
-              </label>
-              <button className="w-full py-3 mt-2 bg-black text-white rounded-full font-bold hover:bg-gray-800 transition-colors" type="submit">Join chat</button>
-            </form>
           )}
+
+          {/* Conversation List */}
+          <div>
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest px-2 mb-2">Recent</h3>
+            
+            {isLoading ? (
+              <div className="px-2 py-4 text-center text-sm text-gray-400 animate-pulse">Loading...</div>
+            ) : conversations.length === 0 ? (
+              <div className="px-2 py-10 text-center opacity-50 flex flex-col items-center justify-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-gray-400"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <p className="text-gray-500 font-medium">No conversations yet.</p>
+                <p className="text-gray-400 text-sm mt-1">Tap + to start a new chat.</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {conversations.map(conv => (
+                  <div 
+                    key={conv.id} 
+                    onClick={() => router.push(`/room/${conv.id}`)}
+                    className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-2xl cursor-pointer transition-colors group relative"
+                  >
+                    <div className="relative">
+                      <div className="w-14 h-14 bg-black text-white rounded-[20px] flex items-center justify-center font-bold text-xl shadow-sm group-hover:scale-105 transition-transform">
+                        {conv.other_user?.username?.charAt(0).toUpperCase()}
+                      </div>
+                      {/* Online dot placeholder */}
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center mb-1">
+                        <h4 className="font-bold text-base truncate pr-2">{conv.other_user?.username}</h4>
+                        <span className="text-xs text-gray-400 font-medium whitespace-nowrap">
+                          {new Date(conv.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500 truncate font-medium">Tap to open conversation...</p>
+                    </div>
+
+                    {/* Unread Badge placeholder (Logic will be tied to messages) */}
+                    {/* <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center">
+                      <span className="text-[10px] font-bold text-white">2</span>
+                    </div> */}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {createdCode && (
-          <div className="mt-6 p-4 border border-gray-300 bg-gray-50 rounded-lg text-center">
-            <p className="text-sm text-black font-semibold mb-2">Your room code</p>
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <span className="text-2xl tracking-widest font-mono font-bold text-black">{createdCode}</span>
-              <button className="text-xs border border-gray-300 px-3 py-1 rounded-full bg-white text-black hover:bg-gray-100 transition-colors" onClick={() => navigator.clipboard.writeText(createdCode)}>Copy</button>
-            </div>
-            <p className="text-xs text-gray-500 mb-4">Share this code with your person.</p>
-            <button className="w-full py-3 bg-black text-white rounded-full font-bold hover:bg-gray-800 transition-colors" onClick={enterCreated}>Enter room</button>
-          </div>
-        )}
+        {/* Floating Action Button */}
+        <button 
+          onClick={() => setShowNewChat(true)}
+          className="absolute bottom-8 right-6 w-14 h-14 bg-black text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.2)] hover:bg-gray-800 transition-all hover:scale-105 active:scale-95 z-20"
+          aria-label="New chat"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+
       </section>
+
+      {/* New Chat Modal overlay */}
+      {showNewChat && <NewChatModal onClose={() => setShowNewChat(false)} onChatCreated={loadData} />}
     </div>
   );
 }
