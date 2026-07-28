@@ -287,9 +287,9 @@ export default function AuthPage() {
           )}
 
           <button 
-            className="w-full py-3.5 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-all active:scale-[0.98] disabled:opacity-70 disabled:active:scale-100 mt-2 shadow-sm" 
+            className={`w-full py-3.5 rounded-xl font-bold transition-all active:scale-[0.98] mt-2 shadow-sm ${isLoading ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-black text-white hover:bg-gray-800'}`}
             type="submit" 
-            disabled={isLoading || (!isLogin && usernameStatus !== 'available') || (!isLogin && (!doPasswordsMatch || strengthValue < 3))}
+            disabled={isLoading}
           >
             {isLoading ? "Please wait..." : (isLogin ? "Log in" : "Create Account")}
           </button>
