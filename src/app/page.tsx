@@ -4,24 +4,6 @@ import { useEffect, useState, useRef } from "react";
 import Head from "next/head";
 import { fetchPexelsImages } from "@/app/actions/pexels";
 
-const STUDENT_QUOTES = [
-  "Study hard, stay focused. 📚",
-  "Ilm hasil karo, chahe China jana pade. - Arabic Proverb",
-  "Man jadda wa jada (Whoever strives shall succeed) 🌟",
-  "Push yourself, because no one else is going to do it for you.",
-  "Padhai is not a chore, it's a step towards your dream. ✨",
-  "Sabar ka phal meetha hota hai.",
-  "Your future is created by what you do today.",
-  "Tough times never last, but tough people do.",
-  "Al-ilm noorun (Knowledge is light) 💡",
-  "Mehnat itni khamoshi se karo ki kamyabi shor macha de.",
-  "Every expert was once a beginner.",
-  "Dream big. Work hard. Stay focused.",
-  "Waqt sabko milta hai zindagi badalne ke liye...",
-  "Talab-e-ilm har musalman par farz hai. 📖",
-  "Fall seven times, stand up eight."
-];
-
 export default function Home() {
   const [isDrawerOpen, setDrawerOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("all");
@@ -39,7 +21,9 @@ export default function Home() {
     let isMounted = true;
     const fetchInitial = async () => {
       setIsLoading(true);
-      const query = activeCategory === 'all' ? 'aesthetic' : activeCategory;
+      const query = activeCategory === 'all' 
+        ? 'aesthetic quotes' 
+        : (activeCategory.includes('quotes') ? activeCategory : `${activeCategory} quotes`);
       const res = await fetchPexelsImages(query, 1, 15);
       if (isMounted) {
         if (res.photos && res.photos.length > 0) {
@@ -65,7 +49,9 @@ export default function Home() {
       if (entries[0].isIntersecting && hasMore && !isLoading) {
         const fetchMore = async () => {
           setIsLoading(true);
-          const query = activeCategory === 'all' ? 'aesthetic' : activeCategory;
+          const query = activeCategory === 'all' 
+            ? 'aesthetic quotes' 
+            : (activeCategory.includes('quotes') ? activeCategory : `${activeCategory} quotes`);
           const res = await fetchPexelsImages(query, page, 15);
           
           if (res.photos && res.photos.length > 0) {
@@ -138,7 +124,7 @@ export default function Home() {
 
       <div className="chip-bar" id="shelves" role="navigation" aria-label="Browse by category">
         <div className="chip-scroll">
-          {["All", "Sunsets", "Quiet places", "Nature", "Skies", "Clouds", "Ocean", "Weekend"].map((cat) => (
+          {["All", "Aesthetic Quotes", "Motivational", "Study", "Short Quotes", "Life", "Inspirational", "Meaningful"].map((cat) => (
             <button key={cat} className={`chip ${activeCategory === cat.toLowerCase() ? "active" : ""}`} onClick={() => setActiveCategory(cat.toLowerCase())}>
               {cat}
             </button>
@@ -167,20 +153,7 @@ export default function Home() {
           {pins.map((pin, index) => (
             <div key={pin.id} className="pin-card" style={{position: 'relative'}}>
               <img src={pin.src?.large2x || pin.src?.large || pin.src} alt={pin.alt || "Aesthetic"} loading="lazy" style={{display: 'block', width: '100%', borderRadius: '16px'}} />
-              
-              <div style={{
-                position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '24px', pointerEvents: 'none', zIndex: 1
-              }}>
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(4px)', padding: '16px',
-                  borderRadius: '12px', textAlign: 'center', fontFamily: 'var(--font-display)',
-                  color: 'var(--ink)', fontSize: '14px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                  width: '100%'
-                }}>
-                  {STUDENT_QUOTES[index % STUDENT_QUOTES.length]}
-                </div>
-              </div>
+
               <div className="pin-overlay" style={{
                 position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, 
                 transition: 'opacity 0.2s', display: 'flex', flexDirection: 'column', 
