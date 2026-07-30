@@ -52,10 +52,11 @@ export async function signupAction(username: string, password: string) {
     const cleanUsername = username.toLowerCase().replace(/\s+/g, '');
     const email = `${cleanUsername}@cupid.com`;
 
-    // 3. Create user in Supabase Auth
-    const { data, error } = await authClient.auth.signUp({
+    // 3. Create user in Supabase Auth using Admin API (bypasses rate limits and auto-confirms)
+    const { data, error } = await supabase.auth.admin.createUser({
       email,
       password,
+      email_confirm: true,
     });
 
     if (error || !data.user) {
@@ -75,6 +76,12 @@ export async function signupAction(username: string, password: string) {
       // rollback auth user creation if profile creation fails
       await supabase.auth.admin.deleteUser(data.user.id);
       return { success: false, message: "Failed to create profile." };
+    }
+
+    // 5. Sign the user in to establish the session
+    const { error: signInError } = await authClient.auth.signInWithPassword({ email, password });
+    if (signInError) {
+      return { success: false, message: "Account created, but failed to log in automatically." };
     }
 
     return { success: true };

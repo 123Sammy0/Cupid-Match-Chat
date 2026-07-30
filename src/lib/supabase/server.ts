@@ -29,15 +29,12 @@ export async function createClient() {
 }
 
 export function createAdminClient() {
-  // Service role client bypassing RLS, used only on trusted server actions
-  return createServerClient(
+  // Use @supabase/supabase-js directly to guarantee service_role privileges
+  // @supabase/ssr can sometimes inherit request contexts and inadvertently drop privileges
+  const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
+  return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        getAll() { return [] },
-        setAll() {}
-      }
-    }
-  )
+    { auth: { persistSession: false, autoRefreshToken: false } }
+  );
 }

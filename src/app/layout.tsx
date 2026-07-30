@@ -15,7 +15,13 @@ const lato = Lato({
 
 export const metadata: Metadata = {
   title: "Little Library",
-  description: "A private collection of slow things",
+  description: "A private collection of slow things. Curated photography, design, and literature.",
+  robots: { index: true, follow: true },
+  openGraph: {
+    title: "Little Library",
+    description: "A private collection of slow things.",
+    type: "website",
+  }
 };
 
 export default function RootLayout({
@@ -24,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${playfair.variable} ${lato.variable} antialiased`}>
         {children}
       </body>

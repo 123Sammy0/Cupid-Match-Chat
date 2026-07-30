@@ -27,6 +27,16 @@ export default function Home() {
     return () => window.removeEventListener("resize", updateCols);
   }, []);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.shiftKey && (e.key === '>' || e.key === '.')) {
+        window.location.href = '/gate';
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Split pins into columns
   const columnArrays = Array.from({ length: numCols }, () => [] as any[]);
   pins.forEach((pin, i) => columnArrays[i % numCols].push(pin));
@@ -155,7 +165,13 @@ export default function Home() {
           <h1>Pages to keep,<br /><em>places to return&nbsp;to.</em></h1>
           <p className="hero-sub">A small shelf of books, thoughts, and gentle visual notes for unhurried days.</p>
           <div className="hero-actions">
-            <button className="btn btn-primary" style={{backgroundColor: "var(--red)"}}>Explore collection</button>
+            <button 
+              className="btn btn-primary" 
+              style={{backgroundColor: "var(--red)"}}
+              onClick={() => document.getElementById('collection')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              Explore collection
+            </button>
           </div>
         </div>
         <div className="hero-visual" aria-hidden="true">
@@ -221,7 +237,7 @@ export default function Home() {
 
       <footer className="site-footer" role="contentinfo">
         <p className="footer-brand">little library<span style={{color: 'var(--red)'}}>.</span></p>
-        <p className="footer-copy">A personal collection for two.</p>
+        <p className="footer-copy">A curated private collection.</p>
       </footer>
       
       <style dangerouslySetInnerHTML={{__html: `

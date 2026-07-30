@@ -1,81 +1,31 @@
-# Cupid Match Chat — UI/UX
+# Cupid Match Chat — UI/UX Documentation
 
-## Style
+## Design Philosophy & Benchmark
+The interface must feel **elegant, calm, premium, minimal, modern, and lightweight**. 
 
-Private, warm, calm, and **iPhone-inspired**: grouped rounded cards, clean hierarchy, translucent sheets used sparingly, familiar outline icons, 44 px minimum tap targets, and short subtle motion. Use original assets and icons; do not copy Apple, Instagram, Pinterest, or any other brand.
+- **Inspiration:** Use world-class products like Apple, Linear, Notion, Arc Browser, and Stripe for *quality standards and interaction polish only*. 
+- **Originality:** Do NOT copy layouts, branding, colors, or interactions. Cupid Match Chat must maintain its own unique visual identity.
+- **Palette:** Warm, iPhone-inspired palette. Cream (`#FFF9F4`), rose (`#D97A89`), plum (`#3A2034`), lavender (`#EEE7F7`), and connected green (`#5E9C7D`). Avoid generic bright colors (e.g., Facebook Blue).
 
-Suggested palette: cream `#FFF9F4`, rose `#D97A89`, plum `#3A2034`, lavender `#EEE7F7`, connected green `#5E9C7D`.
+## Core Interfaces
 
-## Landing — Little Library
+### 1. Little Library (Landing Page)
+- A highly aesthetic, Pinterest-style masonry layout of books and gentle quotes.
+- No public login buttons. Access to the app is hidden behind a discreet, keyboard-accessible action.
 
-The opened site looks like a real personal reading/inspiration page.
+### 2. The Gate & Authentication
+- **Gate:** A beautiful, minimal 4-digit PIN entry screen.
+- **Auth:** Login and Signup forms must strictly adhere to the warm color palette. Remove all generic, unbranded default styles.
 
-- Top bar: Little Library, Browse, Collections, search, bookmark icon.
-- Featured book with cover, author, owner-provided note, and “Read notes.”
-- Shelves: Reading now, Quiet classics, Saved for later.
-- Lower masonry board of owner-provided quotes, book images, and calm inspiration cards.
-- Book detail panel: synopsis, tags, saved state, and owner-provided note.
-- No visible chat content or public account discovery.
+### 3. Inbox & Requests (Room List)
+- **Pending Requests:** A compact, elegant section at the top to accept/reject incoming chat connections.
+- **Recent Conversations:** A premium list view showing avatars, usernames, and a preview of the last message/timestamp. 
+- **Interactions:** Hover states and tap targets must be large (44px min), satisfying mobile accessibility and desktop mouse usage seamlessly.
 
-A mutually known, keyboard-accessible secret action opens the private account sheet. It is discreet access, not a promise of invisibility.
+### 4. Conversation View
+- **Messages:** Partner messages left/lavender; own messages right/rose.
+- **Composer:** Auto-growing text area, media attachment buttons, and smooth micro-interactions on send.
+- **Header:** Sticky header with the partner's name, presence indicator, and future hooks for audio/video call buttons.
 
-## Account sheets
-
-### First screen
-
-Little Library shows **Log in** and **Create account** as small, neutral actions.
-
-### Create account
-
-Grouped iPhone-style form fields: Username, Password, Confirm password, Room code, Private access code. Primary button: **Create private account**. Text: “This space is limited to two people.” After two accounts exist, show only login.
-
-### Login
-
-Fields: Username, Password, Private access code. Primary button: **Log in**. Failure text: “The login details don’t match.” Do not say which field was wrong.
-
-### Profile sheet
-
-From chat, the avatar opens a bottom sheet showing username, an Admin badge only for the owner, **Log out**, and **Quick Exit**. Admin additionally sees **Personal settings**.
-
-## Chat
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│ ♥ Cupid Match Chat  Connected · 04:37  [audio] [video] [●] │
-├────────────────────────────────────────────────────────────┤
-│  Partner bubble                            Your bubble     │
-│  [photo/file/voice note preview]                            │
-├────────────────────────────────────────────────────────────┤
-│ [＋] [😊]  Write something…                   [voice] Send │
-└────────────────────────────────────────────────────────────┘
-```
-
-- Partner messages left/lavender; own messages right/rose.
-- Header shows connection and expiry countdown, then audio-call, video-call, and avatar buttons.
-- Composer provides attachment, emoji/sticker, auto-growing text field, voice note, and Send.
-- Attachment previews show filename/type/size, progress, remove/retry.
-- Voice note flow: record, pause, preview, discard, send.
-- At expiry, remove timeline and show “This private room has closed” with Return to Library.
-
-## Calls
-
-- **Audio call:** calm full-screen panel, partner status, timer, mute, speaker/device choice, and prominent End Call.
-- **Video call:** remote video fills the view; draggable local preview in a safe corner; mute/camera/end controls stay visible.
-- Permission failure: “Camera or microphone access is off. Change it in browser settings to call.”
-- Connection failure: “Couldn’t connect. Try again or check your network.”
-
-## Admin screen
-
-Owner-only page with iPhone-style grouped settings:
-
-- **Accounts:** two usernames, active/disabled state; disable/reset/delete partner account.
-- **Room:** update room code and login access-code settings.
-- **App status:** connection state, current cleanup status, storage status only.
-- Do not show chat, files, call history, secrets, or encryption keys.
-
-## Mobile and accessibility
-
-- Keep composer above the mobile keyboard; use bottom sheets for attachment/profile controls.
-- All controls have labels, keyboard focus, readable contrast, and non-color status indicators.
-- Respect reduced-motion preference; announce connection, expiry, and upload states accessibly.
-- Quick Exit immediately stops media, clears local chat state, and returns to Little Library without a detailed toast.
+## Taste Skill Authority
+Every screen must be evaluated against the internal **Taste Skill Authority**. If a layout feels unfinished, template-like, or lacks proper visual hierarchy, balance, and whitespace, it fails the completion criteria and must be improved.

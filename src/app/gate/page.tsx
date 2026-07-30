@@ -20,34 +20,43 @@ export default function Gate() {
     try {
       const result = await verifyAccessCode(pin);
       if (result.success) {
-        router.push("/auth"); // Proceed to login/signup area
+        router.push("/auth");
       } else {
         setError(result.message || "Invalid code");
-        setPin(""); // reset on fail
+        setPin("");
       }
     } catch (err) {
       setError("An error occurred");
+      setPin("");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-[#FAF6EE]">
-      <section className="auth-card" role="dialog" aria-modal="true">
-        <button className="close-btn" aria-label="Return to library" onClick={() => router.push("/")}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <div className="flex h-screen w-full items-center justify-center bg-white text-[#3A2034] font-sans selection:bg-[#D97A89] selection:text-white">
+      <section className="relative w-full max-w-[380px] bg-white p-10 sm:p-12 rounded-[32px] shadow-[0_8px_40px_rgb(0,0,0,0.03)] border border-[#EEE7F7]/50 flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
+        
+        <button 
+          className="absolute top-6 right-6 p-2 text-gray-400 hover:text-[#3A2034] hover:bg-slate-100/60 rounded-full transition-colors" 
+          aria-label="Return to library" 
+          onClick={() => router.push("/")}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <path d="M18 6 6 18M6 6l12 12"/>
           </svg>
         </button>
-        <div className="auth-mark" aria-hidden="true">✦</div>
-        <p className="eyebrow">Private space</p>
-        <h2 className="text-2xl font-semibold mb-2">Gate Entry</h2>
-        <p className="text-sm text-gray-500 mb-6">Enter the 4-digit access code to proceed.</p>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <label className="field-label">
-            Access Code
+        <div className="mb-8 w-12 h-12 bg-slate-100/60 rounded-full flex items-center justify-center text-[#D97A89]" aria-hidden="true">
+          <span className="text-2xl font-serif">✦</span>
+        </div>
+        
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#D97A89] mb-2">Private space</p>
+        <h2 className="text-2xl font-semibold mb-2">Enter PIN</h2>
+        <p className="text-sm text-gray-500 mb-8 text-center">Please provide your 4-digit access code to proceed.</p>
+
+        <form onSubmit={handleSubmit} noValidate className="w-full flex flex-col gap-6">
+          <div className="relative flex justify-center">
             <input 
               type="password" 
               maxLength={4}
@@ -56,17 +65,30 @@ export default function Gate() {
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
               required 
               placeholder="••••" 
-              className="text-center text-2xl tracking-[1em] w-full p-3 border rounded-lg bg-white/50"
+              className="text-center text-4xl tracking-[0.5em] w-full py-4 bg-slate-100/60 border border-transparent focus:border-[#D97A89]/50 focus:bg-white focus:ring-4 focus:ring-[#D97A89]/10 rounded-2xl outline-none transition-all text-[#3A2034] font-mono placeholder-gray-300"
               autoFocus
             />
-          </label>
+          </div>
 
-          <button className="btn btn-primary btn-full mt-6" type="submit" disabled={isLoading || pin.length !== 4}>
-            {isLoading ? "Verifying..." : "Enter"}
+          <button 
+            className="w-full py-3.5 bg-[#3A2034] text-white rounded-2xl font-semibold hover:bg-[#261522] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-[#3A2034]/20 flex items-center justify-center gap-2" 
+            type="submit" 
+            disabled={isLoading || pin.length !== 4}
+          >
+            {isLoading ? (
+              <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : "Unlock"}
           </button>
         </form>
 
-        {error && <p className="form-message mt-4 text-red-500" role="alert">{error}</p>}
+        {error && (
+          <p className="mt-6 text-sm text-[#D97A89] font-medium bg-white px-4 py-2 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300" role="alert">
+            {error}
+          </p>
+        )}
       </section>
     </div>
   );

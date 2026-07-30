@@ -10,8 +10,11 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<any>(null);
   const [bio, setBio] = useState("");
   const [privacy, setPrivacy] = useState({ online_status: "everyone", last_seen: "everyone" });
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+
+  const AVATARS = ["😀", "😎", "🤩", "🦊", "🐼", "🦄", "🐶", "🐱", "🦁", "🐙", "🦋", "🍄", "🍉", "🍕", "🚀", "🎸"];
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -19,6 +22,7 @@ export default function SettingsPage() {
       if (data) {
         setProfile(data);
         setBio(data.bio || "");
+        setAvatarUrl(data.avatar_url || "");
         if (data.privacy_settings) {
           setPrivacy(data.privacy_settings);
         }
@@ -30,12 +34,13 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setIsSaving(true);
     setMessage("");
-    const res = await updateProfile(bio, privacy);
+    const res = await updateProfile(bio, privacy, avatarUrl);
     setIsSaving(false);
     if (res.success) {
-      setMessage("Settings saved successfully.");
+      setMessage("Settings saved successfully! Returning to chats...");
+      setTimeout(() => router.push('/room'), 1500);
     } else {
-      setMessage("Failed to save settings.");
+      setMessage(res.message || "Failed to save settings.");
     }
   };
 
@@ -46,12 +51,12 @@ export default function SettingsPage() {
   };
 
   if (!profile) {
-    return <div className="flex h-screen items-center justify-center bg-[#FAF6EE] text-black">Loading...</div>;
+    return <div className="flex h-screen items-center justify-center bg-white text-black">Loading...</div>;
   }
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-[#FAF6EE] text-black">
-      <section className="bg-white shadow-xl relative w-full max-w-[450px] h-full sm:h-[90vh] sm:rounded-[32px] overflow-hidden flex flex-col border border-gray-100">
+    <div className="flex h-screen w-full items-center justify-center bg-white text-black sm:p-4">
+      <section className="bg-white shadow-[0_8px_40px_rgb(0,0,0,0.06)] relative w-full max-w-[450px] h-full sm:h-[90vh] sm:rounded-[40px] overflow-hidden flex flex-col border border-[#EEE7F7]/60">
         
         {/* Top Bar */}
         <header className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-md text-black z-10 border-b border-gray-100 sticky top-0">
@@ -69,16 +74,30 @@ export default function SettingsPage() {
           {/* Profile Section */}
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="relative">
-              <div className="w-24 h-24 bg-black text-white rounded-full flex items-center justify-center font-bold text-4xl shadow-md">
-                {profile.username.charAt(0).toUpperCase()}
+              <div className="w-24 h-24 bg-gradient-to-br from-[#3A2034] to-[#5a3652] text-white rounded-[30px] flex items-center justify-center font-bold text-5xl shadow-md">
+                {avatarUrl ? avatarUrl : profile.username.charAt(0).toUpperCase()}
               </div>
-              <button className="absolute bottom-0 right-0 p-2 bg-white rounded-full shadow border border-gray-100 hover:bg-gray-50 text-black">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-              </button>
             </div>
             <div>
               <h2 className="text-xl font-bold">{profile.username}</h2>
               <p className="text-sm text-gray-500">@{profile.username}</p>
+            </div>
+          </div>
+
+          {/* Avatar Selector */}
+          <div className="flex flex-col gap-3">
+            <label className="text-sm font-bold text-gray-800 px-1">Choose Avatar</label>
+            <div className="flex items-center gap-3 overflow-x-auto pb-4 px-1 snap-x">
+              {AVATARS.map((av) => (
+                <button
+                  key={av}
+                  onClick={() => setAvatarUrl(av)}
+                  className={`flex-shrink-0 w-14 h-14 rounded-2xl text-2xl flex items-center justify-center transition-all snap-center shadow-sm
+                    ${avatarUrl === av ? 'bg-[#3A2034] border-2 border-[#D97A89] scale-110' : 'bg-gray-100 hover:bg-gray-200 border-2 border-transparent'}`}
+                >
+                  {av}
+                </button>
+              ))}
             </div>
           </div>
 

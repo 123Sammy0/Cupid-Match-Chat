@@ -23,7 +23,7 @@ export default async function AdminDashboard() {
   const { data: auditLogs } = await supabase.from('admin_audit').select('*').order('created_at', { ascending: false }).limit(20);
 
   return (
-    <div className="min-h-screen w-full bg-[#FAF6EE] p-8">
+    <div className="min-h-screen w-full bg-white p-8">
       <div className="max-w-4xl mx-auto bg-white shadow-xl p-8 rounded-2xl border border-gray-100">
         <header className="flex justify-between items-center mb-8 border-b pb-4">
           <div>
