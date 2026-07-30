@@ -27,12 +27,12 @@ export default async function ChatRoomPage({ params }: { params: any }) {
 
   console.log("Chat room debug:", { code, userId: user.id, participantsLength: participants?.length, error });
 
-  if (!participants || !participants.some(p => p.profile_id === user.id)) {
+  if (!participants || !participants.some((p: any) => p.profile_id === user.id)) {
     console.error("Redirecting to /room because not a participant");
     redirect("/room"); // Not a participant
   }
 
-  const otherParticipant = participants.find(p => p.profile_id !== user.id);
+  const otherParticipant = participants.find((p: any) => p.profile_id !== user.id);
 
   return (
     <div className="h-screen w-full bg-white flex flex-col items-center justify-center sm:p-4">

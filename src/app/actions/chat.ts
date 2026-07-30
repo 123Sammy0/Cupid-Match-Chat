@@ -199,7 +199,7 @@ export async function getConversations() {
 
   if (!myParts || myParts.length === 0) return [];
 
-  const convIds = myParts.map(p => p.conversation_id);
+  const convIds = myParts.map((p: any) => p.conversation_id);
 
   // Fetch the OTHER participants to get their profiles
   let otherParts: any[] = [];
@@ -221,8 +221,8 @@ export async function getConversations() {
   }
 
   // Combine data
-  return myParts.map(p => {
-    const other = otherParts?.find(o => o.conversation_id === p.conversation_id);
+  return myParts.map((p: any) => {
+    const other = otherParts?.find((o: any) => o.conversation_id === p.conversation_id);
     return {
       id: p.conversation_id,
       updated_at: (p.conversations as any).updated_at,
@@ -232,5 +232,5 @@ export async function getConversations() {
       other_user: other?.profiles,
       other_user_id: other?.profile_id
     };
-  }).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  }).sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 }

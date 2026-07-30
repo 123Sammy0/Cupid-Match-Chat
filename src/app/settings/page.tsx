@@ -18,7 +18,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const loadProfile = async () => {
-      const data = await getProfile();
+      const data: any = await getProfile();
       if (data) {
         setProfile(data);
         setBio(data.bio || "");
