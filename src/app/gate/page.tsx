@@ -34,8 +34,8 @@ export default function Gate() {
   };
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-white text-[#3A2034] font-sans selection:bg-[#D97A89] selection:text-white">
-      <section className="relative w-full max-w-[380px] bg-white p-10 sm:p-12 rounded-[32px] shadow-[0_8px_40px_rgb(0,0,0,0.03)] border border-[#EEE7F7]/50 flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
+    <div className="flex h-[100dvh] w-full items-center justify-center bg-white text-[#3A2034] font-sans selection:bg-[#D97A89] selection:text-white px-4">
+      <section className="relative w-full max-w-[340px] bg-white p-8 sm:p-10 rounded-[32px] shadow-[0_8px_40px_rgb(0,0,0,0.04)] border border-[#EEE7F7]/60 flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
         
         <button 
           className="absolute top-6 right-6 p-2 text-gray-400 hover:text-[#3A2034] hover:bg-slate-100/60 rounded-full transition-colors" 

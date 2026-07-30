@@ -35,7 +35,7 @@ export default async function ChatRoomPage({ params }: { params: any }) {
   const otherParticipant = participants.find((p: any) => p.profile_id !== user.id);
 
   return (
-    <div className="h-screen w-full bg-white flex flex-col items-center justify-center sm:p-4">
+    <div className="h-[100dvh] w-full bg-white flex flex-col items-center justify-center sm:p-4">
       <div className="w-full max-w-[450px] h-full sm:h-[90vh] sm:rounded-[32px] overflow-hidden flex flex-col bg-white border border-gray-100 shadow-xl relative">
         <ChatClient 
           conversationId={code} 

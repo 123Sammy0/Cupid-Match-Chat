@@ -42,7 +42,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center bg-white text-[#3A2034] p-4 font-sans selection:bg-[#D97A89] selection:text-white overflow-hidden">
+    <div className="relative flex min-h-[100dvh] w-full items-center justify-center bg-white text-[#3A2034] p-4 font-sans selection:bg-[#D97A89] selection:text-white overflow-hidden">
       
       {/* Premium Ambient Background Glows */}
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-[#D97A89]/10 blur-[100px] mix-blend-multiply pointer-events-none animate-pulse duration-1000"></div>

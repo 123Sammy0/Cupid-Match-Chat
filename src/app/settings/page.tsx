@@ -51,11 +51,11 @@ export default function SettingsPage() {
   };
 
   if (!profile) {
-    return <div className="flex h-screen items-center justify-center bg-white text-black">Loading...</div>;
+    return <div className="flex h-[100dvh] items-center justify-center bg-white text-black">Loading...</div>;
   }
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-white text-black sm:p-4">
+    <div className="flex h-[100dvh] w-full items-center justify-center bg-white text-black sm:p-4">
       <section className="bg-white shadow-[0_8px_40px_rgb(0,0,0,0.06)] relative w-full max-w-[450px] h-full sm:h-[90vh] sm:rounded-[40px] overflow-hidden flex flex-col border border-[#EEE7F7]/60">
         
         {/* Top Bar */}
