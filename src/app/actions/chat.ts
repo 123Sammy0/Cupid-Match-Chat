@@ -220,9 +220,32 @@ export async function getConversations() {
     otherParts = otherData || [];
   }
 
+  // Fetch latest message per conversation
+  const { data: allMessages } = await adminSupabase
+    .from('messages')
+    .select('id, conversation_id, sender_id, content, type, sent_at')
+    .in('conversation_id', convIds)
+    .order('sent_at', { ascending: false });
+
   // Combine data
   return myParts.map((p: any) => {
     const other = otherParts?.find((o: any) => o.conversation_id === p.conversation_id);
+    
+    // Get latest message for this conversation
+    const convMessages = (allMessages || []).filter((m: any) => m.conversation_id === p.conversation_id);
+    const lastMsg = convMessages.length > 0 ? convMessages[0] : null;
+    
+    // Count unread: messages from OTHER user sent AFTER my last_read_at
+    let unreadCount = 0;
+    if (p.last_read_at) {
+      unreadCount = convMessages.filter((m: any) => 
+        m.sender_id !== user.id && new Date(m.sent_at) > new Date(p.last_read_at)
+      ).length;
+    } else {
+      // Never read = all messages from other user are unread
+      unreadCount = convMessages.filter((m: any) => m.sender_id !== user.id).length;
+    }
+
     return {
       id: p.conversation_id,
       updated_at: (p.conversations as any).updated_at,
@@ -230,7 +253,70 @@ export async function getConversations() {
       is_archived: p.is_archived,
       last_read_at: p.last_read_at,
       other_user: other?.profiles,
-      other_user_id: other?.profile_id
+      other_user_id: other?.profile_id,
+      last_message: lastMsg ? {
+        content: lastMsg.content,
+        type: lastMsg.type,
+        sender_id: lastMsg.sender_id,
+        sent_at: lastMsg.sent_at
+      } : null,
+      unread_count: unreadCount
     };
-  }).sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  }).sort((a: any, b: any) => {
+    const aTime = a.last_message?.sent_at || a.updated_at;
+    const bTime = b.last_message?.sent_at || b.updated_at;
+    return new Date(bTime).getTime() - new Date(aTime).getTime();
+  });
+}
+
+export async function deleteConversation(conversationId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Unauthorized" };
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createAdminClient();
+
+  // Remove this user from the conversation
+  const { error } = await adminSupabase
+    .from('conversation_participants')
+    .delete()
+    .eq('conversation_id', conversationId)
+    .eq('profile_id', user.id);
+
+  if (error) return { success: false, message: error.message };
+  return { success: true };
+}
+
+export async function blockUser(conversationId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Unauthorized" };
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createAdminClient();
+
+  // Remove user from conversation (block = leave conversation)
+  await adminSupabase
+    .from('conversation_participants')
+    .delete()
+    .eq('conversation_id', conversationId)
+    .eq('profile_id', user.id);
+
+  return { success: true };
+}
+
+export async function markConversationRead(conversationId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createAdminClient();
+
+  await adminSupabase
+    .from('conversation_participants')
+    .update({ last_read_at: new Date().toISOString() })
+    .eq('conversation_id', conversationId)
+    .eq('profile_id', user.id);
 }

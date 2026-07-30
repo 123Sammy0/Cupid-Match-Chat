@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { markConversationRead, blockUser } from "@/app/actions/chat";
 import Image from "next/image";
 
 // Emoji data by category
@@ -71,6 +72,13 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileTypeRef = useRef<"image" | "video" | "audio">("image");
+  // Swipe-to-reply refs
+  const swipeStartX = useRef(0);
+  const swipeMessageRef = useRef<any>(null);
+  const [swipingId, setSwipingId] = useState<string | null>(null);
+  const [swipeDelta, setSwipeDelta] = useState(0);
+  // Read receipts
+  const [otherLastRead, setOtherLastRead] = useState<string | null>(null);
 
   useEffect(() => {
     if (!conversationId) return;
@@ -85,6 +93,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       if (data) setMessages(data);
     };
     fetchMessages();
+    
+    // Mark as read when opening chat
+    markConversationRead(conversationId);
 
     const pollInterval = setInterval(fetchMessages, 3000);
 
@@ -118,20 +129,23 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         const state = channel.presenceState();
         let isOnline = false;
         let typing = false;
+        let lastRead: string | null = null;
         Object.values(state).forEach((presences: any) => {
           presences.forEach((p: any) => {
             if (p.user_id === otherUser?.id) {
               isOnline = true;
               if (p.typing) typing = true;
+              if (p.last_read_at) lastRead = p.last_read_at;
             }
           });
         });
         setOtherUserOnline(isOnline);
         setOtherUserTyping(typing);
+        if (lastRead) setOtherLastRead(lastRead);
       })
       .subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({ user_id: user.id, online_at: new Date().toISOString(), typing: false });
+          await channel.track({ user_id: user.id, online_at: new Date().toISOString(), typing: false, last_read_at: new Date().toISOString() });
         }
       });
 
@@ -156,12 +170,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
     if (!isTypingRef.current && channelRef.current) {
       isTypingRef.current = true;
-      channelRef.current.track({ user_id: user.id, typing: true });
+      channelRef.current.track({ user_id: user.id, typing: true, last_read_at: new Date().toISOString() });
     }
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       isTypingRef.current = false;
-      if (channelRef.current) channelRef.current.track({ user_id: user.id, typing: false });
+      if (channelRef.current) channelRef.current.track({ user_id: user.id, typing: false, last_read_at: new Date().toISOString() });
     }, 1500);
   };
 
@@ -189,7 +203,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     if (inputRef.current) inputRef.current.style.height = 'auto'; // Reset height
     setShowEmojiPicker(false);
     isTypingRef.current = false;
-    if (channelRef.current) channelRef.current.track({ user_id: user.id, typing: false });
+    if (channelRef.current) channelRef.current.track({ user_id: user.id, typing: false, last_read_at: new Date().toISOString() });
 
     const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
     const msgId = crypto.randomUUID();
@@ -222,16 +236,95 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     }
   };
 
+  const handleReact = async (msgId: string, emoji: string) => {
+    setMessageMenu(null);
+    const msg = messages.find(m => m.id === msgId);
+    if (!msg) return;
+
+    let currentReactions = [];
+    try {
+      if (msg.reactions) {
+        currentReactions = typeof msg.reactions === 'string' ? JSON.parse(msg.reactions) : msg.reactions;
+      }
+    } catch {}
+
+    // Toggle reaction
+    const existingIdx = currentReactions.findIndex((r: any) => r.user_id === user.id);
+    if (existingIdx > -1) {
+      if (currentReactions[existingIdx].emoji === emoji) {
+        currentReactions.splice(existingIdx, 1);
+      } else {
+        currentReactions[existingIdx].emoji = emoji;
+      }
+    } else {
+      currentReactions.push({ user_id: user.id, username: profile?.username, emoji });
+    }
+
+    // Optimistic update
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, reactions: currentReactions } : m));
+
+    const { error } = await supabase
+      .from('messages')
+      .update({ reactions: currentReactions })
+      .eq('id', msgId);
+
+    if (error && error.code === '42703') {
+      alert("Please run the SQL command from the walkthrough to enable persistent message reactions!");
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent, msg: any) => {
+    swipeStartX.current = e.touches[0].clientX;
+    swipeMessageRef.current = msg;
+    setSwipingId(msg.id);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!swipingId) return;
+    const delta = e.touches[0].clientX - swipeStartX.current;
+    // Only allow swiping right (positive delta)
+    if (delta > 0 && delta < 120) {
+      setSwipeDelta(delta);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (swipeDelta > 60 && swipeMessageRef.current) {
+      setReplyTo(swipeMessageRef.current);
+      inputRef.current?.focus();
+    }
+    setSwipingId(null);
+    setSwipeDelta(0);
+    swipeMessageRef.current = null;
+  };
+
   const handleClearChat = async () => {
-    if (!confirm("Are you sure you want to clear this chat? This will delete all messages for you.")) return;
+    if (!confirm("Are you sure you want to clear this chat? Your sent messages will be deleted.")) return;
     setShowHeaderMenu(false);
     
-    // Delete all messages in this conversation sent by me, or actually we can't easily delete messages sent by the other person unless RLS allows it.
-    // Wait, the user wants "Clear Chat". The previous DELETE policy only allows deleting own messages.
-    // So "Clear Chat" in a real app usually hides the messages for the current user (e.g. tracking `cleared_at` timestamp in `conversation_participants`).
-    // For now, let's just delete the user's own messages, or just hide them locally. Let's hide locally.
-    setMessages([]);
-    alert("Chat cleared locally (implementing full clear requires DB update).");
+    // Delete all messages sent by this user in this conversation
+    const { error } = await supabase
+      .from('messages')
+      .delete()
+      .eq('conversation_id', conversationId)
+      .eq('sender_id', user.id);
+    
+    if (error) {
+      alert("Failed to clear chat: " + error.message);
+    } else {
+      setMessages(prev => prev.filter(m => m.sender_id !== user.id));
+    }
+  };
+
+  const handleBlock = async () => {
+    if (!confirm(`Block ${otherUser?.username || 'this user'}? This will remove the conversation.`)) return;
+    setShowHeaderMenu(false);
+    const res = await blockUser(conversationId);
+    if (res.success) {
+      router.push('/room');
+    } else {
+      alert("Failed to block user.");
+    }
   };
 
   const insertEmoji = (emoji: string) => {
@@ -298,8 +391,36 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     }
   };
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+    
+    const viewport = window.visualViewport;
+    
+    const handleResize = () => {
+      const vh = viewport?.height;
+      if (!vh) return;
+      const wrapper = document.getElementById('chat-viewport-wrapper');
+      if (wrapper) {
+        wrapper.style.setProperty('height', `${vh}px`, 'important');
+      }
+    };
+    
+    viewport.addEventListener('resize', handleResize);
+    viewport.addEventListener('scroll', handleResize);
+    handleResize();
+    
+    // Fallback: trigger after keyboard opens
+    setTimeout(handleResize, 100);
+    setTimeout(handleResize, 300);
+    
+    return () => {
+      viewport.removeEventListener('resize', handleResize);
+      viewport.removeEventListener('scroll', handleResize);
+    };
+  }, []);
+
   return (
-    <>
+    <div id="chat-viewport-wrapper" className="w-full h-full flex flex-col relative overflow-hidden bg-white">
       {/* Call Modal */}
       {showCallModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCallModal(null)}>
@@ -426,7 +547,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               <button onClick={handleClearChat} className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-slate-50 transition-colors text-red-500">
                 Clear Chat
               </button>
-              <button onClick={() => { setShowHeaderMenu(false); alert("User blocked."); }} className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-slate-50 transition-colors text-red-500">
+              <button onClick={handleBlock} className="w-full px-4 py-2.5 text-left text-sm font-medium hover:bg-slate-50 transition-colors text-red-500">
                 Block
               </button>
             </div>
@@ -469,23 +590,55 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           }
 
           return (
-            <div key={m.id} className={`flex flex-col w-full ${isMine ? 'items-end' : 'items-start'} mb-1`}>
+            <div 
+              key={m.id} 
+              className={`flex flex-col w-full ${isMine ? 'items-end' : 'items-start'} mb-2 relative`}
+              onTouchStart={(e) => handleTouchStart(e, m)}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
+              {/* Swipe icon indicator behind message */}
+              {swipingId === m.id && swipeDelta > 20 && (
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#D97A89] animate-pulse flex items-center gap-1">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+                </div>
+              )}
+
               <div 
                 className={`relative max-w-[85%] text-[15px] shadow-sm leading-relaxed cursor-pointer group ${isMine ? 'bg-[#3A2034] text-white' : 'bg-white border border-gray-100 text-[#3A2034]'} ${showTail && isMine ? 'rounded-[20px] rounded-br-[4px]' : showTail && !isMine ? 'rounded-[20px] rounded-bl-[4px]' : 'rounded-[20px]'}`}
                 onClick={(e) => { e.stopPropagation(); setMessageMenu(m.id === messageMenu ? null : m.id); }}
+                style={{ 
+                  transform: swipingId === m.id ? `translateX(${Math.min(swipeDelta, 80)}px)` : 'none', 
+                  transition: swipingId === m.id ? 'none' : 'transform 0.15s ease-out' 
+                }}
               >
                 
                 {/* Context Menu Dropdown */}
                 {messageMenu === m.id && (
-                  <div className={`absolute top-0 ${isMine ? '-left-32' : '-right-32'} w-28 bg-white border border-gray-100 shadow-xl rounded-xl py-1 z-30 flex flex-col text-sm text-[#3A2034] font-medium animate-in fade-in zoom-in duration-150`}>
-                    <button onClick={(e) => { e.stopPropagation(); setReplyTo(m); setMessageMenu(null); inputRef.current?.focus(); }} className="px-4 py-2 text-left hover:bg-slate-50 transition-colors flex items-center gap-2">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg> Reply
-                    </button>
-                    {isMine && (
-                      <button onClick={(e) => { e.stopPropagation(); handleDelete(m.id); }} className="px-4 py-2 text-left text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Delete
+                  <div className="relative">
+                    {/* Reaction Emojis Row Above Menu */}
+                    <div className={`absolute bottom-full mb-2 ${isMine ? 'right-0' : 'left-0'} bg-white border border-gray-100 shadow-xl rounded-full px-2 py-1.5 z-40 flex items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-150`}>
+                      {["❤️", "👍", "😂", "😮", "😢", "🙏"].map(emoji => (
+                        <button 
+                          key={emoji} 
+                          onClick={(e) => { e.stopPropagation(); handleReact(m.id, emoji); }} 
+                          className="text-lg hover:scale-125 transition-transform px-0.5 active:scale-90"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                    {/* Main Actions Dropdown */}
+                    <div className={`absolute top-0 ${isMine ? '-left-32' : '-right-32'} w-28 bg-white border border-gray-100 shadow-xl rounded-xl py-1 z-30 flex flex-col text-sm text-[#3A2034] font-medium animate-in fade-in zoom-in duration-150`}>
+                      <button onClick={(e) => { e.stopPropagation(); setReplyTo(m); setMessageMenu(null); inputRef.current?.focus(); }} className="px-4 py-2 text-left hover:bg-slate-50 transition-colors flex items-center gap-2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg> Reply
                       </button>
-                    )}
+                      {isMine && (
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(m.id); }} className="px-4 py-2 text-left text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Delete
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
                 
@@ -537,13 +690,47 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   <div className={`flex items-center gap-1 text-[10px] font-bold ${mediaData ? 'absolute bottom-2 right-2 bg-black/40 text-white px-1.5 py-0.5 rounded-full' : (isMine ? 'text-[#D97A89]/90 float-right mt-[8px] -mr-1' : 'text-gray-400 float-right mt-[8px]')}`}>
                     <span>{new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     {isMine && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={mediaData ? 'text-white' : 'text-[#D97A89]'}>
-                        <path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/>
-                      </svg>
+                      (() => {
+                        const isSeen = otherLastRead && new Date(otherLastRead) >= new Date(m.sent_at);
+                        if (isSeen) {
+                          // Blue double check
+                          return (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-sky-400 font-bold ml-0.5">
+                              <path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/>
+                            </svg>
+                          );
+                        }
+                        if (otherUserOnline) {
+                          // Gray double check
+                          return (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 ml-0.5">
+                              <path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/>
+                            </svg>
+                          );
+                        }
+                        // Gray single check
+                        return (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 ml-0.5">
+                            <path d="M18 6 7 17l-5-5"/>
+                          </svg>
+                        );
+                      })()
                     )}
                   </div>
                   {/* Clear float to ensure bubble wraps timestamp */}
                   {!mediaData && <div className="clear-both"></div>}
+
+                  {/* Reactions list at bottom of bubble */}
+                  {m.reactions && m.reactions.length > 0 && (
+                    <div className={`absolute bottom-[-10px] ${isMine ? 'right-4' : 'left-4'} flex items-center gap-0.5 bg-white border border-gray-100 shadow-sm rounded-full px-1.5 py-0.5 z-20`}>
+                      {Array.from(new Set(m.reactions.map((r: any) => r.emoji))).map((emoji: any) => (
+                        <span key={emoji} className="text-[12px]">{emoji}</span>
+                      ))}
+                      {m.reactions.length > 1 && (
+                        <span className="text-[9px] text-gray-400 font-bold ml-0.5">{m.reactions.length}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -785,6 +972,6 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

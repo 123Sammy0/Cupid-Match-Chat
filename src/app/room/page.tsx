@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { getConversations, getPendingRequests, acceptChatRequest, rejectChatRequest } from "@/app/actions/chat";
+import { getConversations, getPendingRequests, acceptChatRequest, rejectChatRequest, deleteConversation } from "@/app/actions/chat";
 import NewChatModal from "@/components/NewChatModal";
 import { createClient } from "@/lib/supabase/client";
 
@@ -12,6 +12,8 @@ export default function ChatHome() {
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [showNewChat, setShowNewChat] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [longPressId, setLongPressId] = useState<string | null>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -56,6 +58,53 @@ export default function ChatHome() {
     if (res.success) {
       setPendingRequests(prev => prev.filter(r => r.id !== id));
     }
+  };
+
+  const handleDeleteConversation = async (convId: string) => {
+    setLongPressId(null);
+    if (!confirm("Delete this conversation? It will be removed from your list.")) return;
+    const res = await deleteConversation(convId);
+    if (res.success) {
+      setConversations(prev => prev.filter(c => c.id !== convId));
+    }
+  };
+
+  const startLongPress = (convId: string) => {
+    longPressTimerRef.current = setTimeout(() => {
+      setLongPressId(convId);
+    }, 500);
+  };
+
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const getLastMessagePreview = (conv: any) => {
+    if (!conv.last_message) return "Tap to open conversation...";
+    const lm = conv.last_message;
+    const isMe = lm.sender_id !== conv.other_user_id;
+    const prefix = isMe ? "You: " : "";
+    
+    if (lm.type === 'image') return prefix + "📷 Photo";
+    if (lm.type === 'video') return prefix + "🎥 Video";
+    if (lm.type === 'audio') return prefix + "🎵 Audio";
+    
+    // Try to parse JSON content (reply or media)
+    try {
+      if (lm.content.startsWith('{')) {
+        const parsed = JSON.parse(lm.content);
+        if (parsed.replyTo) return prefix + parsed.text;
+        if (parsed.type === 'image') return prefix + "📷 Photo";
+        if (parsed.type === 'video') return prefix + "🎥 Video";
+        if (parsed.type === 'audio') return prefix + "🎵 Audio";
+        return prefix + lm.content;
+      }
+    } catch {}
+    
+    return prefix + lm.content;
   };
 
   return (
@@ -147,8 +196,12 @@ export default function ChatHome() {
                 {conversations.map(conv => (
                   <div 
                     key={conv.id} 
-                    onClick={() => router.push(`/room/${conv.id}`)}
-                    className="flex items-center gap-4 p-3 hover:bg-slate-100 rounded-2xl cursor-pointer transition-colors group relative animate-in fade-in slide-in-from-bottom-2"
+                    onClick={() => { if (!longPressId) router.push(`/room/${conv.id}`); }}
+                    onTouchStart={() => startLongPress(conv.id)}
+                    onTouchEnd={cancelLongPress}
+                    onTouchMove={cancelLongPress}
+                    onContextMenu={(e) => { e.preventDefault(); setLongPressId(conv.id); }}
+                    className={`flex items-center gap-4 p-3 rounded-2xl cursor-pointer transition-colors group relative animate-in fade-in slide-in-from-bottom-2 ${longPressId === conv.id ? 'bg-slate-100' : 'hover:bg-slate-100'}`}
                   >
                     <div className="relative">
                       <div className="w-12 h-12 bg-gradient-to-tr from-[#3A2034] to-[#5a3652] text-white rounded-[18px] flex items-center justify-center font-bold text-2xl shadow-sm relative">
@@ -160,13 +213,40 @@ export default function ChatHome() {
                     
                     <div className="flex-1 min-w-0 pr-2">
                       <div className="flex justify-between items-center mb-0.5">
-                        <h4 className="font-bold text-[16px] text-gray-900 truncate">{conv.other_user?.username}</h4>
-                        <span className="text-[11px] text-gray-400 font-semibold whitespace-nowrap">
-                          {new Date(conv.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <h4 className={`font-bold text-[16px] truncate ${conv.unread_count > 0 ? 'text-[#3A2034]' : 'text-gray-900'}`}>{conv.other_user?.username}</h4>
+                        <span className={`text-[11px] font-semibold whitespace-nowrap ${conv.unread_count > 0 ? 'text-[#D97A89]' : 'text-gray-400'}`}>
+                          {new Date(conv.last_message?.sent_at || conv.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      <p className="text-[14px] text-gray-500 truncate font-medium">Tap to open conversation...</p>
+                      <div className="flex justify-between items-center">
+                        <p className={`text-[14px] truncate flex-1 mr-2 ${conv.unread_count > 0 ? 'text-[#3A2034] font-semibold' : 'text-gray-500 font-medium'}`}>
+                          {getLastMessagePreview(conv)}
+                        </p>
+                        {conv.unread_count > 0 && (
+                          <span className="flex-shrink-0 min-w-[20px] h-[20px] px-1.5 bg-[#D97A89] text-white text-[11px] font-bold rounded-full flex items-center justify-center">
+                            {conv.unread_count > 99 ? '99+' : conv.unread_count}
+                          </span>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Long Press Delete Menu */}
+                    {longPressId === conv.id && (
+                      <div className="absolute inset-0 bg-white/95 backdrop-blur-sm rounded-2xl flex items-center justify-center gap-3 z-10 animate-in fade-in duration-150">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv.id); }}
+                          className="px-4 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors"
+                        >
+                          Delete
+                        </button>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setLongPressId(null); }}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
