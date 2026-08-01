@@ -181,6 +181,24 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, otherUserTyping]);
 
+  useEffect(() => {
+    const handleViewportChange = () => {
+      if (typeof window !== "undefined") {
+        window.scrollTo(0, 0);
+      }
+    };
+    if (typeof window !== "undefined" && window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleViewportChange);
+      window.visualViewport.addEventListener("scroll", handleViewportChange);
+    }
+    return () => {
+      if (typeof window !== "undefined" && window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleViewportChange);
+        window.visualViewport.removeEventListener("scroll", handleViewportChange);
+      }
+    };
+  }, []);
+
   const handleTyping = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNewMessage(e.target.value);
     
@@ -947,8 +965,13 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 handleSend(e);
               }
             }}
+            onFocus={() => {
+              setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+              }, 300);
+            }}
             placeholder="Message"
-            className="flex-1 bg-transparent py-2.5 px-2 focus:outline-none text-[#3A2034] font-medium placeholder-gray-400 text-[15px] min-w-0 resize-none max-h-[120px] overflow-y-auto self-center"
+            className="flex-1 bg-transparent py-2.5 px-2 focus:outline-none text-[#3A2034] font-medium placeholder-gray-400 text-[16px] sm:text-[15px] min-w-0 resize-none max-h-[120px] overflow-y-auto self-center"
             style={{ lineHeight: '1.4' }}
           />
 
