@@ -81,7 +81,22 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [otherLastRead, setOtherLastRead] = useState<string | null>(null);
 
   useEffect(() => {
+    if (conversationId && messages.length > 0) {
+      try {
+        sessionStorage.setItem(`cupid_messages_${conversationId}`, JSON.stringify(messages));
+      } catch (e) {}
+    }
+  }, [messages, conversationId]);
+
+  useEffect(() => {
     if (!conversationId) return;
+
+    try {
+      const cached = sessionStorage.getItem(`cupid_messages_${conversationId}`);
+      if (cached) {
+        setMessages(JSON.parse(cached));
+      }
+    } catch (e) {}
 
     const fetchMessages = async () => {
       const { data, error } = await supabase
@@ -90,14 +105,19 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         .eq('conversation_id', conversationId)
         .order('sent_at', { ascending: true });
       if (error) console.error("Fetch messages error:", error);
-      if (data) setMessages(data);
+      if (data) {
+        setMessages(data);
+        try {
+          sessionStorage.setItem(`cupid_messages_${conversationId}`, JSON.stringify(data));
+        } catch (e) {}
+      }
     };
     fetchMessages();
     
     // Mark as read when opening chat
     markConversationRead(conversationId);
 
-    const pollInterval = setInterval(fetchMessages, 3000);
+    const pollInterval = setInterval(fetchMessages, 6000);
 
     const channel = supabase.channel(`room:${conversationId}`, {
       config: { presence: { key: user.id } }
@@ -483,7 +503,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         
         {isSearchingChat ? (
           <div className="flex-1 flex items-center gap-2 px-2 animate-in fade-in slide-in-from-right-4 duration-200">
-            <button onClick={() => { setIsSearchingChat(false); setChatSearchQuery(""); }} className="p-2 rounded-full hover:bg-slate-100 text-gray-400 hover:text-[#3A2034] transition-colors" aria-label="Back">
+            <button onClick={() => { setIsSearchingChat(false); setChatSearchQuery(""); }} className="p-2 rounded-full hover:bg-slate-100 text-gray-400 hover:text-[#3A2034] transition-all active:scale-90 active:bg-slate-200 select-none cursor-pointer" aria-label="Back">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             </button>
             <input 
@@ -498,7 +518,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         ) : (
           <>
             <div className="flex items-center gap-1">
-              <button onClick={() => router.push('/room')} className="p-2 rounded-full hover:bg-slate-100 text-gray-400 hover:text-[#3A2034] transition-colors" aria-label="Back">
+              <button onClick={() => router.push('/room')} className="p-2 rounded-full hover:bg-slate-100 text-gray-400 hover:text-[#3A2034] transition-all active:scale-90 active:bg-slate-200 select-none cursor-pointer" aria-label="Back">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               </button>
               

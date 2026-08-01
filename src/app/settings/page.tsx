@@ -17,6 +17,19 @@ export default function SettingsPage() {
   const AVATARS = ["😀", "😎", "🤩", "🦊", "🐼", "🦄", "🐶", "🐱", "🦁", "🐙", "🦋", "🍄", "🍉", "🍕", "🚀", "🎸"];
 
   useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem("cupid_cache_profile");
+      if (cached) {
+        const data = JSON.parse(cached);
+        setProfile(data);
+        setBio(data.bio || "");
+        setAvatarUrl(data.avatar_url || "");
+        if (data.privacy_settings) {
+          setPrivacy(data.privacy_settings);
+        }
+      }
+    } catch (e) {}
+
     const loadProfile = async () => {
       const data: any = await getProfile();
       if (data) {
@@ -26,6 +39,9 @@ export default function SettingsPage() {
         if (data.privacy_settings) {
           setPrivacy(data.privacy_settings);
         }
+        try {
+          sessionStorage.setItem("cupid_cache_profile", JSON.stringify(data));
+        } catch (e) {}
       }
     };
     loadProfile();
@@ -37,6 +53,16 @@ export default function SettingsPage() {
     const res = await updateProfile(bio, privacy, avatarUrl);
     setIsSaving(false);
     if (res.success) {
+      if (profile) {
+        try {
+          sessionStorage.setItem("cupid_cache_profile", JSON.stringify({
+            ...profile,
+            bio,
+            privacy_settings: privacy,
+            avatar_url: avatarUrl
+          }));
+        } catch (e) {}
+      }
       setMessage("Settings saved successfully! Returning to chats...");
       setTimeout(() => router.push('/room'), 1500);
     } else {
@@ -45,6 +71,9 @@ export default function SettingsPage() {
   };
 
   const handleLogout = async () => {
+    try {
+      sessionStorage.clear();
+    } catch (e) {}
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/auth");
@@ -60,7 +89,7 @@ export default function SettingsPage() {
         
         {/* Top Bar */}
         <header className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-md text-black z-10 border-b border-gray-100 sticky top-0">
-          <button onClick={() => router.push('/room')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-colors" aria-label="Back">
+          <button onClick={() => router.push('/room')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-all active:scale-90 active:bg-gray-200 select-none cursor-pointer" aria-label="Back">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="m15 18-6-6 6-6"/>
             </svg>
@@ -92,7 +121,7 @@ export default function SettingsPage() {
                 <button
                   key={av}
                   onClick={() => setAvatarUrl(av)}
-                  className={`flex-shrink-0 w-14 h-14 rounded-2xl text-2xl flex items-center justify-center transition-all snap-center shadow-sm
+                  className={`flex-shrink-0 w-14 h-14 rounded-2xl text-2xl flex items-center justify-center transition-all snap-center shadow-sm active:scale-95 select-none cursor-pointer
                     ${avatarUrl === av ? 'bg-[#3A2034] border-2 border-[#D97A89] scale-110' : 'bg-gray-100 hover:bg-gray-200 border-2 border-transparent'}`}
                 >
                   {av}
@@ -136,7 +165,7 @@ export default function SettingsPage() {
             <button 
               onClick={handleSave}
               disabled={isSaving}
-              className="w-full py-3.5 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-transform active:scale-[0.98]"
+              className="w-full py-3.5 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-transform active:scale-[0.98] select-none cursor-pointer"
             >
               {isSaving ? "Saving..." : "Save Changes"}
             </button>
@@ -146,7 +175,7 @@ export default function SettingsPage() {
           <div className="mt-8 pt-8 border-t border-gray-100 flex flex-col gap-4">
             <button 
               onClick={handleLogout}
-              className="w-full py-3.5 bg-gray-100 text-black rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-gray-100 text-black rounded-xl font-bold hover:bg-gray-200 transition-all active:scale-[0.98] select-none cursor-pointer flex items-center justify-center gap-2"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
               Log out
