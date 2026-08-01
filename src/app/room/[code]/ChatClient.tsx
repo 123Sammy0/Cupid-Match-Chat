@@ -171,6 +171,16 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           markConversationRead(conversationId);
         }
       })
+      .on('broadcast', { event: 'new_message' }, (payload: any) => {
+        const msg = payload.payload;
+        if (msg.sender_id !== user.id) {
+          setMessages((prev) => {
+            if (prev.some((m: any) => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
+          markConversationRead(conversationId);
+        }
+      })
       .on('postgres_changes', {
         event: 'DELETE',
         schema: 'public',
@@ -270,12 +280,16 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
     const msgId = crypto.randomUUID();
 
-    setLocalMessages((prev) => [...prev, {
+    const payload = {
       id: msgId, sender_id: user.id, conversation_id: conversationId,
       content: finalContent, type: 'text', sent_at: new Date().toISOString(),
-      expires_at: expiresAt, profiles: { username: profile?.username },
-      localStatus: 'sending'
-    }]);
+      expires_at: expiresAt, profiles: { username: profile?.username }
+    };
+
+    setLocalMessages((prev) => [...prev, { ...payload, localStatus: 'sending' }]);
+    
+    // Broadcast for 0.01s instant delivery bypasses Postgres Replication latency
+    channelRef.current?.send({ type: 'broadcast', event: 'new_message', payload });
 
     const { error } = await supabase.from('messages').insert({
       id: msgId, sender_id: user.id, conversation_id: conversationId,
