@@ -76,6 +76,16 @@ export default function ChatHome() {
     };
   }, []);
 
+  useEffect(() => {
+    conversations.forEach(conv => {
+      if (conv?.id) {
+        try {
+          router.prefetch(`/room/${conv.id}`);
+        } catch (e) {}
+      }
+    });
+  }, [conversations, router]);
+
   const handleAcceptRequest = async (id: string) => {
     const res = await acceptChatRequest(id);
     if (res.success) {
@@ -229,10 +239,19 @@ export default function ChatHome() {
                     onClick={() => {
                       if (!longPressId) {
                         setTappedConvId(conv.id);
+                        try {
+                          if (conv.other_user) {
+                            sessionStorage.setItem(`cupid_other_user_${conv.id}`, JSON.stringify(conv.other_user));
+                          }
+                        } catch (e) {}
                         router.push(`/room/${conv.id}`);
                       }
                     }}
-                    onTouchStart={() => startLongPress(conv.id)}
+                    onMouseEnter={() => { try { router.prefetch(`/room/${conv.id}`); } catch (e) {} }}
+                    onTouchStart={() => {
+                      startLongPress(conv.id);
+                      try { router.prefetch(`/room/${conv.id}`); } catch (e) {}
+                    }}
                     onTouchEnd={cancelLongPress}
                     onTouchMove={cancelLongPress}
                     onContextMenu={(e) => { e.preventDefault(); setLongPressId(conv.id); }}
