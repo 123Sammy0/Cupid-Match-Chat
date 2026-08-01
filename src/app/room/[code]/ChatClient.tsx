@@ -932,7 +932,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         <div className="px-2 py-2 flex items-end gap-1.5">
         
         {/* Input area */}
-        <div className="flex-1 bg-white rounded-3xl border border-gray-200/60 shadow-sm flex items-end overflow-hidden transition-all focus-within:border-[#D97A89]/40 min-h-[44px]">
+        <div className="flex-1 bg-white rounded-3xl shadow-sm flex items-end overflow-hidden transition-all min-h-[44px]">
           {/* Emoji toggle (inside input like WhatsApp) */}
           <button
             type="button"

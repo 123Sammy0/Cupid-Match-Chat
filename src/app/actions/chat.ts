@@ -320,3 +320,32 @@ export async function markConversationRead(conversationId: string) {
     .eq('conversation_id', conversationId)
     .eq('profile_id', user.id);
 }
+
+export async function markConversationDelivered(conversationId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createAdminClient();
+
+  await adminSupabase
+    .from('conversation_participants')
+    .update({ last_delivered_at: new Date().toISOString() })
+    .eq('conversation_id', conversationId)
+    .eq('profile_id', user.id);
+}
+
+export async function updateLastSeen() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createAdminClient();
+
+  await adminSupabase
+    .from('profiles')
+    .update({ last_seen: new Date().toISOString() })
+    .eq('id', user.id);
+}
