@@ -178,7 +178,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   }, [conversationId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current?.parentElement) {
+      const container = messagesEndRef.current.parentElement;
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    }
   }, [messages, otherUserTyping]);
 
 
@@ -222,7 +225,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
     setNewMessage("");
     setReplyTo(null);
-    if (inputRef.current) inputRef.current.style.height = 'auto'; // Reset height
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto'; // Reset height
+      inputRef.current.focus(); // Keep focus to prevent keyboard from closing
+    }
     setShowEmojiPicker(false);
     isTypingRef.current = false;
     if (channelRef.current) channelRef.current.track({ user_id: user.id, typing: false, last_read_at: new Date().toISOString() });
@@ -953,11 +959,14 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             }}
             onFocus={() => {
               setTimeout(() => {
-                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+                if (messagesEndRef.current?.parentElement) {
+                  const container = messagesEndRef.current.parentElement;
+                  container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+                }
               }, 300);
             }}
             placeholder="Message"
-            className="flex-1 bg-transparent py-2.5 px-2 focus:outline-none text-[#3A2034] font-medium placeholder-gray-400 text-[16px] sm:text-[15px] min-w-0 resize-none max-h-[120px] overflow-y-auto self-center"
+            className="flex-1 bg-transparent py-2.5 px-2 focus:outline-none focus:ring-0 focus:border-transparent border-none text-[#3A2034] font-medium placeholder-gray-400 text-[16px] sm:text-[15px] min-w-0 resize-none max-h-[120px] overflow-y-auto self-center"
             style={{ lineHeight: '1.4' }}
           />
 
@@ -981,6 +990,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           </div>
         ) : newMessage.trim() ? (
           <button
+            onPointerDown={(e) => e.preventDefault()}
             onClick={handleSend}
             className="p-3 bg-[#3A2034] text-white rounded-full hover:bg-[#261522] transition-all shadow-md active:scale-95 flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center"
             aria-label="Send"
