@@ -109,6 +109,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       if (error) console.error("Fetch messages error:", error);
       if (data) {
         setMessages(data);
+        setLocalMessages(prev => prev.filter(m => !data.some((d: any) => d.id === m.id)));
         try {
           sessionStorage.setItem(`cupid_messages_${conversationId}`, JSON.stringify(data));
         } catch (e) {}
@@ -675,7 +676,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           const replyData = (!mediaData && parsedData && parsedData.replyTo) ? parsedData : null;
           const textContent = replyData ? replyData.text : (!mediaData ? m.content : null);
 
-          const showTail = !nextMsg || nextMsg.sender_id !== m.sender_id;
+          const showTail = !nextMsg || nextMsg.sender_id !== m.sender_id || showTime;
 
           // Filter by search query if searching
           if (isSearchingChat && chatSearchQuery.trim() !== "" && !mediaData) {
@@ -724,7 +725,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                       ))}
                     </div>
                     {/* Main Actions Dropdown */}
-                    <div className={`absolute top-0 ${isMine ? '-left-32' : '-right-32'} w-28 bg-white border border-gray-100 shadow-xl rounded-xl py-1 z-30 flex flex-col text-sm text-[#3A2034] font-medium animate-in fade-in zoom-in duration-150`}>
+                    <div className={`absolute top-0 ${isMine ? 'right-full mr-2' : 'left-full ml-2'} w-28 bg-white border border-gray-100 shadow-xl rounded-xl py-1 z-30 flex flex-col text-sm text-[#3A2034] font-medium animate-in fade-in zoom-in duration-150`}>
                       <button onClick={(e) => { e.stopPropagation(); setReplyTo(m); setMessageMenu(null); inputRef.current?.focus(); }} className="px-4 py-2 text-left hover:bg-slate-50 transition-colors flex items-center gap-2">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg> Reply
                       </button>
@@ -778,11 +779,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     </div>
                   )}
                   {!mediaData && (
-                    <span className="break-words whitespace-pre-wrap pr-16">{textContent}</span>
+                    <span className="break-words whitespace-pre-wrap">{textContent}<span className="inline-block w-[65px]" /></span>
                   )}
                   
                   {/* Timestamp & Read Receipts inside bubble */}
-                  <div className={`flex items-center gap-1 text-[10px] font-bold ${mediaData ? 'absolute bottom-2 right-2 bg-black/40 text-white px-1.5 py-0.5 rounded-full' : (isMine ? 'text-[#D97A89]/90 float-right mt-[8px] -mr-1' : 'text-gray-400 float-right mt-[8px]')}`}>
+                  <div className={`flex items-center gap-1 text-[10px] font-bold ${mediaData ? 'absolute bottom-2 right-2 bg-black/40 text-white px-1.5 py-0.5 rounded-full' : (isMine ? 'absolute bottom-[4px] right-[8px] text-[#D97A89]/90' : 'absolute bottom-[4px] right-[8px] text-gray-400')}`}>
                     <span>{new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     {isMine && (
                       (() => {
