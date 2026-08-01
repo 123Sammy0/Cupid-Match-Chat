@@ -5,19 +5,19 @@ import { createClient } from "@/lib/supabase/client";
 import { updateLastSeen, markConversationDelivered } from "@/app/actions/chat";
 
 export default function GlobalPresence() {
-  const supabaseRef = useRef(createClient());
-  const supabase = supabaseRef.current;
   const channelRef = useRef<any>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       if (data?.user) setUserId(data.user.id);
     });
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
+    const supabase = createClient();
 
     // Join the global presence channel
     const channel = supabase.channel('global_presence', {
@@ -63,7 +63,7 @@ export default function GlobalPresence() {
       updateLastSeen().catch(console.error);
       supabase.removeChannel(channel);
     };
-  }, [userId, supabase]);
+  }, [userId]);
 
   return null;
 }
