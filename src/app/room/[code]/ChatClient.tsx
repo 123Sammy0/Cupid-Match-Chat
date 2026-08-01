@@ -181,23 +181,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, otherUserTyping]);
 
-  useEffect(() => {
-    const handleViewportChange = () => {
-      if (typeof window !== "undefined") {
-        window.scrollTo(0, 0);
-      }
-    };
-    if (typeof window !== "undefined" && window.visualViewport) {
-      window.visualViewport.addEventListener("resize", handleViewportChange);
-      window.visualViewport.addEventListener("scroll", handleViewportChange);
-    }
-    return () => {
-      if (typeof window !== "undefined" && window.visualViewport) {
-        window.visualViewport.removeEventListener("resize", handleViewportChange);
-        window.visualViewport.removeEventListener("scroll", handleViewportChange);
-      }
-    };
-  }, []);
+
 
   const handleTyping = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNewMessage(e.target.value);
@@ -436,10 +420,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     
     const handleResize = () => {
       const vh = viewport?.height;
+      const offsetTop = viewport?.offsetTop || 0;
       if (!vh) return;
       const wrapper = document.getElementById('chat-viewport-wrapper');
       if (wrapper) {
         wrapper.style.setProperty('height', `${vh}px`, 'important');
+        wrapper.style.setProperty('transform', `translateY(${offsetTop}px)`, 'important');
       }
     };
     
