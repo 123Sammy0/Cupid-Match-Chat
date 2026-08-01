@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { updateLastSeen } from "@/app/actions/chat";
+import { updateLastSeen, markConversationDelivered } from "@/app/actions/chat";
 
 export default function GlobalPresence() {
   const supabaseRef = useRef(createClient());
@@ -25,7 +25,17 @@ export default function GlobalPresence() {
     });
     channelRef.current = channel;
 
-    channel.subscribe(async (status) => {
+    channel
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages'
+      }, (payload: any) => {
+        if (payload.new.sender_id !== userId) {
+          markConversationDelivered(payload.new.conversation_id).catch(console.error);
+        }
+      })
+      .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
         // Track presence with a timestamp
         await channel.track({ user_id: userId, online_at: new Date().toISOString() });

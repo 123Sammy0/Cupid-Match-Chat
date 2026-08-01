@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { markConversationRead, blockUser } from "@/app/actions/chat";
+import { markConversationRead, markConversationDelivered, blockUser } from "@/app/actions/chat";
 import Image from "next/image";
 
 // Emoji data by category
@@ -79,6 +79,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [swipeDelta, setSwipeDelta] = useState(0);
   // Read receipts
   const [otherLastRead, setOtherLastRead] = useState<string | null>(null);
+  const [otherLastDelivered, setOtherLastDelivered] = useState<string | null>(null);
+  const [localMessages, setLocalMessages] = useState<any[]>([]); // Track Sending and Failed messages
 
   useEffect(() => {
     if (conversationId && messages.length > 0) {
@@ -112,6 +114,21 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         } catch (e) {}
       }
     };
+
+    const fetchParticipants = async () => {
+      const { data } = await supabase
+        .from('conversation_participants')
+        .select('profile_id, last_read_at, last_delivered_at')
+        .eq('conversation_id', conversationId);
+      if (data) {
+        const otherP = data.find((p: any) => p.profile_id === otherUser?.id);
+        if (otherP) {
+          if (otherP.last_read_at) setOtherLastRead(otherP.last_read_at);
+          if (otherP.last_delivered_at) setOtherLastDelivered(otherP.last_delivered_at);
+        }
+      }
+    };
+    fetchParticipants();
     fetchMessages();
     
     // Mark as read when opening chat
@@ -126,6 +143,17 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
     channel
       .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'conversation_participants',
+        filter: `conversation_id=eq.${conversationId}`
+      }, (payload: any) => {
+        if (payload.new.profile_id === otherUser?.id) {
+          if (payload.new.last_read_at) setOtherLastRead(payload.new.last_read_at);
+          if (payload.new.last_delivered_at) setOtherLastDelivered(payload.new.last_delivered_at);
+        }
+      })
+      .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
@@ -136,6 +164,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           if (prev.some((m: any) => m.id === payload.new.id)) return prev;
           return [...prev, { ...payload.new, profiles: { username } }];
         });
+        
+        if (payload.new.sender_id === user.id) {
+          setLocalMessages((prev) => prev.filter(m => m.id !== payload.new.id));
+        } else {
+          markConversationRead(conversationId);
+        }
       })
       .on('postgres_changes', {
         event: 'DELETE',
@@ -236,10 +270,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
     const msgId = crypto.randomUUID();
 
-    setMessages((prev) => [...prev, {
+    setLocalMessages((prev) => [...prev, {
       id: msgId, sender_id: user.id, conversation_id: conversationId,
       content: finalContent, type: 'text', sent_at: new Date().toISOString(),
-      expires_at: expiresAt, profiles: { username: profile?.username }
+      expires_at: expiresAt, profiles: { username: profile?.username },
+      localStatus: 'sending'
     }]);
 
     const { error } = await supabase.from('messages').insert({
@@ -249,8 +284,18 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
     if (error) {
       console.error("Message insert error:", error);
-      alert("Failed to send: " + error.message);
-      setMessages((prev) => prev.filter((m) => m.id !== msgId));
+      setLocalMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, localStatus: 'failed' } : m));
+    }
+  };
+
+  const handleRetry = async (msg: any) => {
+    setLocalMessages(prev => prev.map(m => m.id === msg.id ? { ...m, localStatus: 'sending' } : m));
+    const { error } = await supabase.from('messages').insert({
+      id: msg.id, sender_id: msg.sender_id, conversation_id: msg.conversation_id,
+      content: msg.content, type: msg.type, expires_at: msg.expires_at
+    });
+    if (error) {
+      setLocalMessages(prev => prev.map(m => m.id === msg.id ? { ...m, localStatus: 'failed' } : m));
     }
   };
 
@@ -589,15 +634,21 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 bg-white" onClick={() => { setShowEmojiPicker(false); setShowAttachMenu(false); setMessageMenu(null); setShowHeaderMenu(false); }}>
-        {messages.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
-            <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-inner mb-4 text-2xl">💬</div>
-            <p className="text-gray-500 font-medium text-sm">No messages yet.<br/>Say hello!</p>
-          </div>
-        )}
-        {messages.map((m, idx) => {
-          const isMine = m.sender_id === user.id;
-          const nextMsg = messages[idx + 1];
+        {(() => {
+          const allMessages = [...messages, ...localMessages].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
+          
+          if (allMessages.length === 0) {
+            return (
+              <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
+                <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-inner mb-4 text-2xl">💬</div>
+                <p className="text-gray-500 font-medium text-sm">No messages yet.<br/>Say hello!</p>
+              </div>
+            );
+          }
+          
+          return allMessages.map((m, idx, arr) => {
+            const isMine = m.sender_id === user.id;
+            const nextMsg = arr[idx + 1];
           const showTime = !nextMsg || (new Date(nextMsg.sent_at).getTime() - new Date(m.sent_at).getTime() > 5 * 60 * 1000);
           
           // Parse JSON content (media or replies)
@@ -721,7 +772,20 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     <span>{new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     {isMine && (
                       (() => {
+                        if (m.localStatus === 'sending') {
+                          return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 ml-0.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+                        }
+                        if (m.localStatus === 'failed') {
+                          return (
+                            <button onClick={(e) => { e.stopPropagation(); handleRetry(m); }} className="text-red-400 font-bold ml-0.5" title="Retry">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            </button>
+                          );
+                        }
+                        
                         const isSeen = otherLastRead && new Date(otherLastRead) >= new Date(m.sent_at);
+                        const isDelivered = otherLastDelivered && new Date(otherLastDelivered) >= new Date(m.sent_at);
+                        
                         if (isSeen) {
                           // Blue double check
                           return (
@@ -730,7 +794,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                             </svg>
                           );
                         }
-                        if (otherUserOnline) {
+                        if (isDelivered || otherUserOnline) {
                           // Gray double check
                           return (
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 ml-0.5">
@@ -738,7 +802,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                             </svg>
                           );
                         }
-                        // Gray single check
+                        // Sent (1 check)
                         return (
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 ml-0.5">
                             <path d="M18 6 7 17l-5-5"/>
@@ -751,7 +815,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   {!mediaData && <div className="clear-both"></div>}
 
                   {/* Reactions list at bottom of bubble */}
-                  {m.reactions && m.reactions.length > 0 && (
+                  {m.reactions && m.reactions.length > 0 && !m.localStatus && (
                     <div className={`absolute bottom-[-10px] ${isMine ? 'right-4' : 'left-4'} flex items-center gap-0.5 bg-white border border-gray-100 shadow-sm rounded-full px-1.5 py-0.5 z-20`}>
                       {Array.from(new Set(m.reactions.map((r: any) => r.emoji))).map((emoji: any) => (
                         <span key={emoji} className="text-[12px]">{emoji}</span>
@@ -765,7 +829,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               </div>
             </div>
           );
-        })}
+          })
+        })()}
         {otherUserTyping && (
           <div className="self-start">
             <div className="px-4 py-3 rounded-[20px] rounded-bl-[5px] bg-white border border-[#EEE7F7] shadow-sm flex items-center gap-1.5">
