@@ -79,9 +79,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const swipeMessageRef = useRef<any>(null);
   const [swipingId, setSwipingId] = useState<string | null>(null);
   const [swipeDelta, setSwipeDelta] = useState(0);
-  // Read receipts
+  // Read receipts & Presence
   const [otherLastRead, setOtherLastRead] = useState<string | null>(null);
   const [otherLastDelivered, setOtherLastDelivered] = useState<string | null>(null);
+  const [otherUserLastSeen, setOtherUserLastSeen] = useState<string | null>(otherUser?.last_seen || null);
   const [localMessages, setLocalMessages] = useState<any[]>([]); // Track Sending and Failed messages
 
   useEffect(() => {
@@ -144,10 +145,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     });
     channelRef.current = channel;
 
-    // Global presence channel for accurate online/offline state
-    const globalChannel = supabase.channel('global_presence');
-    globalChannel.on('presence', { event: 'sync' }, () => {
-      const state = globalChannel.presenceState();
+    // Listen to global presence sync from GlobalPresence component
+    const handlePresenceSync = (e: any) => {
+      const state = e.detail;
       let isOnline = false;
       Object.values(state).forEach((presences: any) => {
         if (presences.some((p: any) => p.user_id === otherUser?.id)) {
@@ -155,7 +155,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         }
       });
       setOtherUserOnline(isOnline);
-    }).subscribe();
+    };
+    window.addEventListener('global_presence_sync', handlePresenceSync);
 
     channel
       .on('postgres_changes', {
@@ -168,6 +169,14 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           if (payload.new.last_read_at) setOtherLastRead(payload.new.last_read_at);
           if (payload.new.last_delivered_at) setOtherLastDelivered(payload.new.last_delivered_at);
         }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: `id=eq.${otherUser?.id}`
+      }, (payload: any) => {
+        if (payload.new.last_seen) setOtherUserLastSeen(payload.new.last_seen);
       })
       .on('postgres_changes', {
         event: 'INSERT',
@@ -239,7 +248,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       clearInterval(pollInterval);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       supabase.removeChannel(channel);
-      supabase.removeChannel(globalChannel);
+      window.removeEventListener('global_presence_sync', handlePresenceSync);
       channelRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -665,7 +674,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             <div className="flex flex-col">
               <span className="font-bold text-[15px] text-[#3A2034] leading-tight">{otherUser?.username || 'Unknown'}</span>
               <span className="text-[11px] text-gray-400 font-semibold">
-                {otherUserTyping ? '✍️ typing...' : otherUserOnline ? 'Online' : formatLastSeen(otherUser?.last_seen)}
+                {otherUserTyping ? '✍️ typing...' : otherUserOnline ? 'Online' : formatLastSeen(otherUserLastSeen)}
               </span>
             </div>
           </div>

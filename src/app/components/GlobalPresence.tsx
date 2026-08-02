@@ -29,6 +29,12 @@ export default function GlobalPresence() {
     channelRef.current = channel;
 
     channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
+        }
+      })
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
