@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { markConversationRead, markConversationDelivered, blockUser } from "@/app/actions/chat";
+import { markConversationRead, markConversationDelivered, blockUser, editMessage, deleteMessage } from "@/app/actions/chat";
 import Image from "next/image";
 
 // Emoji data by category
@@ -56,6 +56,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [showCallModal, setShowCallModal] = useState<"voice" | "video" | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [activePreviewImage, setActivePreviewImage] = useState<string | null>(null);
+  const [editingMessage, setEditingMessage] = useState<any>(null);
+  const [isRecording, setIsRecording] = useState(false);
   const [replyTo, setReplyTo] = useState<any>(null);
   const [messageMenu, setMessageMenu] = useState<string | null>(null);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
@@ -142,6 +144,19 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     });
     channelRef.current = channel;
 
+    // Global presence channel for accurate online/offline state
+    const globalChannel = supabase.channel('global_presence');
+    globalChannel.on('presence', { event: 'sync' }, () => {
+      const state = globalChannel.presenceState();
+      let isOnline = false;
+      Object.values(state).forEach((presences: any) => {
+        if (presences.some((p: any) => p.user_id === otherUser?.id)) {
+          isOnline = true;
+        }
+      });
+      setOtherUserOnline(isOnline);
+    }).subscribe();
+
     channel
       .on('postgres_changes', {
         event: 'UPDATE',
@@ -182,6 +197,18 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           markConversationRead(conversationId);
         }
       })
+      .on('broadcast', { event: 'typing' }, (payload: any) => {
+        if (payload.payload.user_id === otherUser?.id) {
+          setOtherUserTyping(payload.payload.isTyping);
+          if (payload.payload.isTyping) {
+            // Auto-clear fallback to prevent stuck states
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = setTimeout(() => {
+              setOtherUserTyping(false);
+            }, 3000);
+          }
+        }
+      })
       .on('postgres_changes', {
         event: 'DELETE',
         schema: 'public',
@@ -190,33 +217,29 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       }, (payload: any) => {
         setMessages((prev) => prev.filter((m: any) => m.id !== payload.old.id));
       })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`
+      }, (payload: any) => {
+        setMessages((prev) => prev.map((m: any) => m.id === payload.new.id ? { ...m, ...payload.new } : m));
+      })
       .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        let isOnline = false;
-        let typing = false;
-        let lastRead: string | null = null;
-        Object.values(state).forEach((presences: any) => {
-          presences.forEach((p: any) => {
-            if (p.user_id === otherUser?.id) {
-              isOnline = true;
-              if (p.typing) typing = true;
-              if (p.last_read_at) lastRead = p.last_read_at;
-            }
-          });
-        });
-        setOtherUserOnline(isOnline);
-        setOtherUserTyping(typing);
-        if (lastRead) setOtherLastRead(lastRead);
+        // We only use room presence to track if they are specifically in this room (optional)
+        // But online status is handled by global_presence now.
       })
       .subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
-          await channel.track({ user_id: user.id, online_at: new Date().toISOString(), typing: false, last_read_at: new Date().toISOString() });
+          await channel.track({ user_id: user.id, in_room: true });
         }
       });
 
     return () => {
       clearInterval(pollInterval);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       supabase.removeChannel(channel);
+      supabase.removeChannel(globalChannel);
       channelRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -240,12 +263,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
     if (!isTypingRef.current && channelRef.current) {
       isTypingRef.current = true;
-      channelRef.current.track({ user_id: user.id, typing: true, last_read_at: new Date().toISOString() });
+      channelRef.current.send({ type: 'broadcast', event: 'typing', payload: { user_id: user.id, isTyping: true } });
     }
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       isTypingRef.current = false;
-      if (channelRef.current) channelRef.current.track({ user_id: user.id, typing: false, last_read_at: new Date().toISOString() });
+      if (channelRef.current) channelRef.current.send({ type: 'broadcast', event: 'typing', payload: { user_id: user.id, isTyping: false } });
     }, 1500);
   };
 
@@ -276,7 +299,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     }
     setShowEmojiPicker(false);
     isTypingRef.current = false;
-    if (channelRef.current) channelRef.current.track({ user_id: user.id, typing: false, last_read_at: new Date().toISOString() });
+    if (channelRef.current) channelRef.current.send({ type: 'broadcast', event: 'typing', payload: { user_id: user.id, isTyping: false } });
 
     const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
     const msgId = crypto.randomUUID();
@@ -314,14 +337,54 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     }
   };
 
-  const handleDelete = async (msgId: string) => {
+  const handleDelete = async (msgId: string, forEveryone: boolean) => {
     setMessageMenu(null);
-    setMessages((prev) => prev.filter(m => m.id !== msgId));
-    const { error } = await supabase.from('messages').delete().eq('id', msgId);
-    if (error) {
-      alert("Failed to delete message: " + error.message);
-      // Re-fetch or ignore error for now, as it's optimistically deleted
+    if (!forEveryone) {
+      setMessages((prev) => prev.filter(m => m.id !== msgId));
+    } else {
+      // Optimistic update for everyone
+      setMessages((prev) => prev.map(m => m.id === msgId ? { ...m, is_deleted: true } : m));
     }
+    const res = await deleteMessage(msgId, forEveryone);
+    if (!res.success) {
+      alert("Failed to delete message.");
+    }
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !editingMessage) return;
+    const newContent = newMessage.trim();
+    const msgId = editingMessage.id;
+    
+    // Optimistic update
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: newContent, is_edited: true } : m));
+    setEditingMessage(null);
+    setNewMessage("");
+    inputRef.current?.focus();
+
+    const res = await editMessage(msgId, newContent);
+    if (!res.success) {
+      alert("Failed to edit message.");
+    }
+  };
+
+  const formatLastSeen = (isoString?: string | null) => {
+    if (!isoString) return 'Offline';
+    const date = new Date(isoString);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diff < 60) return `Last seen just now`;
+    if (diff < 3600) return `Last seen ${Math.floor(diff / 60)} minutes ago`;
+    
+    const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    const isYesterday = new Date(now.getTime() - 86400000).getDate() === date.getDate();
+    
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (isToday) return `Last seen today at ${timeStr}`;
+    if (isYesterday) return `Last seen yesterday at ${timeStr}`;
+    return `Last seen on ${date.toLocaleDateString()} at ${timeStr}`;
   };
 
   const handleReact = async (msgId: string, emoji: string) => {
@@ -602,7 +665,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             <div className="flex flex-col">
               <span className="font-bold text-[15px] text-[#3A2034] leading-tight">{otherUser?.username || 'Unknown'}</span>
               <span className="text-[11px] text-gray-400 font-semibold">
-                {otherUserTyping ? '✍️ typing...' : otherUserOnline ? 'Active now' : 'Offline'}
+                {otherUserTyping ? '✍️ typing...' : otherUserOnline ? 'Online' : formatLastSeen(otherUser?.last_seen)}
               </span>
             </div>
           </div>
@@ -661,10 +724,25 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             );
           }
           
-          return allMessages.map((m, idx, arr) => {
+          return allMessages.filter(m => {
+            const deletedBy = Array.isArray(m.deleted_by) ? m.deleted_by : (m.deleted_by ? JSON.parse(m.deleted_by as string) : []);
+            return !deletedBy.includes(user.id);
+          }).map((m, idx, arr) => {
             const isMine = m.sender_id === user.id;
             const nextMsg = arr[idx + 1];
-          const showTime = !nextMsg || (new Date(nextMsg.sent_at).getTime() - new Date(m.sent_at).getTime() > 5 * 60 * 1000);
+            const prevMsg = arr[idx - 1];
+            const showTime = !nextMsg || (new Date(nextMsg.sent_at).getTime() - new Date(m.sent_at).getTime() > 5 * 60 * 1000);
+            const showDateSeparator = !prevMsg || new Date(m.sent_at).toDateString() !== new Date(prevMsg.sent_at).toDateString();
+            
+            const formatMessageDate = (dateString: string) => {
+              const date = new Date(dateString);
+              const now = new Date();
+              const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+              const isYesterday = new Date(now.getTime() - 86400000).getDate() === date.getDate() && new Date(now.getTime() - 86400000).getMonth() === date.getMonth();
+              if (isToday) return "Today";
+              if (isYesterday) return "Yesterday";
+              return date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+            };
           
           // Parse JSON content (media or replies)
           let parsedData: any = null;
@@ -686,9 +764,16 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           }
 
           return (
-            <div 
-              key={m.id} 
-              className={`flex flex-col w-full ${isMine ? 'items-end' : 'items-start'} mb-2 relative`}
+            <div key={m.id} className="flex flex-col w-full">
+              {showDateSeparator && (
+                <div className="flex justify-center w-full my-4">
+                  <div className="bg-slate-100 text-slate-500 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                    {formatMessageDate(m.sent_at)}
+                  </div>
+                </div>
+              )}
+              <div 
+                className={`flex flex-col w-full ${isMine ? 'items-end' : 'items-start'} mb-2 relative`}
               onTouchStart={(e) => handleTouchStart(e, m)}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
@@ -725,13 +810,21 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                       ))}
                     </div>
                     {/* Main Actions Dropdown */}
-                    <div className={`absolute top-0 ${isMine ? 'right-full mr-2' : 'left-full ml-2'} w-28 bg-white border border-gray-100 shadow-xl rounded-xl py-1 z-30 flex flex-col text-sm text-[#3A2034] font-medium animate-in fade-in zoom-in duration-150`}>
+                    <div className={`absolute top-0 ${isMine ? 'right-full mr-2' : 'left-full ml-2'} w-36 bg-white border border-gray-100 shadow-xl rounded-xl py-1 z-30 flex flex-col text-sm text-[#3A2034] font-medium animate-in fade-in zoom-in duration-150`}>
                       <button onClick={(e) => { e.stopPropagation(); setReplyTo(m); setMessageMenu(null); inputRef.current?.focus(); }} className="px-4 py-2 text-left hover:bg-slate-50 transition-colors flex items-center gap-2">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg> Reply
                       </button>
-                      {isMine && (
-                        <button onClick={(e) => { e.stopPropagation(); handleDelete(m.id); }} className="px-4 py-2 text-left text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Delete
+                      {isMine && m.type === 'text' && !m.is_deleted && (
+                        <button onClick={(e) => { e.stopPropagation(); setEditingMessage(m); setNewMessage(m.content); setMessageMenu(null); inputRef.current?.focus(); }} className="px-4 py-2 text-left hover:bg-slate-50 transition-colors flex items-center gap-2">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit
+                        </button>
+                      )}
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(m.id, false); }} className="px-4 py-2 text-left text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Delete for me
+                      </button>
+                      {isMine && !m.is_deleted && (
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(m.id, true); }} className="px-4 py-2 text-left text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2 border-t border-gray-100">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Delete for everyone
                         </button>
                       )}
                     </div>
@@ -761,29 +854,40 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     </div>
                   )}
 
-                  {mediaData?.type === 'image' && (
-                    <img 
-                      src={mediaData.url} 
-                      alt="image" 
-                      className="max-w-[240px] sm:max-w-[280px] max-h-[320px] object-cover rounded-[16px] cursor-pointer hover:opacity-90 transition-opacity" 
-                      onClick={() => setActivePreviewImage(mediaData.url)}
-                    />
-                  )}
-                  {mediaData?.type === 'video' && (
-                    <video src={mediaData.url} controls className="max-w-[240px] sm:max-w-[280px] rounded-[16px]" />
-                  )}
-                  {mediaData?.type === 'audio' && (
-                    <div className="px-2 py-2 flex items-center gap-2">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                      <audio src={mediaData.url} controls className="h-10 w-44" style={{ filter: isMine ? 'invert(1)' : 'none' }} />
-                    </div>
-                  )}
-                  {!mediaData && (
-                    <span className="break-words whitespace-pre-wrap">{textContent}<span className="inline-block w-[65px]" /></span>
+                  {m.is_deleted ? (
+                    <span className="italic text-gray-500 flex items-center gap-1.5 opacity-80">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                      This message was deleted
+                      <span className="inline-block w-[65px]" />
+                    </span>
+                  ) : (
+                    <>
+                      {mediaData?.type === 'image' && (
+                        <img 
+                          src={mediaData.url} 
+                          alt="image" 
+                          className="max-w-[240px] sm:max-w-[280px] max-h-[320px] object-cover rounded-[16px] cursor-pointer hover:opacity-90 transition-opacity" 
+                          onClick={() => setActivePreviewImage(mediaData.url)}
+                        />
+                      )}
+                      {mediaData?.type === 'video' && (
+                        <video src={mediaData.url} controls className="max-w-[240px] sm:max-w-[280px] rounded-[16px]" />
+                      )}
+                      {mediaData?.type === 'audio' && (
+                        <div className="px-2 py-2 flex items-center gap-2">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                          <audio src={mediaData.url} controls className="h-10 w-44" style={{ filter: isMine ? 'invert(1)' : 'none' }} />
+                        </div>
+                      )}
+                      {!mediaData && (
+                        <span className="break-words whitespace-pre-wrap">{textContent}<span className="inline-block w-[75px]" /></span>
+                      )}
+                    </>
                   )}
                   
                   {/* Timestamp & Read Receipts inside bubble */}
-                  <div className={`flex items-center gap-1 text-[10px] font-bold ${mediaData ? 'absolute bottom-2 right-2 bg-black/40 text-white px-1.5 py-0.5 rounded-full' : (isMine ? 'absolute bottom-[4px] right-[8px] text-[#D97A89]/90' : 'absolute bottom-[4px] right-[8px] text-gray-400')}`}>
+                  <div className={`flex items-center gap-1 text-[10px] font-bold ${mediaData && !m.is_deleted ? 'absolute bottom-2 right-2 bg-black/40 text-white px-1.5 py-0.5 rounded-full' : (isMine ? 'absolute bottom-[4px] right-[8px] text-[#D97A89]/90' : 'absolute bottom-[4px] right-[8px] text-gray-400')}`}>
+                    {m.is_edited && !m.is_deleted && <span className="opacity-70 mr-0.5">Edited</span>}
                     <span>{new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     {isMine && (
                       (() => {
@@ -841,6 +945,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     </div>
                   )}
                 </div>
+              </div>
               </div>
             </div>
           );
@@ -991,19 +1096,27 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       {/* Composer Area */}
       <div className="bg-[#F0F2F5]/50 border-t border-gray-100 z-20 flex flex-col">
         
-        {/* Reply Banner */}
-        {replyTo && (
+        {/* Reply/Edit Banner */}
+        {(replyTo || editingMessage) && (
           <div className="px-4 pt-3 pb-1 flex items-center justify-between animate-in slide-in-from-bottom-2">
-            <div className="flex-1 bg-white p-3 rounded-2xl border-l-4 border-[#D97A89] shadow-sm text-sm">
-              <p className="font-bold text-[#D97A89] text-xs mb-0.5">{replyTo.sender_id === user.id ? 'You' : otherUser?.username || 'Unknown'}</p>
+            <div className={`flex-1 bg-white p-3 rounded-2xl border-l-4 ${editingMessage ? 'border-sky-500' : 'border-[#D97A89]'} shadow-sm text-sm`}>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                {editingMessage ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-sky-500"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                ) : null}
+                <p className={`font-bold ${editingMessage ? 'text-sky-500' : 'text-[#D97A89]'} text-xs`}>
+                  {editingMessage ? 'Editing message' : (replyTo?.sender_id === user.id ? 'You' : otherUser?.username || 'Unknown')}
+                </p>
+              </div>
               <p className="text-gray-600 line-clamp-1">
-                {replyTo.type === 'image' ? '📷 Image' : 
-                 replyTo.type === 'video' ? '🎥 Video' : 
-                 replyTo.type === 'audio' ? '🎵 Audio' : 
-                 (replyTo.content.startsWith('{') ? JSON.parse(replyTo.content).text : replyTo.content)}
+                {editingMessage ? editingMessage.content : 
+                 replyTo?.type === 'image' ? '📷 Image' : 
+                 replyTo?.type === 'video' ? '🎥 Video' : 
+                 replyTo?.type === 'audio' ? '🎵 Audio' : 
+                 (replyTo?.content.startsWith('{') ? JSON.parse(replyTo.content).text : replyTo?.content)}
               </p>
             </div>
-            <button onClick={() => setReplyTo(null)} className="p-2 ml-2 bg-gray-200 hover:bg-gray-300 rounded-full text-gray-600 transition-colors">
+            <button onClick={() => { setReplyTo(null); setEditingMessage(null); setNewMessage(''); }} className="p-2 ml-2 bg-gray-200 hover:bg-gray-300 rounded-full text-gray-600 transition-colors">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
@@ -1034,7 +1147,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                handleSend(e);
+                if (editingMessage) {
+                  handleEdit(e);
+                } else {
+                  handleSend(e);
+                }
               }
             }}
             onFocus={() => {
@@ -1071,17 +1188,32 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         ) : newMessage.trim() ? (
           <button
             onPointerDown={(e) => e.preventDefault()}
-            onClick={handleSend}
-            className="p-3 bg-[#3A2034] text-white rounded-full hover:bg-[#261522] transition-all shadow-md active:scale-95 flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center"
-            aria-label="Send"
+            onClick={editingMessage ? handleEdit : handleSend}
+            className={`p-3 text-white rounded-full transition-all shadow-md active:scale-95 flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center ${editingMessage ? 'bg-sky-500 hover:bg-sky-600' : 'bg-[#3A2034] hover:bg-[#261522]'}`}
+            aria-label={editingMessage ? "Update" : "Send"}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-0.5">
-              <path d="m22 2-7 20-4-9-9-4 20-7z"/><path d="M22 2 11 13"/>
-            </svg>
+            {editingMessage ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6 9 17l-5-5"/>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-0.5">
+                <path d="m22 2-7 20-4-9-9-4 20-7z"/><path d="M22 2 11 13"/>
+              </svg>
+            )}
           </button>
         ) : (
           <button
-            className="p-3 bg-[#3A2034] text-white rounded-full hover:bg-[#261522] transition-all shadow-md active:scale-95 flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              setIsRecording(true);
+            }}
+            onPointerUp={() => {
+              setIsRecording(false);
+              alert("Voice recording is coming in a future update!");
+            }}
+            onPointerLeave={() => setIsRecording(false)}
+            className={`p-3 text-white rounded-full transition-all shadow-md flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center ${isRecording ? 'bg-red-500 scale-125' : 'bg-[#3A2034] hover:bg-[#261522] active:scale-95'}`}
             aria-label="Voice Message"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1089,6 +1221,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             </svg>
           </button>
         )}
+
         </div>
       </div>
     </div>

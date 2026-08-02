@@ -336,6 +336,20 @@ export async function markConversationDelivered(conversationId: string) {
     .eq('profile_id', user.id);
 }
 
+export async function markAllConversationsDelivered() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createAdminClient();
+
+  await adminSupabase
+    .from('conversation_participants')
+    .update({ last_delivered_at: new Date().toISOString() })
+    .eq('profile_id', user.id);
+}
+
 export async function updateLastSeen() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -348,4 +362,67 @@ export async function updateLastSeen() {
     .from('profiles')
     .update({ last_seen: new Date().toISOString() })
     .eq('id', user.id);
+}
+
+export async function editMessage(messageId: string, newContent: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Unauthorized" };
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createAdminClient();
+
+  const { error } = await adminSupabase
+    .from('messages')
+    .update({ 
+      content: newContent, 
+      is_edited: true, 
+      edited_at: new Date().toISOString() 
+    })
+    .eq('id', messageId)
+    .eq('sender_id', user.id); // Only the sender can edit
+
+  if (error) return { success: false, message: error.message };
+  return { success: true };
+}
+
+export async function deleteMessage(messageId: string, forEveryone: boolean) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Unauthorized" };
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createAdminClient();
+
+  if (forEveryone) {
+    const { error } = await adminSupabase
+      .from('messages')
+      .update({ 
+        is_deleted: true, 
+        deleted_at: new Date().toISOString() 
+      })
+      .eq('id', messageId)
+      .eq('sender_id', user.id); // Only sender can delete for everyone
+    if (error) return { success: false, message: error.message };
+  } else {
+    // Delete for me
+    // We fetch the current deleted_by array and append user.id
+    const { data: msg } = await adminSupabase
+      .from('messages')
+      .select('deleted_by')
+      .eq('id', messageId)
+      .single();
+      
+    if (msg) {
+      const current = Array.isArray(msg.deleted_by) ? msg.deleted_by : [];
+      if (!current.includes(user.id)) {
+        await adminSupabase
+          .from('messages')
+          .update({ deleted_by: [...current, user.id] })
+          .eq('id', messageId);
+      }
+    }
+  }
+
+  return { success: true };
 }

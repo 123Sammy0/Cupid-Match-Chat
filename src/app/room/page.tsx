@@ -125,6 +125,11 @@ export default function ChatHome() {
   const getLastMessagePreview = (conv: any) => {
     if (!conv.last_message) return "Tap to open conversation...";
     const lm = conv.last_message;
+    
+    if (lm.is_deleted) {
+      return "🚫 This message was deleted";
+    }
+
     const isMe = lm.sender_id !== conv.other_user_id;
     const prefix = isMe ? "You: " : "";
     
@@ -261,7 +266,9 @@ export default function ChatHome() {
                       <div className="w-12 h-12 bg-gradient-to-tr from-[#3A2034] to-[#5a3652] text-white rounded-[18px] flex items-center justify-center font-bold text-2xl shadow-sm relative">
                         {conv.other_user?.avatar_url ? conv.other_user.avatar_url : conv.other_user?.username?.charAt(0).toUpperCase() || '?'}
                         {/* Online dot */}
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#5E9C7D] border-2 border-white rounded-full"></div>
+                        {conv.other_user?.last_seen && (Date.now() - new Date(conv.other_user.last_seen).getTime() < 150000) && (
+                          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></div>
+                        )}
                       </div>
                     </div>
                     

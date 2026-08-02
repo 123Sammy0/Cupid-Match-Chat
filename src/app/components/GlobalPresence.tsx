@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { updateLastSeen, markConversationDelivered } from "@/app/actions/chat";
+import { updateLastSeen, markConversationDelivered, markAllConversationsDelivered } from "@/app/actions/chat";
 
 export default function GlobalPresence() {
   const channelRef = useRef<any>(null);
@@ -11,7 +11,10 @@ export default function GlobalPresence() {
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
-      if (data?.user) setUserId(data.user.id);
+      if (data?.user) {
+        setUserId(data.user.id);
+        markAllConversationsDelivered().catch(console.error);
+      }
     });
   }, []);
 
@@ -54,10 +57,19 @@ export default function GlobalPresence() {
       updateLastSeen().catch(console.error);
     }, 2 * 60 * 1000);
 
+    const handleUnload = () => {
+      // Best effort for when browser closes entirely
+      updateLastSeen().catch(console.error);
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handleUnload);
+    window.addEventListener('beforeunload', handleUnload);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handleUnload);
+      window.removeEventListener('beforeunload', handleUnload);
       clearInterval(interval);
       // Update last seen one final time when component unmounts
       updateLastSeen().catch(console.error);
