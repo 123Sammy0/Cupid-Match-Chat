@@ -181,6 +181,15 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           if (payload.new.last_delivered_at) setOtherLastDelivered(payload.new.last_delivered_at);
         }
       })
+      // Realtime last_seen / online status from the other user's profile
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: `id=eq.${otherUser?.id ?? '00000000-0000-0000-0000-000000000000'}`
+      }, (payload: any) => {
+        if (payload.new.last_seen) setOtherUserLastSeen(payload.new.last_seen);
+      })
       // New incoming messages via Postgres
       .on('postgres_changes', {
         event: 'INSERT',
@@ -327,7 +336,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     // Broadcast for 0.01s instant delivery bypasses Postgres Replication latency
     channelRef.current?.send({ type: 'broadcast', event: 'new_message', payload });
 
-    const { error } = await supabase.from('messages').insert({
+    // Use a fresh client for INSERT to avoid stale auth token failures
+    const freshClient = createClient();
+    const { error } = await freshClient.from('messages').insert({
       id: msgId, sender_id: user.id, conversation_id: conversationId,
       content: finalContent, type: 'text', expires_at: expiresAt
     });
@@ -335,6 +346,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     if (error) {
       console.error("Message insert error:", error);
       setLocalMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, localStatus: 'failed' } : m));
+    } else {
+      // Clear the localMessage sending state on confirmed DB write
+      setLocalMessages((prev) => prev.filter(m => m.id !== msgId));
     }
   };
 
@@ -725,7 +739,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 bg-white" onClick={() => { setShowEmojiPicker(false); setShowAttachMenu(false); setMessageMenu(null); setShowHeaderMenu(false); }}>
         {(() => {
-          const allMessages = [...messages, ...localMessages].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
+          // Merge: prefer confirmed DB messages over optimistic local ones (same id)
+          const confirmedIds = new Set(messages.map((m: any) => m.id));
+          const pendingOnly = localMessages.filter(m => !confirmedIds.has(m.id));
+          const allMessages = [...messages, ...pendingOnly].sort((a, b) => new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime());
           
           if (allMessages.length === 0) {
             return (

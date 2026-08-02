@@ -73,17 +73,15 @@ export default function GlobalPresence() {
       })
       .subscribe();
 
-    // Update last_seen when user hides the tab
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        updateLastSeen().catch(console.error);
-      }
-    };
-
-    // Periodically update last_seen (every 60 seconds while active)
+    // Periodically update last_seen (every 30 seconds while active)
     const interval = setInterval(() => {
       updateLastSeen().catch(console.error);
-    }, 60 * 1000);
+    }, 30 * 1000);
+
+    // Update last_seen immediately when tab becomes active again
+    const handleVisibilityChange = () => {
+      updateLastSeen().catch(console.error);
+    };
 
     const handleUnload = () => {
       updateLastSeen().catch(console.error);
