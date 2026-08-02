@@ -138,11 +138,16 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     // Mark as read when opening chat
     markConversationRead(conversationId);
 
-    const pollInterval = setInterval(fetchMessages, 6000);
+    // Mark as read when window regains focus (triggers blue ticks)
+    const handleFocus = () => markConversationRead(conversationId);
+    window.addEventListener('focus', handleFocus);
 
-    const channel = supabase.channel(`room:${conversationId}`, {
-      config: { presence: { key: user.id } }
-    });
+    // Fallback poll: only every 30s in case realtime briefly disconnects
+    const pollInterval = setInterval(fetchMessages, 30000);
+
+    // --- Room channel: handles messages, typing, read receipts ---
+    // No presence config here — presence is handled by global_presence channel only.
+    const channel = supabase.channel(`room:${conversationId}`);
     channelRef.current = channel;
 
     // Listen to global presence sync from GlobalPresence component
@@ -158,12 +163,13 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     const listener = (e: any) => handlePresenceSync(e.detail);
     window.addEventListener('global_presence_sync', listener);
     
-    // Check initial state in case GlobalPresence already mounted and fired the event
+    // Check initial state in case GlobalPresence already fired the event
     if (typeof window !== 'undefined' && (window as any)._globalPresenceState) {
       handlePresenceSync((window as any)._globalPresenceState);
     }
 
-    let roomChannel = channel
+    channel
+      // Read/delivered receipts from other participant
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
@@ -174,20 +180,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           if (payload.new.last_read_at) setOtherLastRead(payload.new.last_read_at);
           if (payload.new.last_delivered_at) setOtherLastDelivered(payload.new.last_delivered_at);
         }
-      });
-
-    if (otherUser?.id) {
-      roomChannel = roomChannel.on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'profiles',
-        filter: `id=eq.${otherUser.id}`
-      }, (payload: any) => {
-        if (payload.new.last_seen) setOtherUserLastSeen(payload.new.last_seen);
-      });
-    }
-
-    roomChannel
+      })
+      // New incoming messages via Postgres
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -199,13 +193,13 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           if (prev.some((m: any) => m.id === payload.new.id)) return prev;
           return [...prev, { ...payload.new, profiles: { username } }];
         });
-        
         if (payload.new.sender_id === user.id) {
           setLocalMessages((prev) => prev.filter(m => m.id !== payload.new.id));
         } else {
           markConversationRead(conversationId);
         }
       })
+      // Instant message delivery via broadcast (0ms latency bypass)
       .on('broadcast', { event: 'new_message' }, (payload: any) => {
         const msg = payload.payload;
         if (msg.sender_id !== user.id) {
@@ -216,11 +210,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           markConversationRead(conversationId);
         }
       })
+      // Typing indicator
       .on('broadcast', { event: 'typing' }, (payload: any) => {
         if (payload.payload.user_id === otherUser?.id) {
           setOtherUserTyping(payload.payload.isTyping);
           if (payload.payload.isTyping) {
-            // Auto-clear fallback to prevent stuck states
             if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
             typingTimeoutRef.current = setTimeout(() => {
               setOtherUserTyping(false);
@@ -228,6 +222,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           }
         }
       })
+      // Message deletion
       .on('postgres_changes', {
         event: 'DELETE',
         schema: 'public',
@@ -236,6 +231,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       }, (payload: any) => {
         setMessages((prev) => prev.filter((m: any) => m.id !== payload.old.id));
       })
+      // Message edits / reactions
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
@@ -244,18 +240,15 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       }, (payload: any) => {
         setMessages((prev) => prev.map((m: any) => m.id === payload.new.id ? { ...m, ...payload.new } : m));
       })
-      .on('presence', { event: 'sync' }, () => {
-        // We only use room presence to track if they are specifically in this room (optional)
-        // But online status is handled by global_presence now.
-      })
-      .subscribe(async (status: string) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({ user_id: user.id, in_room: true });
+      .subscribe((status: string) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('Room channel error:', status);
         }
       });
 
     return () => {
       clearInterval(pollInterval);
+      window.removeEventListener('focus', handleFocus);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       supabase.removeChannel(channel);
       window.removeEventListener('global_presence_sync', listener);

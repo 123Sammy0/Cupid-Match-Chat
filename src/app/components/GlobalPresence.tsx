@@ -22,7 +22,9 @@ export default function GlobalPresence() {
     if (!userId) return;
     const supabase = createClient();
 
-    // Join the global presence channel
+    // --- Global presence channel (presence only, no postgres_changes) ---
+    // Keeping this channel CLEAN (only presence) prevents it from conflicting
+    // with the room channel in ChatClient.tsx which handles postgres_changes.
     const channel = supabase.channel('global_presence', {
       config: { presence: { key: userId } }
     });
@@ -36,6 +38,30 @@ export default function GlobalPresence() {
           window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
         }
       })
+      .on('presence', { event: 'join' }, ({ newPresences }: any) => {
+        // Immediately re-fire sync on join so listeners catch new connections fast
+        const state = channel.presenceState();
+        if (typeof window !== 'undefined') {
+          (window as any)._globalPresenceState = state;
+          window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
+        }
+      })
+      .on('presence', { event: 'leave' }, ({ leftPresences }: any) => {
+        const state = channel.presenceState();
+        if (typeof window !== 'undefined') {
+          (window as any)._globalPresenceState = state;
+          window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
+        }
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ user_id: userId, online_at: new Date().toISOString() });
+        }
+      });
+
+    // --- Separate channel for message delivery tracking ---
+    // Isolated from presence so a failure in one doesn't break the other
+    const deliveryChannel = supabase.channel(`delivery:${userId}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -45,27 +71,21 @@ export default function GlobalPresence() {
           markConversationDelivered(payload.new.conversation_id).catch(console.error);
         }
       })
-      .subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        // Track presence with a timestamp
-        await channel.track({ user_id: userId, online_at: new Date().toISOString() });
-      }
-    });
+      .subscribe();
 
-    // Update last_seen in DB when the user leaves the page or hides it
+    // Update last_seen when user hides the tab
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         updateLastSeen().catch(console.error);
       }
     };
-    
-    // Also periodically update last_seen while active (every 2 minutes)
+
+    // Periodically update last_seen (every 60 seconds while active)
     const interval = setInterval(() => {
       updateLastSeen().catch(console.error);
-    }, 2 * 60 * 1000);
+    }, 60 * 1000);
 
     const handleUnload = () => {
-      // Best effort for when browser closes entirely
       updateLastSeen().catch(console.error);
     };
 
@@ -78,9 +98,9 @@ export default function GlobalPresence() {
       window.removeEventListener('pagehide', handleUnload);
       window.removeEventListener('beforeunload', handleUnload);
       clearInterval(interval);
-      // Update last seen one final time when component unmounts
       updateLastSeen().catch(console.error);
       supabase.removeChannel(channel);
+      supabase.removeChannel(deliveryChannel);
     };
   }, [userId]);
 
