@@ -146,8 +146,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     channelRef.current = channel;
 
     // Listen to global presence sync from GlobalPresence component
-    const handlePresenceSync = (e: any) => {
-      const state = e.detail;
+    const handlePresenceSync = (state: any) => {
       let isOnline = false;
       Object.values(state).forEach((presences: any) => {
         if (presences.some((p: any) => p.user_id === otherUser?.id)) {
@@ -156,9 +155,15 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       });
       setOtherUserOnline(isOnline);
     };
-    window.addEventListener('global_presence_sync', handlePresenceSync);
+    const listener = (e: any) => handlePresenceSync(e.detail);
+    window.addEventListener('global_presence_sync', listener);
+    
+    // Check initial state in case GlobalPresence already mounted and fired the event
+    if (typeof window !== 'undefined' && (window as any)._globalPresenceState) {
+      handlePresenceSync((window as any)._globalPresenceState);
+    }
 
-    channel
+    let roomChannel = channel
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
@@ -169,15 +174,20 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           if (payload.new.last_read_at) setOtherLastRead(payload.new.last_read_at);
           if (payload.new.last_delivered_at) setOtherLastDelivered(payload.new.last_delivered_at);
         }
-      })
-      .on('postgres_changes', {
+      });
+
+    if (otherUser?.id) {
+      roomChannel = roomChannel.on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'profiles',
-        filter: `id=eq.${otherUser?.id}`
+        filter: `id=eq.${otherUser.id}`
       }, (payload: any) => {
         if (payload.new.last_seen) setOtherUserLastSeen(payload.new.last_seen);
-      })
+      });
+    }
+
+    roomChannel
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -248,7 +258,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       clearInterval(pollInterval);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       supabase.removeChannel(channel);
-      window.removeEventListener('global_presence_sync', handlePresenceSync);
+      window.removeEventListener('global_presence_sync', listener);
       channelRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

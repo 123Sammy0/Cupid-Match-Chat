@@ -32,6 +32,7 @@ export default function GlobalPresence() {
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
         if (typeof window !== 'undefined') {
+          (window as any)._globalPresenceState = state;
           window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
         }
       })
