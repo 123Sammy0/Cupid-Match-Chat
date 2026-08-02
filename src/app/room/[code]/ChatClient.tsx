@@ -142,8 +142,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     const handleFocus = () => markConversationRead(conversationId);
     window.addEventListener('focus', handleFocus);
 
-    // Fallback poll: only every 30s in case realtime briefly disconnects
-    const pollInterval = setInterval(fetchMessages, 30000);
+    // Fallback poll: 10s safety net in case realtime hiccups
+    const pollInterval = setInterval(fetchMessages, 10000);
 
     // --- Room channel: handles messages, typing, read receipts ---
     // No presence config here — presence is handled by global_presence channel only.
@@ -897,49 +897,17 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     </>
                   )}
                   
-                  {/* Timestamp & Read Receipts inside bubble */}
+                  {/* Timestamp & Status inside bubble */}
                   <div className={`flex items-center gap-1 text-[10px] font-bold ${mediaData && !m.is_deleted ? 'absolute bottom-2 right-2 bg-black/40 text-white px-1.5 py-0.5 rounded-full' : (isMine ? 'absolute bottom-[4px] right-[8px] text-[#D97A89]/90' : 'absolute bottom-[4px] right-[8px] text-gray-400')}`}>
                     {m.is_edited && !m.is_deleted && <span className="opacity-70 mr-0.5">Edited</span>}
                     <span>{new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    {isMine && (
-                      (() => {
-                        if (m.localStatus === 'sending') {
-                          return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 ml-0.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
-                        }
-                        if (m.localStatus === 'failed') {
-                          return (
-                            <button onClick={(e) => { e.stopPropagation(); handleRetry(m); }} className="text-red-400 font-bold ml-0.5" title="Retry">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                            </button>
-                          );
-                        }
-                        
-                        const isSeen = otherLastRead && new Date(otherLastRead) >= new Date(m.sent_at);
-                        const isDelivered = otherLastDelivered && new Date(otherLastDelivered) >= new Date(m.sent_at);
-                        
-                        if (isSeen) {
-                          // Blue double check
-                          return (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-sky-400 font-bold ml-0.5">
-                              <path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/>
-                            </svg>
-                          );
-                        }
-                        if (isDelivered || otherUserOnline) {
-                          // Gray double check
-                          return (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 ml-0.5">
-                              <path d="M18 6 7 17l-5-5"/><path d="m22 10-7.5 7.5L13 16"/>
-                            </svg>
-                          );
-                        }
-                        // Sent (1 check)
-                        return (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 ml-0.5">
-                            <path d="M18 6 7 17l-5-5"/>
-                          </svg>
-                        );
-                      })()
+                    {isMine && m.localStatus === 'sending' && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 ml-0.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    )}
+                    {isMine && m.localStatus === 'failed' && (
+                      <button onClick={(e) => { e.stopPropagation(); handleRetry(m); }} className="text-red-400 font-bold ml-0.5" title="Retry">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      </button>
                     )}
                   </div>
                   {/* Clear float to ensure bubble wraps timestamp */}
@@ -958,6 +926,17 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   )}
                 </div>
               </div>
+              {/* Instagram-style Seen label — shown below the last message the other user has read */}
+              {isMine && !m.localStatus && otherLastRead && (() => {
+                // Find if this is the last message sent by me that was seen
+                const myMsgs = arr.filter(msg => msg.sender_id === user.id && !msg.localStatus);
+                const lastSeenMsg = [...myMsgs].reverse().find(msg => new Date(otherLastRead) >= new Date(msg.sent_at));
+                return lastSeenMsg?.id === m.id ? (
+                  <div className="flex justify-end pr-1 mt-0.5">
+                    <span className="text-[10px] text-gray-400 font-medium">Seen</span>
+                  </div>
+                ) : null;
+              })()}
               </div>
             </div>
           );
