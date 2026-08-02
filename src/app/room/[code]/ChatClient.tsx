@@ -98,78 +98,139 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
     try {
       const cached = sessionStorage.getItem(`cupid_messages_${conversationId}`);
-      if (cached) {
-        setMessages(JSON.parse(cached));
-      }
+      if (cached) setMessages(JSON.parse(cached));
     } catch (e) {}
 
+    const supabaseClient = createClient();
+
     const fetchMessages = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabaseClient
         .from('messages')
         .select('*, profiles(username)')
         .eq('conversation_id', conversationId)
         .order('sent_at', { ascending: true });
-      if (error) console.error("Fetch messages error:", error);
       if (data) {
         setMessages(data);
         setLocalMessages(prev => prev.filter(m => !data.some((d: any) => d.id === m.id)));
-        try {
-          sessionStorage.setItem(`cupid_messages_${conversationId}`, JSON.stringify(data));
-        } catch (e) {}
+        try { sessionStorage.setItem(`cupid_messages_${conversationId}`, JSON.stringify(data)); } catch (e) {}
       }
     };
 
     const fetchParticipants = async () => {
-      const { data } = await supabase
+      const { data } = await supabaseClient
         .from('conversation_participants')
         .select('profile_id, last_read_at, last_delivered_at')
         .eq('conversation_id', conversationId);
       if (data) {
         const otherP = data.find((p: any) => p.profile_id === otherUser?.id);
-        if (otherP) {
-          if (otherP.last_read_at) setOtherLastRead(otherP.last_read_at);
-          if (otherP.last_delivered_at) setOtherLastDelivered(otherP.last_delivered_at);
-        }
+        if (otherP?.last_read_at) setOtherLastRead(otherP.last_read_at);
+        if (otherP?.last_delivered_at) setOtherLastDelivered(otherP.last_delivered_at);
       }
     };
+
     fetchParticipants();
     fetchMessages();
-    
-    // Mark as read when opening chat
     markConversationRead(conversationId);
 
-    // Mark as read when window regains focus (triggers blue ticks)
     const handleFocus = () => markConversationRead(conversationId);
     window.addEventListener('focus', handleFocus);
 
-    // Fallback poll: 10s safety net in case realtime hiccups
-    const pollInterval = setInterval(fetchMessages, 10000);
+    // Safety-net poll every 15 seconds
+    const pollInterval = setInterval(fetchMessages, 15000);
 
-    // --- Room channel: handles messages, typing, read receipts ---
-    // No presence config here — presence is handled by global_presence channel only.
-    const channel = supabase.channel(`room:${conversationId}`);
-    channelRef.current = channel;
+    // ─── CHANNEL 1: Presence ────────────────────────────────────────────────
+    // Subscribe directly to the global_presence channel — no window event bridge.
+    // This fires as soon as we subscribe, giving us the current online state instantly.
+    const presenceChannel = supabaseClient.channel('global_presence');
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState();
+        const isOnline = Object.values(state).some((presences: any) =>
+          presences.some((p: any) => p.user_id === otherUser?.id)
+        );
+        setOtherUserOnline(isOnline);
+      })
+      .on('presence', { event: 'join' }, () => {
+        const state = presenceChannel.presenceState();
+        const isOnline = Object.values(state).some((presences: any) =>
+          presences.some((p: any) => p.user_id === otherUser?.id)
+        );
+        setOtherUserOnline(isOnline);
+      })
+      .on('presence', { event: 'leave' }, () => {
+        const state = presenceChannel.presenceState();
+        const isOnline = Object.values(state).some((presences: any) =>
+          presences.some((p: any) => p.user_id === otherUser?.id)
+        );
+        setOtherUserOnline(isOnline);
+      })
+      .subscribe();
 
-    // Listen to global presence sync from GlobalPresence component
-    const handlePresenceSync = (state: any) => {
-      let isOnline = false;
-      Object.values(state).forEach((presences: any) => {
-        if (presences.some((p: any) => p.user_id === otherUser?.id)) {
-          isOnline = true;
+    // ─── CHANNEL 2: Room broadcast (typing + instant messages) ──────────────
+    // Broadcast-only — no postgres_changes here so it subscribes instantly.
+    const roomChannel = supabaseClient.channel(`room:${conversationId}`, {
+      config: { broadcast: { self: false } }
+    });
+    channelRef.current = roomChannel;
+
+    roomChannel
+      .on('broadcast', { event: 'new_message' }, (payload: any) => {
+        const msg = payload.payload;
+        if (msg.sender_id !== user.id) {
+          setMessages(prev => prev.some((m: any) => m.id === msg.id) ? prev : [...prev, msg]);
+          markConversationRead(conversationId);
         }
-      });
-      setOtherUserOnline(isOnline);
-    };
-    const listener = (e: any) => handlePresenceSync(e.detail);
-    window.addEventListener('global_presence_sync', listener);
-    
-    // Check initial state in case GlobalPresence already fired the event
-    if (typeof window !== 'undefined' && (window as any)._globalPresenceState) {
-      handlePresenceSync((window as any)._globalPresenceState);
-    }
+      })
+      .on('broadcast', { event: 'typing' }, (payload: any) => {
+        if (payload.payload?.user_id === otherUser?.id) {
+          setOtherUserTyping(payload.payload.isTyping);
+          if (payload.payload.isTyping) {
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = setTimeout(() => setOtherUserTyping(false), 3000);
+          } else {
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+          }
+        }
+      })
+      .subscribe();
 
-    channel
-      // Read/delivered receipts from other participant
+    // ─── CHANNEL 3: Postgres changes (DB events) ────────────────────────────
+    const dbChannel = supabaseClient.channel(`db:${conversationId}`);
+    dbChannel
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`
+      }, (payload: any) => {
+        const username = payload.new.sender_id === user.id ? profile?.username : otherUser?.username;
+        setMessages(prev => {
+          if (prev.some((m: any) => m.id === payload.new.id)) return prev;
+          return [...prev, { ...payload.new, profiles: { username } }];
+        });
+        // Sender: remove the optimistic local copy
+        if (payload.new.sender_id === user.id) {
+          setLocalMessages(prev => prev.filter(m => m.id !== payload.new.id));
+        } else {
+          markConversationRead(conversationId);
+        }
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`
+      }, (payload: any) => {
+        setMessages(prev => prev.map((m: any) => m.id === payload.new.id ? { ...m, ...payload.new } : m));
+      })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`
+      }, (payload: any) => {
+        setMessages(prev => prev.filter((m: any) => m.id !== payload.old.id));
+      })
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
@@ -181,7 +242,6 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           if (payload.new.last_delivered_at) setOtherLastDelivered(payload.new.last_delivered_at);
         }
       })
-      // Realtime last_seen / online status from the other user's profile
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
@@ -190,77 +250,15 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       }, (payload: any) => {
         if (payload.new.last_seen) setOtherUserLastSeen(payload.new.last_seen);
       })
-      // New incoming messages via Postgres
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `conversation_id=eq.${conversationId}`
-      }, (payload: any) => {
-        const username = payload.new.sender_id === user.id ? profile?.username : otherUser?.username;
-        setMessages((prev) => {
-          if (prev.some((m: any) => m.id === payload.new.id)) return prev;
-          return [...prev, { ...payload.new, profiles: { username } }];
-        });
-        if (payload.new.sender_id === user.id) {
-          setLocalMessages((prev) => prev.filter(m => m.id !== payload.new.id));
-        } else {
-          markConversationRead(conversationId);
-        }
-      })
-      // Instant message delivery via broadcast (0ms latency bypass)
-      .on('broadcast', { event: 'new_message' }, (payload: any) => {
-        const msg = payload.payload;
-        if (msg.sender_id !== user.id) {
-          setMessages((prev) => {
-            if (prev.some((m: any) => m.id === msg.id)) return prev;
-            return [...prev, msg];
-          });
-          markConversationRead(conversationId);
-        }
-      })
-      // Typing indicator
-      .on('broadcast', { event: 'typing' }, (payload: any) => {
-        if (payload.payload.user_id === otherUser?.id) {
-          setOtherUserTyping(payload.payload.isTyping);
-          if (payload.payload.isTyping) {
-            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-            typingTimeoutRef.current = setTimeout(() => {
-              setOtherUserTyping(false);
-            }, 3000);
-          }
-        }
-      })
-      // Message deletion
-      .on('postgres_changes', {
-        event: 'DELETE',
-        schema: 'public',
-        table: 'messages',
-        filter: `conversation_id=eq.${conversationId}`
-      }, (payload: any) => {
-        setMessages((prev) => prev.filter((m: any) => m.id !== payload.old.id));
-      })
-      // Message edits / reactions
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'messages',
-        filter: `conversation_id=eq.${conversationId}`
-      }, (payload: any) => {
-        setMessages((prev) => prev.map((m: any) => m.id === payload.new.id ? { ...m, ...payload.new } : m));
-      })
-      .subscribe((status: string) => {
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn('Room channel error:', status);
-        }
-      });
+      .subscribe();
 
     return () => {
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      supabase.removeChannel(channel);
-      window.removeEventListener('global_presence_sync', listener);
+      supabaseClient.removeChannel(presenceChannel);
+      supabaseClient.removeChannel(roomChannel);
+      supabaseClient.removeChannel(dbChannel);
       channelRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
