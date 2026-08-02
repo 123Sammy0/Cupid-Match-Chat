@@ -139,27 +139,23 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     const pollInterval = setInterval(fetchMessages, 15000);
 
     // ─── CHANNEL 1: Presence ────────────────────────────────────────────────
-    // Subscribe directly to the global_presence channel — no window event bridge.
-    const presenceChannel = supabaseClient.channel('global_presence');
-    
-    const updateOnlineStatus = () => {
-      const state = presenceChannel.presenceState();
+    // Read from the global window state emitted by GlobalPresence.tsx
+    // This avoids singleton channel config conflicts in Supabase JS.
+    const handleSync = (e: any) => {
+      const state = e.detail;
       const isOnline = Object.values(state).some((presences: any) =>
         presences.some((p: any) => p.user_id === otherUser?.id)
       );
       setOtherUserOnline(isOnline);
     };
 
-    presenceChannel
-      .on('presence', { event: 'sync' }, updateOnlineStatus)
-      .on('presence', { event: 'join' }, updateOnlineStatus)
-      .on('presence', { event: 'leave' }, updateOnlineStatus)
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') updateOnlineStatus();
-      });
-
-    // Fire immediately in case the channel was already subscribed globally
-    updateOnlineStatus();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('global_presence_sync', handleSync);
+      // Read initial state instantly to fix race conditions if ChatClient mounted after sync
+      if ((window as any)._globalPresenceState) {
+        handleSync({ detail: (window as any)._globalPresenceState });
+      }
+    }
 
     // ─── CHANNEL 2: Room broadcast (typing + instant messages) ──────────────
     // Broadcast-only — no postgres_changes here so it subscribes instantly.
@@ -251,8 +247,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      // DO NOT remove presenceChannel, as it is shared globally by the app.
-      presenceChannel.unsubscribe(); 
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('global_presence_sync', handleSync);
+      }
       supabaseClient.removeChannel(roomChannel);
       supabaseClient.removeChannel(dbChannel);
       channelRef.current = null;

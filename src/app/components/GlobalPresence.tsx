@@ -29,6 +29,27 @@ export default function GlobalPresence() {
     channelRef.current = channel;
 
     channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        if (typeof window !== 'undefined') {
+          (window as any)._globalPresenceState = state;
+          window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
+        }
+      })
+      .on('presence', { event: 'join' }, () => {
+        const state = channel.presenceState();
+        if (typeof window !== 'undefined') {
+          (window as any)._globalPresenceState = state;
+          window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
+        }
+      })
+      .on('presence', { event: 'leave' }, () => {
+        const state = channel.presenceState();
+        if (typeof window !== 'undefined') {
+          (window as any)._globalPresenceState = state;
+          window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
+        }
+      })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           await channel.track({ user_id: userId, online_at: new Date().toISOString() });
