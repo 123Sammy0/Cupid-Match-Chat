@@ -23,36 +23,12 @@ export default function GlobalPresence() {
     const supabase = createClient();
 
     // --- Global presence channel (presence only, no postgres_changes) ---
-    // Keeping this channel CLEAN (only presence) prevents it from conflicting
-    // with the room channel in ChatClient.tsx which handles postgres_changes.
     const channel = supabase.channel('global_presence', {
       config: { presence: { key: userId } }
     });
     channelRef.current = channel;
 
     channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        if (typeof window !== 'undefined') {
-          (window as any)._globalPresenceState = state;
-          window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
-        }
-      })
-      .on('presence', { event: 'join' }, ({ newPresences }: any) => {
-        // Immediately re-fire sync on join so listeners catch new connections fast
-        const state = channel.presenceState();
-        if (typeof window !== 'undefined') {
-          (window as any)._globalPresenceState = state;
-          window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
-        }
-      })
-      .on('presence', { event: 'leave' }, ({ leftPresences }: any) => {
-        const state = channel.presenceState();
-        if (typeof window !== 'undefined') {
-          (window as any)._globalPresenceState = state;
-          window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
-        }
-      })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           await channel.track({ user_id: userId, online_at: new Date().toISOString() });
@@ -60,7 +36,6 @@ export default function GlobalPresence() {
       });
 
     // --- Separate channel for message delivery tracking ---
-    // Isolated from presence so a failure in one doesn't break the other
     const deliveryChannel = supabase.channel(`delivery:${userId}`)
       .on('postgres_changes', {
         event: 'INSERT',
@@ -73,31 +48,28 @@ export default function GlobalPresence() {
       })
       .subscribe();
 
-    // Periodically update last_seen (every 30 seconds while active)
-    const interval = setInterval(() => {
-      updateLastSeen().catch(console.error);
-    }, 30 * 1000);
-
-    // Update last_seen immediately when tab becomes active again
-    const handleVisibilityChange = () => {
-      updateLastSeen().catch(console.error);
+    // Update last_seen immediately when tab becomes hidden or closed
+    const handleLeave = () => {
+      if (document.visibilityState === 'hidden') {
+        updateLastSeen().catch(console.error);
+      }
     };
 
     const handleUnload = () => {
       updateLastSeen().catch(console.error);
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleLeave);
     window.addEventListener('pagehide', handleUnload);
     window.addEventListener('beforeunload', handleUnload);
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleLeave);
       window.removeEventListener('pagehide', handleUnload);
       window.removeEventListener('beforeunload', handleUnload);
-      clearInterval(interval);
       updateLastSeen().catch(console.error);
-      supabase.removeChannel(channel);
+      // Clean up delivery tracking, but presence is shared globally so don't completely destroy it here 
+      // since layout might be persisting it.
       supabase.removeChannel(deliveryChannel);
     };
   }, [userId]);

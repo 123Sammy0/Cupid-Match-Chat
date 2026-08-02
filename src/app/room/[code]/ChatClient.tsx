@@ -140,31 +140,26 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
     // ─── CHANNEL 1: Presence ────────────────────────────────────────────────
     // Subscribe directly to the global_presence channel — no window event bridge.
-    // This fires as soon as we subscribe, giving us the current online state instantly.
     const presenceChannel = supabaseClient.channel('global_presence');
+    
+    const updateOnlineStatus = () => {
+      const state = presenceChannel.presenceState();
+      const isOnline = Object.values(state).some((presences: any) =>
+        presences.some((p: any) => p.user_id === otherUser?.id)
+      );
+      setOtherUserOnline(isOnline);
+    };
+
     presenceChannel
-      .on('presence', { event: 'sync' }, () => {
-        const state = presenceChannel.presenceState();
-        const isOnline = Object.values(state).some((presences: any) =>
-          presences.some((p: any) => p.user_id === otherUser?.id)
-        );
-        setOtherUserOnline(isOnline);
-      })
-      .on('presence', { event: 'join' }, () => {
-        const state = presenceChannel.presenceState();
-        const isOnline = Object.values(state).some((presences: any) =>
-          presences.some((p: any) => p.user_id === otherUser?.id)
-        );
-        setOtherUserOnline(isOnline);
-      })
-      .on('presence', { event: 'leave' }, () => {
-        const state = presenceChannel.presenceState();
-        const isOnline = Object.values(state).some((presences: any) =>
-          presences.some((p: any) => p.user_id === otherUser?.id)
-        );
-        setOtherUserOnline(isOnline);
-      })
-      .subscribe();
+      .on('presence', { event: 'sync' }, updateOnlineStatus)
+      .on('presence', { event: 'join' }, updateOnlineStatus)
+      .on('presence', { event: 'leave' }, updateOnlineStatus)
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') updateOnlineStatus();
+      });
+
+    // Fire immediately in case the channel was already subscribed globally
+    updateOnlineStatus();
 
     // ─── CHANNEL 2: Room broadcast (typing + instant messages) ──────────────
     // Broadcast-only — no postgres_changes here so it subscribes instantly.
@@ -256,7 +251,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      supabaseClient.removeChannel(presenceChannel);
+      // DO NOT remove presenceChannel, as it is shared globally by the app.
+      presenceChannel.unsubscribe(); 
       supabaseClient.removeChannel(roomChannel);
       supabaseClient.removeChannel(dbChannel);
       channelRef.current = null;
@@ -405,10 +401,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
     const isYesterday = new Date(now.getTime() - 86400000).getDate() === date.getDate();
     
-    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     if (isToday) return `Last seen today at ${timeStr}`;
     if (isYesterday) return `Last seen yesterday at ${timeStr}`;
-    return `Last seen on ${date.toLocaleDateString()} at ${timeStr}`;
+    
+    const dateStr = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    return `Last seen on ${dateStr} at ${timeStr}`;
   };
 
   const handleReact = async (msgId: string, emoji: string) => {
