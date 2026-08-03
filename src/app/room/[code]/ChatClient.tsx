@@ -158,6 +158,28 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     // Safety-net poll every 15 seconds
     const pollInterval = setInterval(fetchMessages, 15000);
 
+    // ─── REALTIME AUTH: set token so RLS-enabled postgres_changes work ────────
+    // Explicitly pass the JWT to the Realtime connection BEFORE subscribing.
+    // Without this, the WebSocket auth fails silently with "no valid credentials".
+    const initRealtime = async () => {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session?.access_token) {
+        supabaseClient.realtime.setAuth(session.access_token);
+        console.log('[REALTIME] setAuth called with session token');
+      } else {
+        console.warn('[REALTIME] No session found — realtime will not receive RLS-gated events');
+      }
+    };
+    initRealtime();
+
+    // Keep token fresh on every token refresh
+    const { data: { subscription: authSub } } = supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (session?.access_token) {
+        supabaseClient.realtime.setAuth(session.access_token);
+        console.log('[REALTIME] Token refreshed, setAuth updated');
+      }
+    });
+
     // ─── CHANNEL 1: Presence ────────────────────────────────────────────────
     // Read from the global window state emitted by GlobalPresence.tsx
     // This avoids singleton channel config conflicts in Supabase JS.
@@ -203,7 +225,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           }
         }
       })
-      .subscribe();
+      .subscribe((status: string, err?: Error) => {
+        console.log('[REALTIME] roomChannel status:', status, err ?? '');
+      });
 
     // ─── CHANNEL 3: Postgres changes (DB events) ────────────────────────────
     const dbChannel = supabaseClient.channel(`db:${conversationId}`);
@@ -265,11 +289,14 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       }, (payload: any) => {
         if (payload.new.last_seen) setOtherUserLastSeen(payload.new.last_seen);
       })
-      .subscribe();
+      .subscribe((status: string, err?: Error) => {
+        console.log('[REALTIME] dbChannel status:', status, err ?? '');
+      });
 
     return () => {
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
+      authSub.unsubscribe();
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       if (typeof window !== 'undefined') {
         window.removeEventListener('global_presence_sync', handleSync);
