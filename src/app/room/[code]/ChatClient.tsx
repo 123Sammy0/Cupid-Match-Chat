@@ -46,6 +46,8 @@ const EMOJI_CATEGORIES = [
 ];
 
 export default function ChatClient({ conversationId, user, profile, otherUser }: { conversationId: string, user: any, profile: any, otherUser: any }) {
+  // PHASE 1 — Build verification marker (remove after confirming new deploy)
+  console.log('[BUILD_CHECK] ChatClient loaded', Date.now());
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [otherUserOnline, setOtherUserOnline] = useState(false);
@@ -85,10 +87,28 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [otherUserLastSeen, setOtherUserLastSeen] = useState<string | null>(otherUser?.last_seen || null);
   const [localMessages, setLocalMessages] = useState<any[]>([]); // Track Sending and Failed messages
 
+  // PHASE 2 — Lifecycle remount detection
+  useEffect(() => {
+    console.log('[LIFECYCLE] ChatClient MOUNTED', Date.now());
+    return () => console.log('[LIFECYCLE] ChatClient UNMOUNTED', Date.now());
+  }, []);
+
+  // PHASE 3 — Log whenever localMessages changes and track when it actually PAINTS
+  useEffect(() => {
+    if (localMessages.length === 0) return;
+    requestAnimationFrame(() => {
+      console.log(`[PAINT] localMessages updated & painted. count=${localMessages.length}`, Date.now());
+    });
+  }, [localMessages]);
+
+  // PHASE 4 — sessionStorage write commented out to isolate blocking effect
+  // Uncomment to restore: this JSON.stringifies all messages on every message change
   useEffect(() => {
     if (conversationId && messages.length > 0) {
       try {
-        sessionStorage.setItem(`cupid_messages_${conversationId}`, JSON.stringify(messages));
+        // TEMPORARILY DISABLED FOR LATENCY DIAGNOSIS:
+        // sessionStorage.setItem(`cupid_messages_${conversationId}`, JSON.stringify(messages));
+        console.log('[DIAG] sessionStorage write skipped (disabled for testing)');
       } catch (e) {}
     }
   }, [messages, conversationId]);
@@ -194,6 +214,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         table: 'messages',
         filter: `conversation_id=eq.${conversationId}`
       }, (payload: any) => {
+        console.log(`[REALTIME] postgres_changes INSERT fired for msg id=${payload.new.id} sender=${payload.new.sender_id}`, Date.now());
         const username = payload.new.sender_id === user.id ? profile?.username : otherUser?.username;
         setMessages(prev => {
           if (prev.some((m: any) => m.id === payload.new.id)) return prev;
@@ -287,6 +308,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!newMessage.trim()) return;
+    const t0 = performance.now();
+    console.log(`[T+0ms] handleSend triggered`, Date.now());
+
     const textContent = newMessage.trim();
     
     // Check if replying
@@ -306,8 +330,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     setNewMessage("");
     setReplyTo(null);
     if (inputRef.current) {
-      inputRef.current.style.height = 'auto'; // Reset height
-      inputRef.current.focus(); // Keep focus to prevent keyboard from closing
+      inputRef.current.style.height = 'auto';
+      inputRef.current.focus();
     }
     setShowEmojiPicker(false);
     isTypingRef.current = false;
@@ -322,16 +346,23 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       expires_at: expiresAt, profiles: { username: profile?.username }
     };
 
+    console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] calling setLocalMessages (optimistic)`);
     setLocalMessages((prev) => [...prev, { ...payload, localStatus: 'sending' }]);
-    
-    // Broadcast for 0.01s instant delivery bypasses Postgres Replication latency
-    channelRef.current?.send({ type: 'broadcast', event: 'new_message', payload });
+    console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] setLocalMessages called (React will batch & paint async)`);
 
-    // Use existing supabase client instead of creating a fresh one
+    // Phase 5 — Broadcast send timing
+    const tBroadcast = performance.now();
+    channelRef.current?.send({ type: 'broadcast', event: 'new_message', payload });
+    console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] broadcast .send() dispatched (${(performance.now()-tBroadcast).toFixed(1)}ms for send call itself)`);
+
+    // DB insert timing
+    const tInsert = performance.now();
+    console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] starting supabase insert...`);
     const { error } = await supabase.from('messages').insert({
       id: msgId, sender_id: user.id, conversation_id: conversationId,
       content: finalContent, type: 'text', expires_at: expiresAt
     });
+    console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] supabase insert resolved | insert took ${(performance.now()-tInsert).toFixed(1)}ms | error=${JSON.stringify(error)}`);
 
     if (error) {
       console.error("Message insert error:", error);
@@ -339,6 +370,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     } else {
       // Clear the localMessage sending state on confirmed DB write
       setLocalMessages((prev) => prev.filter(m => m.id !== msgId));
+      console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] localMessages cleared (optimistic removed, awaiting postgres_changes echo)`);
     }
   };
 
