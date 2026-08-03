@@ -1,5 +1,6 @@
 "use client";
 
+import type { Session } from "@supabase/supabase-js";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -173,7 +174,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     initRealtime();
 
     // Keep token fresh on every token refresh
-    const { data: { subscription: authSub } } = supabaseClient.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription: authSub } } = supabaseClient.auth.onAuthStateChange((_event: string, session: Session | null) => {
       if (session?.access_token) {
         supabaseClient.realtime.setAuth(session.access_token);
         console.log('[REALTIME] Token refreshed, setAuth updated');

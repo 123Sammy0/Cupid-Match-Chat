@@ -1,5 +1,6 @@
 "use client";
 
+import type { User } from "@supabase/supabase-js";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { updateLastSeen, markConversationDelivered, markAllConversationsDelivered } from "@/app/actions/chat";
@@ -10,7 +11,7 @@ export default function GlobalPresence() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: User | null } }) => {
       if (data?.user) {
         setUserId(data.user.id);
         markAllConversationsDelivered().catch(console.error);
@@ -50,7 +51,7 @@ export default function GlobalPresence() {
           window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
         }
       })
-      .subscribe(async (status) => {
+      .subscribe(async (status: string) => {
         if (status === 'SUBSCRIBED') {
           await channel.track({ user_id: userId, online_at: new Date().toISOString() });
         }
