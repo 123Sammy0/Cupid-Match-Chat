@@ -121,7 +121,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       if (cached) setMessages(JSON.parse(cached));
     } catch (e) {}
 
-    const supabaseClient = createClient();
+    const supabaseClient = supabase;
 
     const fetchMessages = async () => {
       const { data } = await supabaseClient
@@ -217,7 +217,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         console.log(`[REALTIME] postgres_changes INSERT fired for msg id=${payload.new.id} sender=${payload.new.sender_id}`, Date.now());
         const username = payload.new.sender_id === user.id ? profile?.username : otherUser?.username;
         setMessages(prev => {
-          if (prev.some((m: any) => m.id === payload.new.id)) return prev;
+          const index = prev.findIndex((m: any) => m.id === payload.new.id);
+          if (index > -1) {
+            return prev.map((m: any) => m.id === payload.new.id ? { ...payload.new, profiles: { username } } : m);
+          }
           return [...prev, { ...payload.new, profiles: { username } }];
         });
         // Sender: remove the optimistic local copy
@@ -368,9 +371,14 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       console.error("Message insert error:", error);
       setLocalMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, localStatus: 'failed' } : m));
     } else {
+      // Direct update to prevent the disappear-and-reappear flicker
+      setMessages(prev => {
+        if (prev.some(m => m.id === msgId)) return prev;
+        return [...prev, payload];
+      });
       // Clear the localMessage sending state on confirmed DB write
       setLocalMessages((prev) => prev.filter(m => m.id !== msgId));
-      console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] localMessages cleared (optimistic removed, awaiting postgres_changes echo)`);
+      console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] localMessages cleared and appended directly to messages state (flicker prevented)`);
     }
   };
 
