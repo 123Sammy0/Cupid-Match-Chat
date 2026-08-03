@@ -672,11 +672,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       {showCallModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCallModal(null)}>
           <div className="bg-white rounded-[32px] p-8 w-full max-w-[300px] flex flex-col items-center gap-5 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="w-20 h-20 rounded-[24px] bg-gradient-to-tr from-[#3A2034] to-[#5a3652] text-white flex items-center justify-center font-bold text-3xl shadow-lg">
+            <div className="w-20 h-20 rounded-full bg-black text-white flex items-center justify-center font-bold text-3xl shadow-lg">
               {otherUser?.username?.charAt(0).toUpperCase() || '?'}
             </div>
             <div className="text-center">
-              <p className="font-bold text-[20px] text-[#3A2034]">{otherUser?.username || 'Unknown'}</p>
+              <p className="font-bold text-[20px] text-black">{otherUser?.username || 'Unknown'}</p>
               <p className="text-gray-400 text-sm font-medium mt-1">
                 {showCallModal === "video" ? "📹 Video call" : "📞 Voice call"} — Coming soon
               </p>
@@ -684,7 +684,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             <p className="text-center text-gray-500 text-sm leading-relaxed">
               Calling features are coming in the next update! You can still chat in the meantime. 💬
             </p>
-            <button onClick={() => setShowCallModal(null)} className="w-full py-3 bg-[#3A2034] text-white font-semibold rounded-2xl hover:bg-[#261522] transition-colors">
+            <button onClick={() => setShowCallModal(null)} className="w-full py-3 bg-black text-white font-semibold rounded-2xl hover:bg-gray-900 transition-colors">
               OK
             </button>
           </div>
@@ -698,26 +698,26 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             <button onClick={() => setShowContactModal(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
-            <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-[#3A2034] to-[#5a3652] text-white flex items-center justify-center font-bold text-5xl shadow-lg mt-2">
+            <div className="w-28 h-28 rounded-full bg-black text-white flex items-center justify-center font-bold text-5xl shadow-lg mt-2">
               {otherUser?.avatar_url ? otherUser.avatar_url : otherUser?.username?.charAt(0).toUpperCase() || '?'}
             </div>
             <div className="text-center w-full mt-2">
-              <h2 className="font-bold text-[24px] text-[#3A2034] break-words">{otherUser?.username || 'Unknown'}</h2>
-              <p className="text-[#D97A89] text-sm font-semibold mt-1">
+              <h2 className="font-bold text-[24px] text-black break-words">{otherUser?.username || 'Unknown'}</h2>
+              <p className="text-black text-sm font-semibold mt-1">
                 {otherUserOnline ? '🟢 Online now' : '⚪ Offline'}
               </p>
             </div>
             <div className="w-full bg-slate-50 p-4 rounded-2xl mt-2 border border-slate-100">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">About</p>
-              <p className="text-sm text-[#3A2034] font-medium leading-relaxed">
+              <p className="text-sm text-black font-medium leading-relaxed">
                 {otherUser?.bio || "Hey there! I am using this app."}
               </p>
             </div>
             <div className="flex gap-2 w-full mt-2">
-              <button onClick={() => { setShowContactModal(false); setShowCallModal("voice"); }} className="flex-1 py-3 bg-[#F0F2F5] hover:bg-gray-200 text-[#3A2034] font-semibold rounded-2xl transition-colors flex justify-center items-center gap-2">
+              <button onClick={() => { setShowContactModal(false); setShowCallModal("voice"); }} className="flex-1 py-3 bg-[#F0F2F5] hover:bg-gray-200 text-black font-semibold rounded-2xl transition-colors flex justify-center items-center gap-2">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg> Voice
               </button>
-              <button onClick={() => { setShowContactModal(false); setShowCallModal("video"); }} className="flex-1 py-3 bg-[#F0F2F5] hover:bg-gray-200 text-[#3A2034] font-semibold rounded-2xl transition-colors flex justify-center items-center gap-2">
+              <button onClick={() => { setShowContactModal(false); setShowCallModal("video"); }} className="flex-1 py-3 bg-[#F0F2F5] hover:bg-gray-200 text-black font-semibold rounded-2xl transition-colors flex justify-center items-center gap-2">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> Video
               </button>
             </div>
@@ -726,11 +726,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       )}
 
       {/* Header */}
-      <header className="flex items-center justify-between px-2 py-2 bg-white/95 backdrop-blur-xl text-[#3A2034] z-10 border-b border-[#EEE7F7]/60 sticky top-0 relative">
+      <header className="flex items-center justify-between px-2 py-2 bg-white/95 backdrop-blur-xl text-black z-10 border-b border-gray-100 sticky top-0 relative">
         
         {isSearchingChat ? (
           <div className="flex-1 flex items-center gap-2 px-2 animate-in fade-in slide-in-from-right-4 duration-200">
-            <button onClick={() => { setIsSearchingChat(false); setChatSearchQuery(""); }} className="p-2 rounded-full hover:bg-slate-100 text-gray-400 hover:text-[#3A2034] transition-all active:scale-90 active:bg-slate-200 select-none cursor-pointer" aria-label="Back">
+            <button onClick={() => { setIsSearchingChat(false); setChatSearchQuery(""); }} className="p-2 rounded-full hover:bg-slate-100 text-gray-400 hover:text-black transition-all active:scale-90 active:bg-slate-200 select-none cursor-pointer" aria-label="Back">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
             </button>
             <input 
@@ -739,25 +739,25 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               placeholder="Search in chat..."
               value={chatSearchQuery}
               onChange={(e) => setChatSearchQuery(e.target.value)}
-              className="flex-1 bg-slate-100 rounded-full py-2 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#D97A89]/30"
+              className="flex-1 bg-slate-100 rounded-full py-2 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black/30"
             />
           </div>
         ) : (
           <>
             <div className="flex items-center gap-1">
-              <button onClick={() => router.push('/room')} className="p-2 rounded-full hover:bg-slate-100 text-gray-400 hover:text-[#3A2034] transition-all active:scale-90 active:bg-slate-200 select-none cursor-pointer" aria-label="Back">
+              <button onClick={() => router.push('/room')} className="p-2 rounded-full hover:bg-slate-100 text-gray-400 hover:text-black transition-all active:scale-90 active:bg-slate-200 select-none cursor-pointer" aria-label="Back">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               </button>
               
               <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowContactModal(true)}>
                 <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#3A2034] to-[#5a3652] text-white flex items-center justify-center font-bold text-2xl shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-bold text-2xl shadow-sm">
                     {otherUser?.avatar_url ? otherUser.avatar_url : otherUser?.username?.charAt(0).toUpperCase() || '?'}
               </div>
               {otherUserOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"/>}
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-[15px] text-[#3A2034] leading-tight">{otherUser?.username || 'Unknown'}</span>
+              <span className="font-bold text-[15px] text-black leading-tight">{otherUser?.username || 'Unknown'}</span>
               <span className="text-[11px] text-gray-400 font-semibold">
                 {otherUserTyping ? '✍️ typing...' : otherUserOnline ? 'Online' : formatLastSeen(otherUserLastSeen)}
               </span>
@@ -766,17 +766,17 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         </div>
 
         <div className="flex items-center gap-0.5 relative">
-          <button onClick={() => setShowCallModal("voice")} className="p-2 rounded-full hover:bg-slate-100 text-[#D97A89] transition-colors" aria-label="Voice Call">
+          <button onClick={() => setShowCallModal("voice")} className="p-2 rounded-full hover:bg-slate-100 text-black transition-colors" aria-label="Voice Call">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
             </svg>
           </button>
-          <button onClick={() => setShowCallModal("video")} className="p-2 rounded-full hover:bg-slate-100 text-[#D97A89] transition-colors" aria-label="Video Call">
+          <button onClick={() => setShowCallModal("video")} className="p-2 rounded-full hover:bg-slate-100 text-black transition-colors" aria-label="Video Call">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
             </svg>
           </button>
-          <button onClick={() => setShowHeaderMenu(!showHeaderMenu)} className="p-2 rounded-full hover:bg-slate-100 text-gray-400 hover:text-[#3A2034] transition-colors" aria-label="More">
+          <button onClick={() => setShowHeaderMenu(!showHeaderMenu)} className="p-2 rounded-full hover:bg-slate-100 text-gray-400 hover:text-black transition-colors" aria-label="More">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
             </svg>
@@ -877,13 +877,13 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             >
               {/* Swipe icon indicator behind message */}
               {swipingId === m.id && swipeDelta > 20 && (
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#D97A89] animate-pulse flex items-center gap-1">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-black animate-pulse flex items-center gap-1">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
                 </div>
               )}
 
               <div 
-                className={`relative max-w-[85%] text-[15px] shadow-sm leading-relaxed cursor-pointer group ${isMine ? 'bg-[#3A2034] text-white' : 'bg-white border border-gray-100 text-[#3A2034]'} ${showTail && isMine ? 'rounded-[20px] rounded-br-[4px]' : showTail && !isMine ? 'rounded-[20px] rounded-bl-[4px]' : 'rounded-[20px]'}`}
+                className={`relative max-w-[85%] text-[15px] shadow-sm leading-relaxed cursor-pointer group ${isMine ? 'bg-black text-white' : 'bg-white border border-gray-100 text-black'} ${showTail && isMine ? 'rounded-[20px] rounded-br-[4px]' : showTail && !isMine ? 'rounded-[20px] rounded-bl-[4px]' : 'rounded-[20px]'}`}
                 onClick={(e) => { e.stopPropagation(); setMessageMenu(m.id === messageMenu ? null : m.id); }}
                 style={{ 
                   transform: swipingId === m.id ? `translateX(${Math.min(swipeDelta, 80)}px)` : 'none', 
@@ -907,7 +907,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                       ))}
                     </div>
                     {/* Main Actions Dropdown */}
-                    <div className={`absolute top-0 ${isMine ? 'right-full mr-2' : 'left-full ml-2'} w-36 bg-white border border-gray-100 shadow-xl rounded-xl py-1 z-30 flex flex-col text-sm text-[#3A2034] font-medium animate-in fade-in zoom-in duration-150`}>
+                    <div className={`absolute top-0 ${isMine ? 'right-full mr-2' : 'left-full ml-2'} w-36 bg-white border border-gray-100 shadow-xl rounded-xl py-1 z-30 flex flex-col text-sm text-black font-medium animate-in fade-in zoom-in duration-150`}>
                       <button onClick={(e) => { e.stopPropagation(); setReplyTo(m); setMessageMenu(null); inputRef.current?.focus(); }} className="px-4 py-2 text-left hover:bg-slate-50 transition-colors flex items-center gap-2">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg> Reply
                       </button>
@@ -930,7 +930,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 
                 {/* Tail SVG */}
                 {showTail && isMine && (
-                  <svg className="absolute -right-[6px] bottom-0 text-[#3A2034] w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M5.188 1H0v11.156C0 12.156 1.15 13 2.15 13c1.378 0 2.227-.881 3.528-2.181L8 8.5V1z"/></svg>
+                  <svg className="absolute -right-[6px] bottom-0 text-black w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M5.188 1H0v11.156C0 12.156 1.15 13 2.15 13c1.378 0 2.227-.881 3.528-2.181L8 8.5V1z"/></svg>
                 )}
                 {showTail && !isMine && (
                   <svg className="absolute -left-[6px] bottom-0 text-white w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M2.812 1H8v11.156C8 12.156 6.85 13 5.85 13 4.472 13 3.623 12.119 2.322 10.819L0 8.5V1z"/></svg>
@@ -940,8 +940,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   
                   {/* Replied Message Preview */}
                   {replyData && (
-                    <div className={`mb-1.5 p-2 rounded-xl text-sm border-l-4 ${isMine ? 'bg-black/20 border-white/40 text-white/90' : 'bg-[#F0F2F5] border-[#D97A89] text-gray-700'}`}>
-                      <p className={`font-bold text-xs mb-0.5 ${isMine ? 'text-white' : 'text-[#D97A89]'}`}>{replyData.replyTo.sender}</p>
+                    <div className={`mb-1.5 p-2 rounded-xl text-sm border-l-4 ${isMine ? 'bg-white/20 border-white/60 text-white/90' : 'bg-[#F0F2F5] border-black text-gray-700'}`}>
+                      <p className={`font-bold text-xs mb-0.5 ${isMine ? 'text-white' : 'text-black'}`}>{replyData.replyTo.sender}</p>
                       <p className="line-clamp-2 leading-tight">
                         {replyData.replyTo.type === 'image' ? '📷 Image' : 
                          replyData.replyTo.type === 'video' ? '🎥 Video' : 
@@ -983,7 +983,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   )}
                   
                   {/* Timestamp & Status inside bubble */}
-                  <div className={`flex items-center gap-1 text-[10px] font-bold ${mediaData && !m.is_deleted ? 'absolute bottom-2 right-2 bg-black/40 text-white px-1.5 py-0.5 rounded-full' : (isMine ? 'absolute bottom-[4px] right-[8px] text-[#D97A89]/90' : 'absolute bottom-[4px] right-[8px] text-gray-400')}`}>
+                  <div className={`flex items-center gap-1 text-[10px] font-bold ${mediaData && !m.is_deleted ? 'absolute bottom-2 right-2 bg-black/40 text-white px-1.5 py-0.5 rounded-full' : (isMine ? 'absolute bottom-[4px] right-[8px] text-gray-300' : 'absolute bottom-[4px] right-[8px] text-gray-400')}`}>
                     {m.is_edited && !m.is_deleted && <span className="opacity-70 mr-0.5">Edited</span>}
                     <span>{new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     {isMine && m.localStatus === 'sending' && (
@@ -1029,10 +1029,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         })()}
         {otherUserTyping && (
           <div className="self-start">
-            <div className="px-4 py-3 rounded-[20px] rounded-bl-[5px] bg-white border border-[#EEE7F7] shadow-sm flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 bg-[#D97A89]/70 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}/>
-              <span className="w-1.5 h-1.5 bg-[#D97A89]/70 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}/>
-              <span className="w-1.5 h-1.5 bg-[#D97A89]/70 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}/>
+            <div className="px-4 py-3 rounded-[20px] rounded-bl-[5px] bg-white border border-gray-100 shadow-sm flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 bg-black/70 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}/>
+              <span className="w-1.5 h-1.5 bg-black/70 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}/>
+              <span className="w-1.5 h-1.5 bg-black/70 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}/>
             </div>
           </div>
         )}
@@ -1043,12 +1043,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       {showEmojiPicker && (
         <div className="bg-white border-t border-[#EEE7F7] flex flex-col" style={{ height: 280 }}>
           {/* Category tabs */}
-          <div className="flex items-center gap-0 border-b border-[#EEE7F7] px-2 overflow-x-auto">
+          <div className="flex items-center gap-0 border-b border-gray-100 px-2 overflow-x-auto">
             {EMOJI_CATEGORIES.map((cat, i) => (
               <button
                 key={cat.name}
                 onClick={() => setEmojiCategory(i)}
-                className={`flex-shrink-0 px-3 py-2.5 text-lg transition-all border-b-2 ${emojiCategory === i ? 'border-[#D97A89]' : 'border-transparent opacity-50'}`}
+                className={`flex-shrink-0 px-3 py-2.5 text-lg transition-all border-b-2 ${emojiCategory === i ? 'border-black' : 'border-transparent opacity-50'}`}
                 title={cat.name}
               >
                 {cat.icon}
@@ -1072,9 +1072,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
       {/* Attachment Menu */}
       {showAttachMenu && (
-        <div className="bg-white border-t border-[#EEE7F7] px-6 py-5 flex justify-around items-center" onClick={() => setShowAttachMenu(false)}>
+        <div className="bg-white border-t border-gray-100 px-6 py-5 flex justify-around items-center" onClick={() => setShowAttachMenu(false)}>
           <button onClick={() => handleAttach("image")} className="flex flex-col items-center gap-2 group">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#D97A89] to-[#b35e6b] text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
               </svg>
@@ -1082,7 +1082,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             <span className="text-[12px] font-semibold text-gray-500">Image</span>
           </button>
           <button onClick={() => handleAttach("video")} className="flex flex-col items-center gap-2 group">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#8b5cf6] to-[#6d28d9] text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
               </svg>
@@ -1090,7 +1090,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             <span className="text-[12px] font-semibold text-gray-500">Video</span>
           </button>
           <button onClick={() => handleAttach("audio")} className="flex flex-col items-center gap-2 group">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
               </svg>
@@ -1175,12 +1175,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         {/* Reply/Edit Banner */}
         {(replyTo || editingMessage) && (
           <div className="px-4 pt-3 pb-1 flex items-center justify-between animate-in slide-in-from-bottom-2">
-            <div className={`flex-1 bg-white p-3 rounded-2xl border-l-4 ${editingMessage ? 'border-sky-500' : 'border-[#D97A89]'} shadow-sm text-sm`}>
+            <div className={`flex-1 bg-white p-3 rounded-2xl border-l-4 ${editingMessage ? 'border-black' : 'border-black'} shadow-sm text-sm`}>
               <div className="flex items-center gap-1.5 mb-0.5">
                 {editingMessage ? (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-sky-500"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-black"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                 ) : null}
-                <p className={`font-bold ${editingMessage ? 'text-sky-500' : 'text-[#D97A89]'} text-xs`}>
+                <p className={`font-bold text-black text-xs`}>
                   {editingMessage ? 'Editing message' : (replyTo?.sender_id === user.id ? 'You' : otherUser?.username || 'Unknown')}
                 </p>
               </div>
@@ -1206,7 +1206,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           <button
             type="button"
             onClick={() => { setShowEmojiPicker(v => !v); setShowAttachMenu(false); }}
-            className={`p-2.5 pb-2 ml-1 flex-shrink-0 transition-colors ${showEmojiPicker ? 'text-[#D97A89]' : 'text-gray-400 hover:text-gray-500'}`}
+            className={`p-2.5 pb-2 ml-1 flex-shrink-0 transition-colors ${showEmojiPicker ? 'text-black' : 'text-gray-400 hover:text-gray-500'}`}
             aria-label="Emoji"
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1238,8 +1238,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 }
               }, 300);
             }}
-            placeholder="Message"
-            className="flex-1 bg-transparent py-2.5 px-2 focus:outline-none focus:ring-0 focus:border-transparent border-none text-[#3A2034] font-medium placeholder-gray-400 text-[16px] sm:text-[15px] min-w-0 resize-none max-h-[120px] overflow-y-auto self-center"
+            placeholder="Message..."
+            className="flex-1 bg-transparent py-2.5 px-2 focus:outline-none focus:ring-0 focus:border-transparent border-none text-black font-medium placeholder-gray-400 text-[16px] sm:text-[15px] min-w-0 resize-none max-h-[120px] overflow-y-auto self-center"
             style={{ lineHeight: '1.4' }}
           />
 
@@ -1247,7 +1247,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           <button
             type="button"
             onClick={() => { setShowAttachMenu(v => !v); setShowEmojiPicker(false); }}
-            className={`p-2.5 pb-2 mr-1 flex-shrink-0 transition-colors ${showAttachMenu ? 'text-[#D97A89]' : 'text-gray-400 hover:text-gray-500'}`}
+            className={`p-2.5 pb-2 mr-1 flex-shrink-0 transition-colors ${showAttachMenu ? 'text-black' : 'text-gray-400 hover:text-gray-500'}`}
             aria-label="Attach"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)' }}>
@@ -1258,14 +1258,14 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
         {/* Action Button (Mic or Send) */}
         {isUploading ? (
-          <div className="p-3 bg-[#3A2034] text-white rounded-full flex-shrink-0 flex items-center justify-center shadow-md w-11 h-11 mb-[2px]">
+          <div className="p-3 bg-black text-white rounded-full flex-shrink-0 flex items-center justify-center shadow-md w-11 h-11 mb-[2px]">
             <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
           </div>
         ) : newMessage.trim() ? (
           <button
             onPointerDown={(e) => e.preventDefault()}
             onClick={editingMessage ? handleEdit : handleSend}
-            className={`p-3 text-white rounded-full transition-all shadow-md active:scale-95 flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center ${editingMessage ? 'bg-sky-500 hover:bg-sky-600' : 'bg-[#3A2034] hover:bg-[#261522]'}`}
+            className={`p-3 text-white rounded-full transition-all shadow-md active:scale-95 flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center ${editingMessage ? 'bg-black hover:bg-gray-900' : 'bg-black hover:bg-gray-900'}`}
             aria-label={editingMessage ? "Update" : "Send"}
           >
             {editingMessage ? (
@@ -1289,7 +1289,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               alert("Voice recording is coming in a future update!");
             }}
             onPointerLeave={() => setIsRecording(false)}
-            className={`p-3 text-white rounded-full transition-all shadow-md flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center ${isRecording ? 'bg-red-500 scale-125' : 'bg-[#3A2034] hover:bg-[#261522] active:scale-95'}`}
+            className={`p-3 text-white rounded-full transition-all shadow-md flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center ${isRecording ? 'bg-red-500 scale-125' : 'bg-black hover:bg-gray-900 active:scale-95'}`}
             aria-label="Voice Message"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

@@ -153,21 +153,21 @@ export default function ChatHome() {
   };
 
   return (
-    <div className="flex h-[100dvh] w-full items-center justify-center bg-white text-[#3A2034] font-sans selection:bg-[#D97A89] selection:text-white sm:p-4">
-      <section className="bg-white shadow-[0_8px_40px_rgb(0,0,0,0.06)] relative w-full max-w-[450px] h-full sm:h-[92vh] sm:rounded-[40px] overflow-hidden flex flex-col border border-[#EEE7F7]/60">
+    <div className="flex h-[100dvh] w-full items-center justify-center bg-white text-black font-sans selection:bg-black selection:text-white sm:p-4">
+      <section className="bg-white shadow-[0_8px_40px_rgb(0,0,0,0.06)] relative w-full max-w-[450px] h-full sm:h-[92vh] sm:rounded-[40px] overflow-hidden flex flex-col border border-gray-100">
         
         {/* Top Bar */}
-        <header className="px-6 pt-10 pb-4 bg-white/90 backdrop-blur-xl sticky top-0 z-10 border-b border-[#EEE7F7]/40">
+        <header className="px-6 pt-10 pb-4 bg-white/90 backdrop-blur-xl sticky top-0 z-10 border-b border-gray-100">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-slate-100 text-[#D97A89] rounded-xl flex items-center justify-center font-serif text-xl shadow-inner">
+              <div className="w-9 h-9 bg-black text-white rounded-xl flex items-center justify-center font-serif text-xl shadow-inner">
                 ✦
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-[#3A2034]">Messages</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-black">Messages</h1>
             </div>
             <button 
               onClick={() => router.push('/settings')} 
-              className="p-2.5 -mr-2 text-gray-400 hover:text-[#3A2034] transition-all rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#D97A89]/20 active:scale-90 active:bg-slate-200 select-none cursor-pointer" 
+              className="p-2.5 -mr-2 text-gray-400 hover:text-black transition-all rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-black/20 active:scale-90 active:bg-slate-200 select-none cursor-pointer" 
               aria-label="Settings"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -180,9 +180,9 @@ export default function ChatHome() {
             <input 
               type="text" 
               placeholder="Search conversations..." 
-              className="w-full bg-slate-100/60 text-[#3A2034] font-medium rounded-2xl py-3 pl-11 pr-4 focus:outline-none focus:ring-4 focus:ring-[#D97A89]/10 focus:bg-white border border-transparent focus:border-[#D97A89]/30 transition-all placeholder-gray-400"
+              className="w-full bg-slate-100/60 text-black font-medium rounded-2xl py-3 pl-11 pr-4 focus:outline-none focus:ring-4 focus:ring-black/5 focus:bg-white border border-transparent focus:border-black/20 transition-all placeholder-gray-400"
             />
-            <svg className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-[#D97A89] transition-colors" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <svg className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-black transition-colors" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           </div>
         </header>
 
@@ -195,21 +195,21 @@ export default function ChatHome() {
               <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-2 mb-3">Requests ({pendingRequests.length})</h3>
               <div className="space-y-3">
                 {pendingRequests.map(req => (
-                  <div key={req.id} className="p-4 bg-white rounded-[24px] border border-[#D97A89]/10 flex items-center justify-between shadow-sm">
+                  <div key={req.id} className="p-4 bg-white rounded-[24px] border border-gray-100 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-slate-100 text-[#3A2034] rounded-2xl flex items-center justify-center font-bold text-2xl shadow-sm">
+                      <div className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center font-bold text-2xl shadow-sm">
                         {req.profiles?.avatar_url ? req.profiles.avatar_url : req.profiles?.username?.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-semibold text-[15px]">{req.profiles?.username}</p>
+                        <p className="font-semibold text-[15px] text-black">{req.profiles?.username}</p>
                         <p className="text-xs text-gray-500 font-medium">Wants to connect</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => handleRejectRequest(req.id)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 border border-gray-100 hover:border-red-100 transition-all focus:outline-none focus:ring-2 focus:ring-red-200">
+                      <button onClick={() => handleRejectRequest(req.id)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-gray-400 hover:text-black hover:bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-gray-200">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                       </button>
-                      <button onClick={() => handleAcceptRequest(req.id)} className="w-10 h-10 flex items-center justify-center rounded-full bg-[#3A2034] text-white hover:bg-[#261522] shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-[#3A2034]/30 active:scale-95">
+                      <button onClick={() => handleAcceptRequest(req.id)} className="w-10 h-10 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-900 shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-black/30 active:scale-95">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
                       </button>
                     </div>
@@ -225,13 +225,13 @@ export default function ChatHome() {
             
             {isLoading ? (
               <div className="px-2 py-8 text-center flex flex-col items-center justify-center gap-3 animate-pulse">
-                <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-[#D97A89] animate-spin"></div>
+                <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-black animate-spin"></div>
                 <span className="text-sm text-gray-400 font-medium">Loading messages...</span>
               </div>
             ) : conversations.length === 0 ? (
               <div className="px-2 py-12 text-center flex flex-col items-center justify-center animate-in fade-in duration-700">
                 <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-5 shadow-inner">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-[#D97A89] opacity-70"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-black opacity-70"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 </div>
                 <p className="text-gray-800 font-semibold text-lg">No conversations yet</p>
                 <p className="text-gray-400 text-sm mt-1 max-w-[200px] leading-relaxed">Tap the new chat button below to start connecting.</p>
@@ -260,10 +260,10 @@ export default function ChatHome() {
                     onTouchEnd={cancelLongPress}
                     onTouchMove={cancelLongPress}
                     onContextMenu={(e) => { e.preventDefault(); setLongPressId(conv.id); }}
-                    className={`flex items-center gap-4 p-3 rounded-2xl cursor-pointer select-none transition-all duration-150 group relative animate-in fade-in slide-in-from-bottom-2 active:scale-[0.97] active:bg-slate-200/90 ${tappedConvId === conv.id ? 'bg-slate-200/90 scale-[0.98] shadow-inner border border-[#D97A89]/40' : longPressId === conv.id ? 'bg-slate-100' : 'hover:bg-slate-100'}`}
+                    className={`flex items-center gap-4 p-3 rounded-2xl cursor-pointer select-none transition-all duration-150 group relative animate-in fade-in slide-in-from-bottom-2 active:scale-[0.97] active:bg-slate-200/90 ${tappedConvId === conv.id ? 'bg-slate-200/90 scale-[0.98] shadow-inner border border-black/10' : longPressId === conv.id ? 'bg-slate-100' : 'hover:bg-slate-100'}`}
                   >
                     <div className="relative">
-                      <div className="w-12 h-12 bg-gradient-to-tr from-[#3A2034] to-[#5a3652] text-white rounded-[18px] flex items-center justify-center font-bold text-2xl shadow-sm relative">
+                      <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-bold text-2xl shadow-sm relative">
                         {conv.other_user?.avatar_url ? conv.other_user.avatar_url : conv.other_user?.username?.charAt(0).toUpperCase() || '?'}
                         {/* Online dot */}
                         {conv.other_user?.last_seen && (Date.now() - new Date(conv.other_user.last_seen).getTime() < 150000) && (
@@ -274,22 +274,22 @@ export default function ChatHome() {
                     
                     <div className="flex-1 min-w-0 pr-2">
                       <div className="flex justify-between items-center mb-0.5">
-                        <h4 className={`font-bold text-[16px] truncate ${conv.unread_count > 0 ? 'text-[#3A2034]' : 'text-gray-900'}`}>{conv.other_user?.username}</h4>
-                        <span className={`text-[11px] font-semibold whitespace-nowrap ${conv.unread_count > 0 ? 'text-[#D97A89]' : 'text-gray-400'}`}>
+                        <h4 className={`font-bold text-[16px] truncate ${conv.unread_count > 0 ? 'text-black' : 'text-gray-900'}`}>{conv.other_user?.username}</h4>
+                        <span className={`text-[11px] font-semibold whitespace-nowrap ${conv.unread_count > 0 ? 'text-black' : 'text-gray-400'}`}>
                           {new Date(conv.last_message?.sent_at || conv.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <p className={`text-[14px] truncate flex-1 mr-2 ${conv.unread_count > 0 ? 'text-[#3A2034] font-semibold' : 'text-gray-500 font-medium'}`}>
+                        <p className={`text-[14px] truncate flex-1 mr-2 ${conv.unread_count > 0 ? 'text-black font-semibold' : 'text-gray-500 font-medium'}`}>
                           {getLastMessagePreview(conv)}
                         </p>
                         {tappedConvId === conv.id ? (
-                          <span className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 bg-[#D97A89]/15 text-[#D97A89] rounded-full text-xs font-bold animate-pulse">
-                            <span className="w-3 h-3 rounded-full border-2 border-[#D97A89] border-t-transparent animate-spin"></span>
+                          <span className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 bg-black/5 text-black rounded-full text-xs font-bold animate-pulse">
+                            <span className="w-3 h-3 rounded-full border-2 border-black border-t-transparent animate-spin"></span>
                             Opening...
                           </span>
                         ) : conv.unread_count > 0 && (
-                          <span className="flex-shrink-0 min-w-[20px] h-[20px] px-1.5 bg-[#D97A89] text-white text-[11px] font-bold rounded-full flex items-center justify-center">
+                          <span className="flex-shrink-0 min-w-[20px] h-[20px] px-1.5 bg-black text-white text-[11px] font-bold rounded-full flex items-center justify-center">
                             {conv.unread_count > 99 ? '99+' : conv.unread_count}
                           </span>
                         )}
@@ -320,10 +320,19 @@ export default function ChatHome() {
           </div>
         </div>
 
+        {/* Home Button */}
+        <button 
+          onClick={() => router.push('/')}
+          className="absolute bottom-8 left-6 w-14 h-14 bg-black text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:bg-gray-900 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-150 z-20 focus:outline-none focus:ring-4 focus:ring-black/30 select-none cursor-pointer"
+          aria-label="Home"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </button>
+
         {/* Floating Action Button */}
         <button 
           onClick={() => setShowNewChat(true)}
-          className="absolute bottom-8 right-6 w-14 h-14 bg-[#3A2034] text-white rounded-[20px] flex items-center justify-center shadow-[0_8px_30px_rgb(58,32,52,0.3)] hover:bg-[#261522] hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-150 z-20 focus:outline-none focus:ring-4 focus:ring-[#3A2034]/30 select-none cursor-pointer"
+          className="absolute bottom-8 right-6 w-14 h-14 bg-black text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:bg-gray-900 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-150 z-20 focus:outline-none focus:ring-4 focus:ring-black/30 select-none cursor-pointer"
           aria-label="New chat"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
