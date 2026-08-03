@@ -327,9 +327,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     // Broadcast for 0.01s instant delivery bypasses Postgres Replication latency
     channelRef.current?.send({ type: 'broadcast', event: 'new_message', payload });
 
-    // Use a fresh client for INSERT to avoid stale auth token failures
-    const freshClient = createClient();
-    const { error } = await freshClient.from('messages').insert({
+    // Use existing supabase client instead of creating a fresh one
+    const { error } = await supabase.from('messages').insert({
       id: msgId, sender_id: user.id, conversation_id: conversationId,
       content: finalContent, type: 'text', expires_at: expiresAt
     });

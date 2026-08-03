@@ -34,12 +34,20 @@ export default function ChatUI({
   const presenceChannelRef = useRef<RealtimeChannel | null>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    });
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, typingUsers]);
+
+  // DIAGNOSTIC: Check if component unmounts unexpectedly during send
+  useEffect(() => {
+    console.log('ChatUI mounted');
+    return () => console.log('ChatUI unmounted');
+  }, []);
 
   // Periodic last_seen update for online/offline presence
   useEffect(() => {
@@ -230,9 +238,11 @@ export default function ChatUI({
       seen_at: null,
       expires_at: expiresAt
     };
-    
+    console.time('optimistic-render');
     setMessages(prev => [...prev, optimisticMsg]);
+    console.timeEnd('optimistic-render'); // should be near-instant (<10ms)
 
+    console.time('db-insert');
     // Fast insert using supabase-js client (letting DB set sent_at default now())
     const { data, error } = await supabase
       .from('messages')
@@ -246,6 +256,7 @@ export default function ChatUI({
       })
       .select()
       .single();
+    console.timeEnd('db-insert');
 
     if (error) {
       console.error('Error sending message:', error);
