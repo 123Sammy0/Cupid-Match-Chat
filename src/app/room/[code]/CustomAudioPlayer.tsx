@@ -104,7 +104,7 @@ export function CustomAudioPlayer({ src, isMine, messageId, initialDuration }: C
 
   return (
     <div 
-      className="flex items-center gap-3 w-full min-w-[240px] max-w-[320px] p-2"
+      className="flex items-center gap-2.5 w-full min-w-[200px] sm:min-w-[240px] max-w-[280px] pb-1"
       onClick={(e) => e.stopPropagation()}
     >
       <audio ref={audioRef} src={src} preload="metadata" />
@@ -112,19 +112,19 @@ export function CustomAudioPlayer({ src, isMine, messageId, initialDuration }: C
       {/* Play/Pause Button */}
       <button 
         onClick={togglePlay}
-        className={`flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-transform active:scale-95 ${isMine ? 'bg-white text-black' : 'bg-black text-white'}`}
+        className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-95 ${isMine ? 'bg-white text-black' : 'bg-black text-white'}`}
       >
         {isPlaying ? (
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
         ) : (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="ml-1"><path d="M5 3l14 9-14 9V3z"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="ml-0.5"><path d="M5 3l14 9-14 9V3z"/></svg>
         )}
       </button>
 
       {/* Waveform / Scrubber */}
-      <div className="flex-1 flex flex-col justify-center gap-1 overflow-hidden">
+      <div className="flex-1 flex flex-col justify-center overflow-hidden">
         <div 
-          className="relative h-7 w-full flex items-center gap-[2px] cursor-pointer py-1"
+          className="relative h-6 w-full flex items-center gap-[2px] cursor-pointer py-1"
           onClick={handleSeek}
         >
           {waveform.map((h, i) => {
@@ -145,7 +145,7 @@ export function CustomAudioPlayer({ src, isMine, messageId, initialDuration }: C
         </div>
         
         {/* Time display */}
-        <div className={`text-[10px] font-bold tracking-wide ${isMine ? 'text-white/70' : 'text-black/50'} flex justify-between px-0.5`}>
+        <div className={`text-[10px] font-semibold tracking-wide ${isMine ? 'text-white/70' : 'text-black/50'} mt-0.5`}>
           <span>{(isPlaying || currentTime > 0) ? formatTime(currentTime) : formatTime(duration)}</span>
         </div>
       </div>

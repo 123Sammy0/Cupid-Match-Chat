@@ -64,6 +64,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [lastUsedAttachment, setLastUsedAttachment] = useState<'image' | 'video' | 'audio' | 'document' | 'camera'>('image');
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const wasLongPressRef = useRef<boolean>(false);
   const [showCallModal, setShowCallModal] = useState<"voice" | "video" | null>(null);
   
   // Smart auto-scroll states
@@ -644,6 +645,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(50);
     
     if (type === 'camera') {
+      fileTypeRef.current = 'image';
       setShowCameraModal(true);
       return;
     }
@@ -1289,7 +1291,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                         <video src={mediaData.url} controls className="max-w-[240px] sm:max-w-[280px] rounded-[16px]" />
                       )}
                       {mediaData?.type === 'audio' && (
-                        <div className="pt-1">
+                        <div className="pt-1 pr-[42px] pb-1">
                           <CustomAudioPlayer src={mediaData.url} isMine={isMine} messageId={m.id} initialDuration={mediaData.duration} />
                         </div>
                       )}
@@ -1818,7 +1820,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     margin: 0,
                     transition: 'padding-left 220ms cubic-bezier(0.4,0,0.2,1)',
                   }}
-                  className="placeholder-[#8E8E93] focus:ring-0 focus:outline-none focus:border-transparent focus:shadow-none !bg-transparent"
+                  className="placeholder-[#8E8E93] focus:ring-0 focus:outline-none focus:border-transparent focus:shadow-none !bg-transparent scrollbar-hide"
                 />
 
                 {/* Attach — collapses when typing */}
@@ -1837,22 +1839,27 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   <button
                     type="button"
                     tabIndex={newMessage ? -1 : 0}
-                    onClick={() => {}}
+                    onClick={(e) => {
+                      if (wasLongPressRef.current) {
+                        wasLongPressRef.current = false;
+                        return;
+                      }
+                      setShowAttachMenu(v => !v); 
+                      setShowEmojiPicker(false);
+                    }}
                     onPointerDown={(e) => {
                       if (e.pointerType === 'mouse' && e.button !== 0) return;
                       longPressTimerRef.current = setTimeout(() => {
                         longPressTimerRef.current = null;
+                        wasLongPressRef.current = true;
                         if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([20, 30, 20]);
                         handleAttach(lastUsedAttachment);
                       }, 400);
                     }}
-                    onPointerUp={(e) => {
-                      if (e.pointerType === 'mouse' && e.button !== 0) return;
+                    onPointerUp={() => {
                       if (longPressTimerRef.current) {
                         clearTimeout(longPressTimerRef.current);
                         longPressTimerRef.current = null;
-                        setShowAttachMenu(v => !v); 
-                        setShowEmojiPicker(false);
                       }
                     }}
                     onPointerLeave={() => {
