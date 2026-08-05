@@ -1617,34 +1617,36 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           </div>
         )}
 
-        {/* Unified Composer Container */}
-        <div className="px-3 py-2.5 flex items-end gap-2">
+        {/* ── Unified Composer — ONE pill holds everything ── */}
+        <div className="px-3 py-2.5">
 
-          {/* ── Pill Container ── */}
+          {/* THE pill */}
           <div
-            className="flex-1 flex items-end min-w-0"
             style={{
               background: '#F2F2F7',
-              borderRadius: 26,
+              borderRadius: 28,
               border: '1px solid rgba(0,0,0,0.07)',
               overflow: 'hidden',
-              minHeight: 48,
+              minHeight: 52,
+              display: 'flex',
+              alignItems: 'flex-end',
               transition: 'all 200ms ease',
             }}
           >
-            {/* Recording State — inside the pill */}
+            {/* Recording State — full-width inside pill */}
             {isRecording ? (
-              <div className="flex-1 flex items-center px-4 gap-3" style={{ minHeight: 48 }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 10, minHeight: 52 }}>
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
                 <span className="text-red-500 font-semibold text-[15px] tabular-nums">
                   {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
                 </span>
-                <div className="flex-1" />
+                <div style={{ flex: 1 }} />
                 {isRecordingLocked ? (
                   <button
                     type="button"
                     onClick={cancelVoiceRecording}
-                    className="text-[13px] font-semibold text-gray-400 hover:text-red-500 transition-colors pr-1"
+                    className="text-[13px] font-semibold text-gray-400 hover:text-red-500 transition-colors"
+                    style={{ paddingRight: 4 }}
                   >
                     Cancel
                   </button>
@@ -1655,20 +1657,88 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     <span className="text-[12px] font-medium sm:hidden">Cancel</span>
                   </div>
                 )}
+                {/* Mic button stays in pill during recording */}
+                <div className="relative" style={{ flexShrink: 0, marginRight: 4 }}>
+                  {isRecording && !isRecordingLocked && audioSwipeDeltaY < -20 && (
+                    <div className="absolute -top-11 left-1/2 -translate-x-1/2 bg-white px-2.5 py-1 rounded-full shadow-sm text-gray-600 text-[11px] font-bold flex items-center gap-1 border border-gray-100 whitespace-nowrap animate-in fade-in slide-in-from-bottom-2 duration-150">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      Lock
+                    </div>
+                  )}
+                  <button
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      if (e.isPrimary) {
+                        e.currentTarget.setPointerCapture(e.pointerId);
+                        audioSwipeStartX.current = e.clientX;
+                        audioSwipeStartY.current = e.clientY;
+                      }
+                    }}
+                    onPointerMove={(e) => {
+                      if (isRecording && !isRecordingLocked && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                        const deltaX = e.clientX - audioSwipeStartX.current;
+                        const deltaY = e.clientY - audioSwipeStartY.current;
+                        if (deltaY < -50) {
+                          setIsRecordingLocked(true);
+                          setAudioSwipeDeltaX(0); setAudioSwipeDeltaY(0);
+                          e.currentTarget.releasePointerCapture(e.pointerId);
+                        } else if (deltaX < -50) {
+                          cancelVoiceRecording();
+                          e.currentTarget.releasePointerCapture(e.pointerId);
+                        } else {
+                          if (deltaX < 0) setAudioSwipeDeltaX(deltaX);
+                          if (deltaY < 0) setAudioSwipeDeltaY(deltaY);
+                        }
+                      }
+                    }}
+                    onPointerUp={(e) => {
+                      e.preventDefault();
+                      if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                        e.currentTarget.releasePointerCapture(e.pointerId);
+                      }
+                      if (isRecording && !isRecordingLocked) { stopAndSendVoiceRecording(); }
+                    }}
+                    onPointerCancel={(e) => {
+                      if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                        e.currentTarget.releasePointerCapture(e.pointerId);
+                      }
+                      if (isRecording && !isRecordingLocked) { cancelVoiceRecording(); }
+                    }}
+                    className="touch-none select-none flex items-center justify-center"
+                    style={{
+                      width: 42, height: 42, borderRadius: 21,
+                      background: '#FF3B30', color: '#fff',
+                      border: 'none', cursor: 'pointer',
+                      boxShadow: '0 0 0 8px rgba(255,59,48,0.12), 0 2px 10px rgba(255,59,48,0.3)',
+                      transform: (isRecording && !isRecordingLocked)
+                        ? `translate(${audioSwipeDeltaX}px, ${audioSwipeDeltaY}px) scale(1.12)`
+                        : 'scale(1)',
+                      transition: (isRecording && !isRecordingLocked)
+                        ? 'background 0.15s, box-shadow 0.15s'
+                        : 'background 0.2s, box-shadow 0.2s, transform 0.15s',
+                    }}
+                    aria-label="Voice Message"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
             ) : (
+              /* ── Normal (non-recording) state ── */
               <>
-                {/* ── Emoji Button — collapses when typing ── */}
+                {/* Emoji — collapses when typing */}
                 <div
                   style={{
-                    maxWidth: newMessage ? 0 : 44,
+                    maxWidth: newMessage ? 0 : 46,
                     opacity: newMessage ? 0 : 1,
                     overflow: 'hidden',
                     flexShrink: 0,
-                    transition: 'max-width 220ms cubic-bezier(0.4,0,0.2,1), opacity 180ms ease',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    transition: 'max-width 220ms cubic-bezier(0.4,0,0.2,1), opacity 150ms ease',
                   }}
                 >
                   <button
@@ -1676,16 +1746,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     tabIndex={newMessage ? -1 : 0}
                     onClick={() => { setShowEmojiPicker(v => !v); setShowAttachMenu(false); }}
                     style={{
-                      width: 44,
-                      minHeight: 48,
+                      width: 46, minHeight: 52,
                       color: showEmojiPicker ? '#000' : '#8E8E93',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
+                      flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'none', border: 'none', cursor: 'pointer',
                       transition: 'color 150ms ease',
                     }}
                     aria-label="Emoji"
@@ -1697,7 +1761,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   </button>
                 </div>
 
-                {/* ── Auto-expanding Textarea — always visible ── */}
+                {/* Textarea — always fills remaining space */}
                 <textarea
                   ref={inputRef}
                   rows={1}
@@ -1716,9 +1780,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     background: 'transparent',
                     fontSize: 16,
                     lineHeight: '1.45',
-                    paddingTop: 13,
-                    paddingBottom: 13,
-                    paddingLeft: newMessage ? 14 : 4,
+                    paddingTop: 14,
+                    paddingBottom: 14,
+                    paddingLeft: newMessage ? 14 : 2,
                     maxHeight: 130,
                     overflowY: 'auto',
                     border: 'none',
@@ -1733,17 +1797,17 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   className="placeholder-[#8E8E93]"
                 />
 
-                {/* ── Attachment Button — collapses when typing ── */}
+                {/* Attach — collapses when typing */}
                 <div
                   style={{
-                    maxWidth: newMessage ? 0 : 40,
+                    maxWidth: newMessage ? 0 : 38,
                     opacity: newMessage ? 0 : 1,
                     overflow: 'hidden',
                     flexShrink: 0,
-                    transition: 'max-width 220ms cubic-bezier(0.4,0,0.2,1), opacity 180ms ease',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    transition: 'max-width 220ms cubic-bezier(0.4,0,0.2,1), opacity 150ms ease',
                   }}
                 >
                   <button
@@ -1751,16 +1815,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     tabIndex={newMessage ? -1 : 0}
                     onClick={() => { setShowAttachMenu(v => !v); setShowEmojiPicker(false); }}
                     style={{
-                      width: 40,
-                      minHeight: 48,
+                      width: 38, minHeight: 52,
                       color: showAttachMenu ? '#000' : '#8E8E93',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
+                      flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'none', border: 'none', cursor: 'pointer',
                       transition: 'color 150ms ease',
                     }}
                     aria-label="Attach"
@@ -1771,17 +1829,17 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   </button>
                 </div>
 
-                {/* ── Camera Button — collapses when typing ── */}
+                {/* Camera — collapses when typing */}
                 <div
                   style={{
-                    maxWidth: newMessage ? 0 : 44,
+                    maxWidth: newMessage ? 0 : 38,
                     opacity: newMessage ? 0 : 1,
                     overflow: 'hidden',
                     flexShrink: 0,
-                    transition: 'max-width 220ms cubic-bezier(0.4,0,0.2,1), opacity 180ms ease',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    transition: 'max-width 220ms cubic-bezier(0.4,0,0.2,1), opacity 150ms ease',
                   }}
                 >
                   <button
@@ -1789,17 +1847,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     tabIndex={newMessage ? -1 : 0}
                     onClick={() => handleAttach('image')}
                     style={{
-                      width: 44,
-                      minHeight: 48,
-                      paddingRight: 8,
+                      width: 38, minHeight: 52,
                       color: '#8E8E93',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
+                      flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'none', border: 'none', cursor: 'pointer',
                     }}
                     aria-label="Camera"
                   >
@@ -1809,123 +1860,124 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     </svg>
                   </button>
                 </div>
+
+                {/* ── Action Button INSIDE pill — mic or send ── */}
+                <div style={{ flexShrink: 0, display: 'flex', alignItems: 'flex-end', padding: '5px 5px 5px 0' }}>
+                  {isUploading ? (
+                    <div
+                      style={{
+                        width: 42, height: 42, borderRadius: 21,
+                        background: '#000', color: '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 200ms ease',
+                      }}
+                    >
+                      <svg className="animate-spin" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                    </div>
+                  ) : newMessage.trim() || isRecordingLocked ? (
+                    /* Send button */
+                    <button
+                      onPointerDown={(e) => e.preventDefault()}
+                      onClick={isRecordingLocked ? stopAndSendVoiceRecording : (editingMessage ? handleEdit : handleSend)}
+                      style={{
+                        width: 42, height: 42, borderRadius: 21,
+                        background: '#000', color: '#fff',
+                        border: 'none', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 1px 8px rgba(0,0,0,0.22)',
+                        transition: 'transform 150ms cubic-bezier(0.34,1.56,0.64,1), background 200ms ease',
+                        flexShrink: 0,
+                      }}
+                      className="active:scale-90"
+                      aria-label={isRecordingLocked ? 'Send Audio' : (editingMessage ? 'Update' : 'Send')}
+                    >
+                      {editingMessage && !isRecordingLocked ? (
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                      ) : (
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 2 }}>
+                          <path d="m22 2-7 20-4-9-9-4 20-7z"/><path d="M22 2 11 13"/>
+                        </svg>
+                      )}
+                    </button>
+                  ) : (
+                    /* Mic button */
+                    <div className="relative">
+                      {isRecording && !isRecordingLocked && audioSwipeDeltaY < -20 && (
+                        <div className="absolute -top-11 left-1/2 -translate-x-1/2 bg-white px-2.5 py-1 rounded-full shadow-sm text-gray-600 text-[11px] font-bold flex items-center gap-1 border border-gray-100 whitespace-nowrap animate-in fade-in slide-in-from-bottom-2 duration-150">
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          Lock
+                        </div>
+                      )}
+                      <button
+                        onPointerDown={(e) => {
+                          e.preventDefault();
+                          if (e.isPrimary) {
+                            e.currentTarget.setPointerCapture(e.pointerId);
+                            audioSwipeStartX.current = e.clientX;
+                            audioSwipeStartY.current = e.clientY;
+                            startVoiceRecording();
+                          }
+                        }}
+                        onPointerMove={(e) => {
+                          if (isRecording && !isRecordingLocked && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                            const deltaX = e.clientX - audioSwipeStartX.current;
+                            const deltaY = e.clientY - audioSwipeStartY.current;
+                            if (deltaY < -50) {
+                              setIsRecordingLocked(true);
+                              setAudioSwipeDeltaX(0); setAudioSwipeDeltaY(0);
+                              e.currentTarget.releasePointerCapture(e.pointerId);
+                            } else if (deltaX < -50) {
+                              cancelVoiceRecording();
+                              e.currentTarget.releasePointerCapture(e.pointerId);
+                            } else {
+                              if (deltaX < 0) setAudioSwipeDeltaX(deltaX);
+                              if (deltaY < 0) setAudioSwipeDeltaY(deltaY);
+                            }
+                          }
+                        }}
+                        onPointerUp={(e) => {
+                          e.preventDefault();
+                          if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                            e.currentTarget.releasePointerCapture(e.pointerId);
+                          }
+                          if (isRecording && !isRecordingLocked) { stopAndSendVoiceRecording(); }
+                        }}
+                        onPointerCancel={(e) => {
+                          if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                            e.currentTarget.releasePointerCapture(e.pointerId);
+                          }
+                          if (isRecording && !isRecordingLocked) { cancelVoiceRecording(); }
+                        }}
+                        className="touch-none select-none flex items-center justify-center"
+                        style={{
+                          width: 42, height: 42, borderRadius: 21,
+                          background: isRecording ? '#FF3B30' : '#000',
+                          color: '#fff',
+                          border: 'none', cursor: 'pointer',
+                          boxShadow: isRecording
+                            ? '0 0 0 8px rgba(255,59,48,0.12), 0 2px 10px rgba(255,59,48,0.3)'
+                            : '0 1px 8px rgba(0,0,0,0.22)',
+                          transform: (isRecording && !isRecordingLocked)
+                            ? `translate(${audioSwipeDeltaX}px, ${audioSwipeDeltaY}px) scale(1.12)`
+                            : 'scale(1)',
+                          transition: (isRecording && !isRecordingLocked)
+                            ? 'background 0.15s, box-shadow 0.15s'
+                            : 'background 0.2s, box-shadow 0.2s, transform 0.15s',
+                          position: 'relative', zIndex: 10,
+                          flexShrink: 0,
+                        }}
+                        aria-label="Voice Message"
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
-
-          {/* ── Action Button — morphs between Mic / Send / Loading ── */}
-          {isUploading ? (
-            <div
-              className="flex-shrink-0 flex items-center justify-center"
-              style={{ width: 46, height: 46, borderRadius: 23, background: '#000', color: '#fff', transition: 'all 200ms ease' }}
-            >
-              <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-            </div>
-          ) : newMessage.trim() || isRecordingLocked ? (
-            /* Send / Confirm button */
-            <button
-              onPointerDown={(e) => e.preventDefault()}
-              onClick={isRecordingLocked ? stopAndSendVoiceRecording : (editingMessage ? handleEdit : handleSend)}
-              className="flex-shrink-0 flex items-center justify-center active:scale-90"
-              style={{
-                width: 46,
-                height: 46,
-                borderRadius: 23,
-                background: '#000',
-                color: '#fff',
-                boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
-                flexShrink: 0,
-                transition: 'transform 150ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 200ms ease, background 200ms ease',
-                cursor: 'pointer',
-                border: 'none',
-              }}
-              aria-label={isRecordingLocked ? 'Send Audio' : (editingMessage ? 'Update' : 'Send')}
-            >
-              {editingMessage && !isRecordingLocked ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-              ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 2 }}>
-                  <path d="m22 2-7 20-4-9-9-4 20-7z"/><path d="M22 2 11 13"/>
-                </svg>
-              )}
-            </button>
-          ) : (
-            /* Mic button — with swipe-to-lock / swipe-to-cancel */
-            <div className="relative flex-shrink-0">
-              {/* Lock tooltip */}
-              {isRecording && !isRecordingLocked && audioSwipeDeltaY < -20 && (
-                <div className="absolute -top-11 left-1/2 -translate-x-1/2 bg-white px-2.5 py-1 rounded-full shadow-sm text-gray-600 text-[11px] font-bold flex items-center gap-1 border border-gray-100 whitespace-nowrap animate-in fade-in slide-in-from-bottom-2 duration-150">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                  Lock
-                </div>
-              )}
-              <button
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  if (e.isPrimary) {
-                    e.currentTarget.setPointerCapture(e.pointerId);
-                    audioSwipeStartX.current = e.clientX;
-                    audioSwipeStartY.current = e.clientY;
-                    startVoiceRecording();
-                  }
-                }}
-                onPointerMove={(e) => {
-                  if (isRecording && !isRecordingLocked && e.currentTarget.hasPointerCapture(e.pointerId)) {
-                    const deltaX = e.clientX - audioSwipeStartX.current;
-                    const deltaY = e.clientY - audioSwipeStartY.current;
-                    if (deltaY < -50) {
-                      setIsRecordingLocked(true);
-                      setAudioSwipeDeltaX(0); setAudioSwipeDeltaY(0);
-                      e.currentTarget.releasePointerCapture(e.pointerId);
-                    } else if (deltaX < -50) {
-                      cancelVoiceRecording();
-                      e.currentTarget.releasePointerCapture(e.pointerId);
-                    } else {
-                      if (deltaX < 0) setAudioSwipeDeltaX(deltaX);
-                      if (deltaY < 0) setAudioSwipeDeltaY(deltaY);
-                    }
-                  }
-                }}
-                onPointerUp={(e) => {
-                  e.preventDefault();
-                  if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
-                    e.currentTarget.releasePointerCapture(e.pointerId);
-                  }
-                  if (isRecording && !isRecordingLocked) { stopAndSendVoiceRecording(); }
-                }}
-                onPointerCancel={(e) => {
-                  if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
-                    e.currentTarget.releasePointerCapture(e.pointerId);
-                  }
-                  if (isRecording && !isRecordingLocked) { cancelVoiceRecording(); }
-                }}
-                className="touch-none select-none flex items-center justify-center transition-colors duration-150"
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 23,
-                  background: isRecording ? '#FF3B30' : '#000',
-                  color: '#fff',
-                  boxShadow: isRecording
-                    ? '0 0 0 8px rgba(255,59,48,0.15), 0 2px 12px rgba(255,59,48,0.3)'
-                    : '0 2px 12px rgba(0,0,0,0.18)',
-                  transform: (isRecording && !isRecordingLocked)
-                    ? `translate(${audioSwipeDeltaX}px, ${audioSwipeDeltaY}px) scale(1.18)`
-                    : 'scale(1)',
-                  transition: (isRecording && !isRecordingLocked)
-                    ? 'background 0.15s, box-shadow 0.15s'
-                    : 'background 0.2s, box-shadow 0.2s, transform 0.15s',
-                  zIndex: 10,
-                  position: 'relative',
-                }}
-                aria-label="Voice Message"
-              >
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>
-                </svg>
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>
