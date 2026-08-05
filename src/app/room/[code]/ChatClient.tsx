@@ -8,6 +8,9 @@ import { markConversationRead, markConversationDelivered, blockUser, editMessage
 import Image from "next/image";
 import { CustomAudioPlayer } from "./CustomAudioPlayer";
 import { LazyImage } from "@/app/components/LazyImage";
+import dynamic from 'next/dynamic';
+
+const CameraModal = dynamic(() => import('./CameraModal'), { ssr: false });
 
 // Emoji data by category
 const EMOJI_CATEGORIES = [
@@ -2024,6 +2027,16 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           </div>
         </div>
       </div>
+
+      {showCameraModal && (
+        <CameraModal 
+          onClose={() => setShowCameraModal(false)}
+          onSend={(file) => {
+            setShowCameraModal(false);
+            handleFileSelected({ target: { files: [file] } } as any);
+          }}
+        />
+      )}
     </div>
   );
 }
