@@ -1569,21 +1569,15 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
       {/* ── COMPOSER ─────────────────────────────────────────────── */}
       <div
-        className="flex-shrink-0 relative z-20"
-        style={{
-          background: 'rgba(255,255,255,0.92)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(0,0,0,0.06)',
-        }}
+        className="flex-shrink-0 relative z-20 px-3 pb-3 pt-1 w-full max-w-3xl mx-auto"
       >
         {/* Reply / Edit Banner */}
         {(replyTo || editingMessage) && (
           <div
-            className="flex items-center gap-2 px-4 pt-3 pb-1 animate-in slide-in-from-bottom-2 duration-200"
+            className="flex items-center gap-2 px-4 pt-3 pb-2 animate-in slide-in-from-bottom-2 duration-200"
           >
             <div
-              className="flex-1 flex items-start gap-2.5 bg-gray-50 border border-gray-200/80 rounded-2xl px-3.5 py-2.5"
+              className="flex-1 flex items-start gap-2.5 bg-white border border-gray-100 rounded-2xl px-3.5 py-2.5 shadow-sm"
               style={{ borderLeft: '3px solid #000' }}
             >
               <div className="flex-1 min-w-0">
@@ -1609,7 +1603,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             </div>
             <button
               onClick={() => { setReplyTo(null); setEditingMessage(null); setNewMessage(''); }}
-              className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors"
+              className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-white shadow-sm border border-gray-100 hover:bg-gray-50 text-gray-500 transition-colors"
               aria-label="Dismiss"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -1618,14 +1612,15 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         )}
 
         {/* ── Unified Composer — ONE pill holds everything ── */}
-        <div className="px-3 py-2.5">
+        <div>
 
-          {/* THE pill */}
+          {/* THE floating white pill container */}
           <div
             style={{
-              background: '#F2F2F7',
+              background: '#FFFFFF',
               borderRadius: 28,
-              border: '1px solid rgba(0,0,0,0.07)',
+              border: '1px solid rgba(0,0,0,0.06)',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
               overflow: 'hidden',
               minHeight: 52,
               display: 'flex',
