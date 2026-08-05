@@ -58,6 +58,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [emojiCategory, setEmojiCategory] = useState(0);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [lastUsedAttachment, setLastUsedAttachment] = useState<'image' | 'video' | 'audio' | 'document' | 'camera'>('image');
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [showCallModal, setShowCallModal] = useState<"voice" | "video" | null>(null);
   
   // Smart auto-scroll states
@@ -630,11 +633,26 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const ALLOWED_DOC_EXTENSIONS = ['pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv','zip','rar','jpg','jpeg','png','webp'];
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
-  const handleAttach = (type: "image" | "video" | "audio") => {
+  const handleAttach = (type: "image" | "video" | "audio" | "document" | "camera") => {
     setShowAttachMenu(false);
-    fileTypeRef.current = type;
+    setLastUsedAttachment(type);
+    localStorage.setItem('lastUsedAttachment', type);
+    
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(50);
+    
+    if (type === 'camera') {
+      setShowCameraModal(true);
+      return;
+    }
+    
+    if (type === 'document') {
+      docInputRef.current?.click();
+      return;
+    }
+    
+    fileTypeRef.current = type as "image" | "video" | "audio";
     if (fileInputRef.current) {
-      fileInputRef.current.accept = type === 'image' ? 'image/*' : type === 'video' ? 'video/*' : 'audio/*';
+      fileInputRef.current.accept = type === 'image' ? 'image/*,video/*' : type === 'video' ? 'video/*' : 'audio/*';
       fileInputRef.current.click();
     }
   };
@@ -1436,47 +1454,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         </div>
       )}
 
-      {/* Attachment Menu */}
-      {showAttachMenu && (
-        <div className="bg-white border-t border-gray-100 px-4 py-5 flex justify-around items-center" onClick={() => setShowAttachMenu(false)}>
-          <button onClick={() => handleAttach("image")} className="flex flex-col items-center gap-2 group">
-            <div className="w-13 h-13 rounded-2xl bg-black text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform w-14 h-14">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
-              </svg>
-            </div>
-            <span className="text-[12px] font-semibold text-gray-500">Image</span>
-          </button>
-          <button onClick={() => handleAttach("video")} className="flex flex-col items-center gap-2 group">
-            <div className="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
-              </svg>
-            </div>
-            <span className="text-[12px] font-semibold text-gray-500">Video</span>
-          </button>
-          <button onClick={() => handleAttach("audio")} className="flex flex-col items-center gap-2 group">
-            <div className="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
-              </svg>
-            </div>
-            <span className="text-[12px] font-semibold text-gray-500">Audio</span>
-          </button>
-          <button onClick={handleAttachDocument} className="flex flex-col items-center gap-2 group">
-            <div className="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <polyline points="10 9 9 9 8 9"/>
-              </svg>
-            </div>
-            <span className="text-[12px] font-semibold text-gray-500">File</span>
-          </button>
-        </div>
-      )}
+      
 
       {/* Full-screen Image Preview Lightbox */}
       {activePreviewImage && (
@@ -1812,7 +1790,28 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   <button
                     type="button"
                     tabIndex={newMessage ? -1 : 0}
-                    onClick={() => { setShowAttachMenu(v => !v); setShowEmojiPicker(false); }}
+                    onClick={() => {}}
+                    onPointerDown={() => {
+                      longPressTimerRef.current = setTimeout(() => {
+                        longPressTimerRef.current = null;
+                        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([20, 30, 20]);
+                        handleAttach(lastUsedAttachment);
+                      }, 400);
+                    }}
+                    onPointerUp={() => {
+                      if (longPressTimerRef.current) {
+                        clearTimeout(longPressTimerRef.current);
+                        longPressTimerRef.current = null;
+                        setShowAttachMenu(v => !v); 
+                        setShowEmojiPicker(false);
+                      }
+                    }}
+                    onPointerLeave={() => {
+                      if (longPressTimerRef.current) {
+                        clearTimeout(longPressTimerRef.current);
+                        longPressTimerRef.current = null;
+                      }
+                    }}
                     style={{
                       width: 38, minHeight: 52,
                       color: showAttachMenu ? '#000' : '#8E8E93',
