@@ -1782,14 +1782,18 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     overflowY: 'auto',
                     border: 'none',
                     outline: 'none',
+                    boxShadow: 'none',
+                    WebkitAppearance: 'none',
+                    appearance: 'none',
                     resize: 'none',
                     fontFamily: 'inherit',
                     fontWeight: 400,
                     color: '#000',
                     minWidth: 0,
+                    margin: 0,
                     transition: 'padding-left 220ms cubic-bezier(0.4,0,0.2,1)',
                   }}
-                  className="placeholder-[#8E8E93]"
+                  className="placeholder-[#8E8E93] focus:ring-0 focus:outline-none focus:border-transparent focus:shadow-none !bg-transparent"
                 />
 
                 {/* Attach — collapses when typing */}
