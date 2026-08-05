@@ -1282,7 +1282,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                         <LazyImage 
                           src={mediaData.url} 
                           alt="image" 
-                          className="max-w-[240px] sm:max-w-[280px] max-h-[320px] object-cover rounded-[16px] cursor-pointer hover:opacity-90 transition-opacity" 
+                          className="w-[200px] sm:w-[260px] h-[180px] sm:h-[220px] object-cover rounded-[16px] cursor-pointer hover:opacity-90 transition-opacity" 
                           onClick={() => setActivePreviewImage(mediaData.url)}
                           fetchPriority={idx >= arr.length - 2 ? "high" : "auto"}
                         />
