@@ -10,6 +10,7 @@ interface CameraModalProps {
 export default function CameraModal({ onClose, onSend }: CameraModalProps) {
   const [permissionState, setPermissionState] = useState<'requesting' | 'granted' | 'denied' | 'error'>('requesting');
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [capturedBlob, setCapturedBlob] = useState<Blob | null>(null);
@@ -21,13 +22,14 @@ export default function CameraModal({ onClose, onSend }: CameraModalProps) {
 
   const startCamera = useCallback(async (facing: 'user' | 'environment') => {
     try {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
+      streamRef.current = newStream;
       setStream(newStream);
       setPermissionState('granted');
       if (videoRef.current) {
@@ -42,13 +44,14 @@ export default function CameraModal({ onClose, onSend }: CameraModalProps) {
         setErrorMessage(err.message || 'Camera unavailable');
       }
     }
-  }, [stream]);
+  }, []);
 
   useEffect(() => {
     startCamera(facingMode);
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
