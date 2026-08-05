@@ -21,7 +21,7 @@ export async function fetchPexelsImages(query: string, page: number = 1, perPage
       headers: {
         Authorization: apiKey,
       },
-      next: { revalidate: 3600 } // cache for 1 hour
+      next: { revalidate: 600 } // cache for 10 mins
     });
 
     if (!res.ok) {
@@ -29,7 +29,17 @@ export async function fetchPexelsImages(query: string, page: number = 1, perPage
     }
 
     const data = await res.json();
-    return { photos: data.photos, error: null };
+    
+    // Normalize and filter out low-res images (< 800px)
+    const validPhotos = data.photos
+      .filter((photo: any) => photo.width >= 800 && photo.height >= 800)
+      .map((photo: any) => ({
+        ...photo,
+        provider: 'pexels',
+        alt: photo.alt || "Aesthetic"
+      }));
+
+    return { photos: validPhotos, error: null };
   } catch (error: any) {
     console.error("Error fetching Pexels images:", error);
     return { photos: [], error: error.message };

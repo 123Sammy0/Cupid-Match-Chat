@@ -3,6 +3,67 @@
 import { useEffect, useState, useRef } from "react";
 import Head from "next/head";
 import { fetchPexelsImages } from "@/app/actions/pexels";
+import { fetchPixabayImages } from "@/app/actions/pixabay";
+import { LazyImage } from "@/app/components/LazyImage";
+
+
+const AESTHETIC_KEYWORDS = [
+  "Minimalist wool coat outfit casual",
+  "Korean aesthetic winter fashion long coat",
+  "Oversized trench coat aesthetic beige",
+  "Old money winter style aesthetic coat",
+  "Chic long black coat outfit street style",
+  "Vintage academia trench coat styling",
+  "Neutral tone minimalist winter capsule wardrobe",
+  "Parisian chic long coat street style",
+  "Cozy oversized wool jacket winter aesthetic",
+  "Dreamy golden hour sunset photography",
+  "Cinematic sky dramatic clouds aesthetic",
+  "Sun rays aesthetic peaceful nature",
+  "Soft girl aesthetic blurred sunset over fields",
+  "Pretty sunset beach vibes desktop wallpaper",
+  "Warm orange glow aesthetic sky background",
+  "Retro vintage sunset polaroid aesthetics",
+  "Grainy lo-fi sunset aesthetic aesthetic",
+  "Calm ocean horizon golden hour photography",
+  "Whimsical forest path aesthetic green",
+  "Enchanted forest lush green photography",
+  "Ethereal nature aesthetic weeping willow",
+  "Dark green mystical landscape fairycore",
+  "Soft green dreamy cottagecore garden",
+  "Mossy green cottage window view aesthetic",
+  "Foggy morning green woods moody wallpaper",
+  "Sunlit leaves emerald green aesthetic",
+  "Secret fairy garden hidden path aesthetic",
+  "Pakistani suit aesthetic pastel embroidery",
+  "Soft girl aesthetic ethnic wear pastel kurta",
+  "Traditional Pakistani palazzo suits elegant look",
+  "Organza dupatta embroidered festive suit set",
+  "Modest fashion Eid outfit pastel green",
+  "Anarkali frock design elegant details",
+  "Lawn suit neck designs intricate lace",
+  "Chikankari white kurta aesthetic styling",
+  "Velvet formal dress Pakistani fashion design"
+];
+
+const shuffleArray = (array: any[]) => {
+  const newArr = [...array];
+  for (let i = newArr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
+  }
+  return newArr;
+};
+
+const deduplicatePins = (pins: any[]) => {
+  const seen = new Set();
+  return pins.filter(pin => {
+    const key = pin.src?.large2x || pin.src?.large || pin.src;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
 
 export default function Home() {
   const [isDrawerOpen, setDrawerOpen] = useState(false);
@@ -48,13 +109,29 @@ export default function Home() {
     let isMounted = true;
     const fetchInitial = async () => {
       setIsLoading(true);
-      const query = activeCategory === 'all' 
-        ? 'aesthetic quotes' 
-        : (activeCategory.includes('quotes') ? activeCategory : `${activeCategory} quotes`);
-      const res = await fetchPexelsImages(query, 1, 15);
+      
+      let photos = [];
+      if (activeCategory === 'all') {
+        const shuffled = shuffleArray(AESTHETIC_KEYWORDS);
+        const randomPagePx = Math.floor(Math.random() * 5) + 1;
+        const randomPagePb = Math.floor(Math.random() * 5) + 1;
+        
+        const [pexelsRes, pixabayRes] = await Promise.all([
+          fetchPexelsImages(shuffled[0], randomPagePx, 15),
+          fetchPixabayImages(shuffled[1], randomPagePb, 15)
+        ]);
+        
+        photos = shuffleArray([...(pexelsRes.photos || []), ...(pixabayRes.photos || [])]);
+      } else {
+        const query = activeCategory.includes('quotes') ? activeCategory : `${activeCategory} quotes`;
+        const res = await fetchPexelsImages(query, 1, 30);
+        photos = res.photos || [];
+      }
+
       if (isMounted) {
-        if (res.photos && res.photos.length > 0) {
-          setPins(res.photos);
+        const unique = deduplicatePins(photos);
+        if (unique.length > 0) {
+          setPins(unique);
           setPage(2);
           setHasMore(true);
         } else {
@@ -76,17 +153,24 @@ export default function Home() {
       if (entries[0].isIntersecting && hasMore && !isLoading) {
         const fetchMore = async () => {
           setIsLoading(true);
-          const query = activeCategory === 'all' 
-            ? 'aesthetic quotes' 
-            : (activeCategory.includes('quotes') ? activeCategory : `${activeCategory} quotes`);
-          const res = await fetchPexelsImages(query, page, 15);
           
-          if (res.photos && res.photos.length > 0) {
+          let newPhotos = [];
+          if (activeCategory === 'all') {
+            const shuffled = shuffleArray(AESTHETIC_KEYWORDS);
+            const [pexelsRes, pixabayRes] = await Promise.all([
+              fetchPexelsImages(shuffled[0], page, 15),
+              fetchPixabayImages(shuffled[1], page, 15)
+            ]);
+            newPhotos = shuffleArray([...(pexelsRes.photos || []), ...(pixabayRes.photos || [])]);
+          } else {
+            const query = activeCategory.includes('quotes') ? activeCategory : `${activeCategory} quotes`;
+            const res = await fetchPexelsImages(query, page, 30);
+            newPhotos = res.photos || [];
+          }
+          
+          if (newPhotos.length > 0) {
             setPins(current => {
-              // Deduplicate by ID just in case
-              const existingIds = new Set(current.map(p => p.id));
-              const newPhotos = res.photos.filter((p: any) => !existingIds.has(p.id));
-              return [...current, ...newPhotos];
+              return deduplicatePins([...current, ...newPhotos]);
             });
             setPage(prev => prev + 1);
           } else {
@@ -187,7 +271,12 @@ export default function Home() {
             <div key={colIndex} className="flex flex-col flex-1 min-w-0" style={{ gap: '14px' }}>
               {colPins.map((pin) => (
                 <div key={pin.id} className="pin-card" style={{position: 'relative', margin: 0, breakInside: 'avoid'}}>
-                  <img src={pin.src?.large2x || pin.src?.large || pin.src} alt={pin.alt || "Aesthetic"} loading="lazy" style={{display: 'block', width: '100%', borderRadius: '16px'}} />
+                  <LazyImage 
+                    src={pin.src?.large2x || pin.src?.large || pin.src} 
+                    alt={pin.alt || "Aesthetic"} 
+                    className="w-full block rounded-[16px]"
+                    style={pin.width && pin.height ? { aspectRatio: `${pin.width} / ${pin.height}` } : { minHeight: '300px' }}
+                  />
 
                   <div className="pin-overlay" style={{
                     position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, 
