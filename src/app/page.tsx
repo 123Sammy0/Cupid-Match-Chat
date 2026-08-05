@@ -8,43 +8,29 @@ import { LazyImage } from "@/app/components/LazyImage";
 
 
 const AESTHETIC_KEYWORDS = [
-  "Minimalist wool coat outfit casual",
-  "Korean aesthetic winter fashion long coat",
-  "Oversized trench coat aesthetic beige",
-  "Old money winter style aesthetic coat",
-  "Chic long black coat outfit street style",
-  "Vintage academia trench coat styling",
-  "Neutral tone minimalist winter capsule wardrobe",
-  "Parisian chic long coat street style",
-  "Cozy oversized wool jacket winter aesthetic",
-  "Dreamy golden hour sunset photography",
-  "Cinematic sky dramatic clouds aesthetic",
-  "Sun rays aesthetic peaceful nature",
-  "Soft girl aesthetic blurred sunset over fields",
-  "Pretty sunset beach vibes desktop wallpaper",
-  "Warm orange glow aesthetic sky background",
-  "Retro vintage sunset polaroid aesthetics",
-  "Grainy lo-fi sunset aesthetic aesthetic",
-  "Calm ocean horizon golden hour photography",
-  "Whimsical forest path aesthetic green",
-  "Enchanted forest lush green photography",
-  "Ethereal nature aesthetic weeping willow",
-  "Dark green mystical landscape fairycore",
-  "Soft green dreamy cottagecore garden",
-  "Mossy green cottage window view aesthetic",
-  "Foggy morning green woods moody wallpaper",
-  "Sunlit leaves emerald green aesthetic",
-  "Secret fairy garden hidden path aesthetic",
-  "Pakistani suit aesthetic pastel embroidery",
-  "Soft girl aesthetic ethnic wear pastel kurta",
-  "Traditional Pakistani palazzo suits elegant look",
-  "Organza dupatta embroidered festive suit set",
-  "Modest fashion Eid outfit pastel green",
-  "Anarkali frock design elegant details",
-  "Lawn suit neck designs intricate lace",
-  "Chikankari white kurta aesthetic styling",
-  "Velvet formal dress Pakistani fashion design"
+  "Aesthetic typography quotes", "Minimalist text quotes aesthetic", "Vintage typewriter quotes",
+  "Vintage books and coffee aesthetic", "Dark academia books and candles", "Old bookstore aesthetic",
+  "Dreamy golden hour sunset photography", "Cinematic sky dramatic clouds aesthetic", "Warm orange glow sky",
+  "Whimsical forest path aesthetic", "Sunlit leaves emerald green", "Mossy green cottage window",
+  "Pakistani suit aesthetic pastel embroidery", "Traditional Pakistani palazzo suits", "Chikankari white kurta",
+  "Indian traditional saree aesthetic minimal", "Modest fashion Eid outfit pastel",
+  "Islamic architecture aesthetic mosque", "Mughal architecture aesthetic patterns",
+  "Arabic calligraphy aesthetic minimal", "Islamic art aesthetic",
+  "Minimalist coffee shop aesthetic", "Cozy lifestyle workspace coffee",
+  "Aesthetic interior design minimal wabi sabi", "Soft pastel flowers aesthetic",
+  "Vintage travel aesthetic Europe", "Aesthetic food photography minimal"
 ];
+
+const CATEGORY_MAPPINGS: Record<string, string[]> = {
+  "aesthetic quotes": ["Aesthetic typography quotes", "Minimalist aesthetic quotes text", "Handwritten journal quotes"],
+  "motivational": ["Motivational typography aesthetic", "Positive affirmations text", "Success quotes minimal"],
+  "study": ["Cozy reading corner aesthetic", "Dark academia books", "Study desk aesthetic coffee"],
+  "short quotes": ["Short meaningful quotes text", "Minimalist words aesthetic", "Typewriter short quotes"],
+  "life": ["Lifestyle coffee shop aesthetic", "Slow living aesthetic", "Peaceful nature aesthetic life"],
+  "inspirational": ["Inspiring architecture aesthetic", "Beautiful sunset golden hour", "Islamic calligraphy aesthetic"],
+  "meaningful": ["Poetry quotes aesthetic", "Deep meaningful art aesthetic", "Minimalist text quotes"]
+};
+
 
 const shuffleArray = (array: any[]) => {
   const newArr = [...array];
@@ -66,6 +52,8 @@ const deduplicatePins = (pins: any[]) => {
 };
 
 export default function Home() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
   const [isDrawerOpen, setDrawerOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("all");
   const [pins, setPins] = useState<any[]>([]);
@@ -110,22 +98,32 @@ export default function Home() {
     const fetchInitial = async () => {
       setIsLoading(true);
       
-      let photos = [];
-      if (activeCategory === 'all') {
-        const shuffled = shuffleArray(AESTHETIC_KEYWORDS);
-        const randomPagePx = Math.floor(Math.random() * 5) + 1;
-        const randomPagePb = Math.floor(Math.random() * 5) + 1;
-        
-        const [pexelsRes, pixabayRes] = await Promise.all([
-          fetchPexelsImages(shuffled[0], randomPagePx, 15),
-          fetchPixabayImages(shuffled[1], randomPagePb, 15)
+      let photos: any[] = [];
+      const fetchMix = async (q1: string, q2: string, p1: number, p2: number) => {
+        const [px, pb] = await Promise.all([
+          fetchPexelsImages(q1, p1, 15),
+          fetchPixabayImages(q2, p2, 15)
         ]);
-        
-        photos = shuffleArray([...(pexelsRes.photos || []), ...(pixabayRes.photos || [])]);
+        return shuffleArray([...(px.photos || []), ...(pb.photos || [])]);
+      };
+
+      if (activeSearch) {
+        // Search overrides everything
+        const q = `${activeSearch} aesthetic (modest OR traditional)`;
+        photos = await fetchMix(q, activeSearch + ' aesthetic', 1, 1);
+      } else if (activeCategory === 'all') {
+        const shuffled = shuffleArray(AESTHETIC_KEYWORDS);
+        const r1 = Math.floor(Math.random() * 5) + 1;
+        const r2 = Math.floor(Math.random() * 5) + 1;
+        photos = await fetchMix(shuffled[0], shuffled[1], r1, r2);
       } else {
-        const query = activeCategory.includes('quotes') ? activeCategory : `${activeCategory} quotes`;
-        const res = await fetchPexelsImages(query, 1, 30);
-        photos = res.photos || [];
+        const mapped = CATEGORY_MAPPINGS[activeCategory] || [`${activeCategory} aesthetic modest`];
+        const shuffled = shuffleArray(mapped);
+        const q1 = shuffled[0];
+        const q2 = shuffled.length > 1 ? shuffled[1] : shuffled[0];
+        const r1 = Math.floor(Math.random() * 4) + 1;
+        const r2 = Math.floor(Math.random() * 4) + 1;
+        photos = await fetchMix(q1, q2, r1, r2);
       }
 
       if (isMounted) {
@@ -143,7 +141,7 @@ export default function Home() {
     };
     fetchInitial();
     return () => { isMounted = false; };
-  }, [activeCategory]);
+  }, [activeSearch, activeCategory, activeSearch]);
 
   // Infinite Scroll Intersection Observer
   useEffect(() => {
@@ -154,18 +152,27 @@ export default function Home() {
         const fetchMore = async () => {
           setIsLoading(true);
           
-          let newPhotos = [];
-          if (activeCategory === 'all') {
-            const shuffled = shuffleArray(AESTHETIC_KEYWORDS);
-            const [pexelsRes, pixabayRes] = await Promise.all([
-              fetchPexelsImages(shuffled[0], page, 15),
-              fetchPixabayImages(shuffled[1], page, 15)
+          let newPhotos: any[] = [];
+          const fetchMix = async (q1: string, q2: string, p1: number, p2: number) => {
+            const [px, pb] = await Promise.all([
+              fetchPexelsImages(q1, p1, 15),
+              fetchPixabayImages(q2, p2, 15)
             ]);
-            newPhotos = shuffleArray([...(pexelsRes.photos || []), ...(pixabayRes.photos || [])]);
+            return shuffleArray([...(px.photos || []), ...(pb.photos || [])]);
+          };
+
+          if (activeSearch) {
+            const q = `${activeSearch} aesthetic (modest OR traditional)`;
+            newPhotos = await fetchMix(q, activeSearch + ' aesthetic', page, page);
+          } else if (activeCategory === 'all') {
+            const shuffled = shuffleArray(AESTHETIC_KEYWORDS);
+            newPhotos = await fetchMix(shuffled[0], shuffled[1], page, page);
           } else {
-            const query = activeCategory.includes('quotes') ? activeCategory : `${activeCategory} quotes`;
-            const res = await fetchPexelsImages(query, page, 30);
-            newPhotos = res.photos || [];
+            const mapped = CATEGORY_MAPPINGS[activeCategory] || [`${activeCategory} aesthetic modest`];
+            const shuffled = shuffleArray(mapped);
+            const q1 = shuffled[0];
+            const q2 = shuffled.length > 1 ? shuffled[1] : shuffled[0];
+            newPhotos = await fetchMix(q1, q2, page, page);
           }
           
           if (newPhotos.length > 0) {
@@ -185,7 +192,7 @@ export default function Home() {
     if (loadMoreRef.current) observerRef.current.observe(loadMoreRef.current);
     
     return () => observerRef.current?.disconnect();
-  }, [hasMore, isLoading, page, activeCategory]);
+  }, [hasMore, isLoading, page, activeSearch, activeCategory]);
 
   return (
     <>
@@ -198,15 +205,22 @@ export default function Home() {
             little library<span className="brand-dot" style={{color: "var(--red)"}}>.</span>
           </a>
         </div>
-        <div className="search-wrap" role="search">
-          <span className="search-icon" aria-hidden="true">
+        <form className="search-wrap" role="search" onSubmit={(e) => { e.preventDefault(); setActiveCategory('all'); setActiveSearch(searchQuery); }}>
+          <span className="search-icon" aria-hidden="true" onClick={() => { setActiveCategory('all'); setActiveSearch(searchQuery); }} style={{cursor: 'pointer'}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
           </span>
-          <label htmlFor="searchInput" className="sr-only">Search skies, nature, sunsets</label>
-          <input type="search" id="searchInput" placeholder="Search skies, nature, sunsets…" autoComplete="off" />
-        </div>
+          <label htmlFor="searchInput" className="sr-only">Search aesthetics</label>
+          <input 
+            type="search" 
+            id="searchInput" 
+            placeholder="Search aesthetics, nature, fashion..." 
+            autoComplete="off"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </form>
         <div className="topbar-right">
           <nav className="topnav" aria-label="Primary navigation">
             <a href="#shelves" className="nav-link active">Browse</a>
@@ -243,6 +257,7 @@ export default function Home() {
         </div>
       </div>
 
+      {activeCategory === 'all' && !activeSearch && (
       <section className="hero" id="top" aria-label="Welcome">
         <div className="hero-text">
           <p className="eyebrow">A private collection of slow things</p>
@@ -264,6 +279,7 @@ export default function Home() {
           <div className="hero-card hero-card-3"><img src="https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=300" alt="Nook" loading="eager" /></div>
         </div>
       </section>
+      )}
 
       <section className="pins-section" id="collection" aria-label="Books and inspiration">
         <div className="flex justify-center w-full" style={{ gap: '14px', alignItems: 'flex-start' }} id="pinsGrid" role="list" aria-label="Pin collection">
