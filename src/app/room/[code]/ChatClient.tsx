@@ -58,6 +58,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [emojiCategory, setEmojiCategory] = useState(0);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showCallModal, setShowCallModal] = useState<"voice" | "video" | null>(null);
+  
+  // Smart auto-scroll states
+  const isNearBottomRef = useRef(true);
+  const shouldForceScrollRef = useRef(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [activePreviewImage, setActivePreviewImage] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<any>(null);
@@ -342,14 +347,31 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
-  useEffect(() => {
+  const scrollToBottom = (force = false) => {
     if (messagesEndRef.current?.parentElement) {
       const container = messagesEndRef.current.parentElement;
-      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+      if (force || isNearBottomRef.current) {
+        container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+        shouldForceScrollRef.current = false;
+      }
     }
-  }, [messages, otherUserTyping]);
+  };
 
+  useEffect(() => {
+    scrollToBottom(shouldForceScrollRef.current);
+  }, [messages, otherUserTyping, localMessages]);
 
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const scrollPosition = target.scrollTop + target.clientHeight;
+    // Consider "near bottom" if within 150px of the actual bottom
+    const isNear = target.scrollHeight - scrollPosition < 150;
+    isNearBottomRef.current = isNear;
+    
+    if (showScrollButton === isNear) {
+      setShowScrollButton(!isNear);
+    }
+  };
 
   const handleTyping = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNewMessage(e.target.value);
@@ -372,6 +394,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!newMessage.trim()) return;
+    shouldForceScrollRef.current = true;
     const t0 = performance.now();
     console.log(`[T+0ms] handleSend triggered`, Date.now());
 
@@ -699,6 +722,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   };
 
   const uploadAudioFile = async (file: File, durationSeconds?: number) => {
+    shouldForceScrollRef.current = true;
     setIsUploading(true);
     setUploadProgress(0);
     try {
@@ -760,6 +784,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const handleDocumentSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    shouldForceScrollRef.current = true;
     e.target.value = '';
 
     const ext = file.name.split('.').pop()?.toLowerCase() || '';
@@ -854,6 +879,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    shouldForceScrollRef.current = true;
     // Reset the input so same file can be selected again
     e.target.value = '';
     
@@ -1073,7 +1099,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 bg-white" onClick={() => { setShowEmojiPicker(false); setShowAttachMenu(false); setMessageMenu(null); setShowHeaderMenu(false); }}>
+      <div onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 bg-white" onClick={() => { setShowEmojiPicker(false); setShowAttachMenu(false); setMessageMenu(null); setShowHeaderMenu(false); }}>
         {(() => {
           // Merge: prefer confirmed DB messages over optimistic local ones (same id)
           const confirmedIds = new Set(messages.map((m: any) => m.id));
@@ -1526,6 +1552,19 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         onChange={handleDocumentSelected}
       />
 
+      {/* Scroll to Latest Button */}
+      {showScrollButton && (
+        <button 
+          onClick={() => scrollToBottom(true)}
+          className="absolute bottom-[80px] right-4 z-50 w-10 h-10 bg-white border border-gray-100 rounded-full shadow-lg flex items-center justify-center text-gray-500 hover:text-black hover:bg-gray-50 transition-all active:scale-95 animate-in zoom-in duration-200"
+          aria-label="Scroll to latest"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+        </button>
+      )}
+
       {/* Composer Area */}
       <div className="bg-[#F0F2F5]/50 border-t border-gray-100 z-20 flex flex-col">
         
@@ -1617,10 +1656,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 }}
                 onFocus={() => {
                   setTimeout(() => {
-                    if (messagesEndRef.current?.parentElement) {
-                      const container = messagesEndRef.current.parentElement;
-                      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
-                    }
+                    scrollToBottom(true);
                   }, 300);
                 }}
                 placeholder="Message..."
