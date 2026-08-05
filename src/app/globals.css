@@ -111,7 +111,7 @@
   --dur-slow:   360ms;
 
   /* Shadows — hairline only, no generic box-shadows */
-  --ring-focus: 0 0 0 3px rgba(79, 139, 110, 0.28);
+  --ring-focus: 0 0 0 3px rgba(0, 0, 0, 0.12);
   --shadow-pin: 0 1px 0 0 var(--ink-08), 0 4px 16px -4px var(--ink-08);
   --shadow-overlay: 0 24px 80px -8px rgba(28, 43, 31, 0.22);
 }

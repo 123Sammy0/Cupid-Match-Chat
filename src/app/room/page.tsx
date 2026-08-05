@@ -60,6 +60,9 @@ export default function ChatHome() {
     loadData(hasCachedData);
     
     const supabase = createClient();
+    const existingChannel = supabase.getChannels().find((c: any) => c.topic === 'realtime:home_realtime');
+    if (existingChannel) supabase.removeChannel(existingChannel);
+
     const channel = supabase
       .channel('home_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
@@ -136,6 +139,12 @@ export default function ChatHome() {
     if (lm.type === 'image') return prefix + "📷 Photo";
     if (lm.type === 'video') return prefix + "🎥 Video";
     if (lm.type === 'audio') return prefix + "🎵 Audio";
+    if (lm.type === 'document') {
+      try {
+        const parsed = JSON.parse(lm.content);
+        return prefix + "📎 " + (parsed.name || 'File');
+      } catch { return prefix + "📎 File"; }
+    }
     
     // Try to parse JSON content (reply or media)
     try {

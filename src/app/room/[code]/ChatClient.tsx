@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { markConversationRead, markConversationDelivered, blockUser, editMessage, deleteMessage } from "@/app/actions/chat";
 import Image from "next/image";
+import { CustomAudioPlayer } from "./CustomAudioPlayer";
 
 // Emoji data by category
 const EMOJI_CATEGORIES = [
@@ -61,6 +62,16 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [activePreviewImage, setActivePreviewImage] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<any>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [isRecordingLocked, setIsRecordingLocked] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<BlobPart[]>([]);
+  const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingStartTimeRef = useRef(0);
+  const audioSwipeStartX = useRef(0);
+  const audioSwipeStartY = useRef(0);
+  const [audioSwipeDeltaX, setAudioSwipeDeltaX] = useState(0);
+  const [audioSwipeDeltaY, setAudioSwipeDeltaY] = useState(0);
   const [replyTo, setReplyTo] = useState<any>(null);
   const [messageMenu, setMessageMenu] = useState<string | null>(null);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
@@ -77,6 +88,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const fileTypeRef = useRef<"image" | "video" | "audio">("image");
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   // Swipe-to-reply refs
   const swipeStartX = useRef(0);
   const swipeMessageRef = useRef<any>(null);
@@ -167,6 +180,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     let dbChannel: any;
     let authSub: any;
     let realtimeSetupDone = false;
+    let isMounted = true;
 
     const setupChannels = async () => {
       // Step 1: Get session and set auth token BEFORE subscribing
@@ -174,6 +188,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
       console.log('[REALTIME-DEBUG] session exists?', !!session, '| error:', sessionError,
         '| token preview:', session?.access_token?.substring(0, 20) ?? 'NONE');
+
+      if (!isMounted) return;
 
       if (session?.access_token) {
         await supabaseClient.realtime.setAuth(session.access_token);
@@ -209,7 +225,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       }
 
       // ─── CHANNEL 2: Room broadcast (typing + instant messages) ──────────────
-      roomChannel = supabaseClient.channel(`room:${conversationId}`, {
+      const roomChannelName = `room:${conversationId}`;
+      const existingRoom = supabaseClient.getChannels().find((c: any) => c.topic === `realtime:${roomChannelName}`);
+      if (existingRoom) supabaseClient.removeChannel(existingRoom);
+
+      roomChannel = supabaseClient.channel(roomChannelName, {
         config: { broadcast: { self: false } }
       });
       channelRef.current = roomChannel;
@@ -238,7 +258,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         });
 
       // ─── CHANNEL 3: Postgres changes (DB events) ────────────────────────────
-      dbChannel = supabaseClient.channel(`db:${conversationId}`);
+      const dbChannelName = `db:${conversationId}`;
+      const existingDb = supabaseClient.getChannels().find((c: any) => c.topic === `realtime:${dbChannelName}`);
+      if (existingDb) supabaseClient.removeChannel(existingDb);
+
+      dbChannel = supabaseClient.channel(dbChannelName);
       dbChannel
         .on('postgres_changes', {
           event: 'INSERT',
@@ -306,6 +330,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     setupChannels().catch(err => console.error('[REALTIME] setupChannels failed:', err));
 
     return () => {
+      isMounted = false;
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
       if (authSub) authSub.unsubscribe();
@@ -577,10 +602,253 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     inputRef.current?.focus();
   };
 
+  // Allowed document extensions (future types: add to this array)
+  const ALLOWED_DOC_EXTENSIONS = ['pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv','zip','rar','jpg','jpeg','png','webp'];
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
   const handleAttach = (type: "image" | "video" | "audio") => {
     setShowAttachMenu(false);
     fileTypeRef.current = type;
-    fileInputRef.current?.click();
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = type === 'image' ? 'image/*' : type === 'video' ? 'video/*' : 'audio/*';
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleAttachDocument = () => {
+    setShowAttachMenu(false);
+    docInputRef.current?.click();
+  };
+
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setIsRecordingLocked(false);
+      setRecordingTime(0);
+      setAudioSwipeDeltaX(0);
+      setAudioSwipeDeltaY(0);
+      recordingStartTimeRef.current = Date.now();
+
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Microphone access denied or error:', err);
+      alert('Could not access microphone. Please check your permissions.');
+    }
+  };
+
+  const stopAndSendVoiceRecording = () => {
+    const duration = Date.now() - recordingStartTimeRef.current;
+    if (duration < 1000) {
+      cancelVoiceRecording();
+      return;
+    }
+    
+    const finalDurationSeconds = Math.floor(duration / 1000);
+    
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const file = new File([audioBlob], `voice_note_${Date.now()}.webm`, { type: 'audio/webm' });
+        await uploadAudioFile(file, finalDurationSeconds);
+        
+        // Cleanup stream
+        const stream = mediaRecorderRef.current?.stream;
+        stream?.getTracks().forEach(track => track.stop());
+      };
+      mediaRecorderRef.current.stop();
+    }
+    cleanupRecordingState();
+  };
+
+  const cancelVoiceRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.onstop = () => {
+        // Cleanup stream, don't upload
+        const stream = mediaRecorderRef.current?.stream;
+        stream?.getTracks().forEach(track => track.stop());
+      };
+      mediaRecorderRef.current.stop();
+    }
+    cleanupRecordingState();
+  };
+
+  const cleanupRecordingState = () => {
+    setIsRecording(false);
+    setIsRecordingLocked(false);
+    setRecordingTime(0);
+    setAudioSwipeDeltaX(0);
+    setAudioSwipeDeltaY(0);
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+  };
+
+  const uploadAudioFile = async (file: File, durationSeconds?: number) => {
+    setIsUploading(true);
+    setUploadProgress(0);
+    try {
+      const path = `${conversationId}/${Date.now()}_voice.webm`;
+      const { error: uploadError } = await supabase.storage
+        .from('chat-media')
+        .upload(path, file, { cacheControl: '3600', upsert: false });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(path);
+      const publicUrl = urlData.publicUrl;
+
+      const msgContent = JSON.stringify({
+        type: 'audio',
+        url: publicUrl,
+        name: 'Voice Note',
+        duration: durationSeconds
+      });
+      const msgId = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+
+      setMessages(prev => [...prev, {
+        id: msgId, sender_id: user.id, conversation_id: conversationId,
+        content: msgContent, type: 'audio', sent_at: new Date().toISOString(),
+        expires_at: expiresAt, profiles: { username: profile?.username }
+      }]);
+
+      const { error: insertError } = await supabase.from('messages').insert({
+        id: msgId, sender_id: user.id, conversation_id: conversationId,
+        content: msgContent, type: 'audio', expires_at: expiresAt
+      });
+      if (insertError) throw insertError;
+    } catch (err: any) {
+      console.error('Voice upload failed:', err);
+      alert('Upload failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(null);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const getFileIcon = (ext: string): string => {
+    const e = ext.toLowerCase();
+    if (e === 'pdf') return 'pdf';
+    if (['doc','docx'].includes(e)) return 'word';
+    if (['xls','xlsx'].includes(e)) return 'excel';
+    if (['ppt','pptx'].includes(e)) return 'ppt';
+    if (['zip','rar'].includes(e)) return 'archive';
+    if (['jpg','jpeg','png','webp'].includes(e)) return 'image';
+    return 'generic';
+  };
+
+  const handleDocumentSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    if (!ALLOWED_DOC_EXTENSIONS.includes(ext)) {
+      alert('This file type is not supported.');
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      alert('This file exceeds the maximum upload size of 10 MB.');
+      return;
+    }
+
+    // Image types render as thumbnails via the existing image flow
+    if (['jpg','jpeg','png','webp'].includes(ext)) {
+      fileTypeRef.current = 'image';
+      setIsUploading(true);
+      try {
+        const path = `${conversationId}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('chat-media')
+          .upload(path, file, { cacheControl: '3600', upsert: false });
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(path);
+        const publicUrl = urlData.publicUrl;
+        const msgContent = JSON.stringify({ type: 'image', url: publicUrl, name: file.name });
+        const msgId = crypto.randomUUID();
+        const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+        setMessages(prev => [...prev, {
+          id: msgId, sender_id: user.id, conversation_id: conversationId,
+          content: msgContent, type: 'image', sent_at: new Date().toISOString(),
+          expires_at: expiresAt, profiles: { username: profile?.username }
+        }]);
+        const { error: insertError } = await supabase.from('messages').insert({
+          id: msgId, sender_id: user.id, conversation_id: conversationId,
+          content: msgContent, type: 'image', expires_at: expiresAt
+        });
+        if (insertError) throw insertError;
+      } catch (err: any) {
+        alert('Upload failed: ' + (err.message || 'Unknown error'));
+      } finally {
+        setIsUploading(false);
+      }
+      return;
+    }
+
+    // Document upload
+    setIsUploading(true);
+    setUploadProgress(0);
+    try {
+      const path = `${conversationId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      const { error: uploadError } = await supabase.storage
+        .from('chat-media')
+        .upload(path, file, { cacheControl: '3600', upsert: false });
+      if (uploadError) throw uploadError;
+
+      setUploadProgress(80);
+      const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(path);
+      const publicUrl = urlData.publicUrl;
+
+      const msgContent = JSON.stringify({
+        type: 'document',
+        url: publicUrl,
+        name: file.name,
+        size: file.size,
+        ext: ext
+      });
+      const msgId = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+
+      setUploadProgress(90);
+      setMessages(prev => [...prev, {
+        id: msgId, sender_id: user.id, conversation_id: conversationId,
+        content: msgContent, type: 'document', sent_at: new Date().toISOString(),
+        expires_at: expiresAt, profiles: { username: profile?.username }
+      }]);
+
+      const { error: insertError } = await supabase.from('messages').insert({
+        id: msgId, sender_id: user.id, conversation_id: conversationId,
+        content: msgContent, type: 'document', expires_at: expiresAt
+      });
+      if (insertError) throw insertError;
+      setUploadProgress(100);
+    } catch (err: any) {
+      console.error('Document upload failed:', err);
+      alert('Upload failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(null);
+    }
   };
 
   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -758,7 +1026,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-[15px] text-black leading-tight">{otherUser?.username || 'Unknown'}</span>
-              <span className="text-[11px] text-gray-400 font-semibold">
+              <span className="text-[11px] text-gray-400 font-semibold" suppressHydrationWarning>
                 {otherUserTyping ? '✍️ typing...' : otherUserOnline ? 'Online' : formatLastSeen(otherUserLastSeen)}
               </span>
             </div>
@@ -841,15 +1109,16 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               return date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
             };
           
-          // Parse JSON content (media or replies)
+          // Parse JSON content (media, document, or replies)
           let parsedData: any = null;
           try { 
             if (m.content.startsWith('{')) parsedData = JSON.parse(m.content); 
           } catch {}
 
           const mediaData = (m.type === 'image' || m.type === 'video' || m.type === 'audio') ? parsedData : null;
-          const replyData = (!mediaData && parsedData && parsedData.replyTo) ? parsedData : null;
-          const textContent = replyData ? replyData.text : (!mediaData ? m.content : null);
+          const docData = (m.type === 'document' && parsedData?.type === 'document') ? parsedData : null;
+          const replyData = (!mediaData && !docData && parsedData && parsedData.replyTo) ? parsedData : null;
+          const textContent = replyData ? replyData.text : (!mediaData && !docData ? m.content : null);
 
           const showTail = !nextMsg || nextMsg.sender_id !== m.sender_id || showTime;
 
@@ -864,13 +1133,13 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             <div key={m.id} className="flex flex-col w-full">
               {showDateSeparator && (
                 <div className="flex justify-center w-full my-4">
-                  <div className="bg-slate-100 text-slate-500 text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                  <div className="bg-slate-100 text-slate-500 text-xs font-semibold px-3 py-1 rounded-full shadow-sm" suppressHydrationWarning>
                     {formatMessageDate(m.sent_at)}
                   </div>
                 </div>
               )}
               <div 
-                className={`flex flex-col w-full ${isMine ? 'items-end' : 'items-start'} mb-2 relative`}
+                className={`flex flex-col w-full ${isMine ? 'items-end pr-[6px]' : 'items-start pl-[6px]'} mb-2 relative`}
               onTouchStart={(e) => handleTouchStart(e, m)}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
@@ -883,7 +1152,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               )}
 
               <div 
-                className={`relative max-w-[85%] text-[15px] shadow-sm leading-relaxed cursor-pointer group ${isMine ? 'bg-black text-white' : 'bg-white border border-gray-100 text-black'} ${showTail && isMine ? 'rounded-[20px] rounded-br-[4px]' : showTail && !isMine ? 'rounded-[20px] rounded-bl-[4px]' : 'rounded-[20px]'}`}
+                className={`relative max-w-[85%] text-[15px] shadow-sm leading-relaxed cursor-pointer group ${isMine ? 'bg-black text-white' : 'bg-white border border-gray-100 text-black'} ${showTail && isMine ? 'rounded-[20px] rounded-br-none' : showTail && !isMine ? 'rounded-[20px] rounded-bl-none' : 'rounded-[20px]'}`}
                 onClick={(e) => { e.stopPropagation(); setMessageMenu(m.id === messageMenu ? null : m.id); }}
                 style={{ 
                   transform: swipingId === m.id ? `translateX(${Math.min(swipeDelta, 80)}px)` : 'none', 
@@ -930,13 +1199,13 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 
                 {/* Tail SVG */}
                 {showTail && isMine && (
-                  <svg className="absolute -right-[6px] bottom-0 text-black w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M5.188 1H0v11.156C0 12.156 1.15 13 2.15 13c1.378 0 2.227-.881 3.528-2.181L8 8.5V1z"/></svg>
+                  <svg className="absolute -right-[6px] bottom-0 text-black w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M0 0v13h8C4 13 1 9 0 0z"/></svg>
                 )}
                 {showTail && !isMine && (
-                  <svg className="absolute -left-[6px] bottom-0 text-white w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M2.812 1H8v11.156C8 12.156 6.85 13 5.85 13 4.472 13 3.623 12.119 2.322 10.819L0 8.5V1z"/></svg>
+                  <svg className="absolute -left-[6px] bottom-0 text-white w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M8 0v13H0C4 13 7 9 8 0z"/></svg>
                 )}
 
-                <div className={`relative ${mediaData ? 'p-1' : 'px-3 pt-2 pb-1.5'} z-10`}>
+                <div className={`relative ${mediaData ? 'p-1' : docData ? 'p-1' : 'px-3 pt-2 pb-1.5'} z-10`}>
                   
                   {/* Replied Message Preview */}
                   {replyData && (
@@ -971,32 +1240,101 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                         <video src={mediaData.url} controls className="max-w-[240px] sm:max-w-[280px] rounded-[16px]" />
                       )}
                       {mediaData?.type === 'audio' && (
-                        <div className="px-2 py-2 flex items-center gap-2">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                          <audio src={mediaData.url} controls className="h-10 w-44" style={{ filter: isMine ? 'invert(1)' : 'none' }} />
+                        <div className="pt-1">
+                          <CustomAudioPlayer src={mediaData.url} isMine={isMine} messageId={m.id} initialDuration={mediaData.duration} />
                         </div>
                       )}
-                      {!mediaData && (
+                      {docData && (() => {
+                        const iconType = getFileIcon(docData.ext || '');
+                        const iconColors: Record<string, string> = {
+                          pdf: 'bg-red-500', word: 'bg-blue-600', excel: 'bg-green-600',
+                          ppt: 'bg-orange-500', archive: 'bg-yellow-600', image: 'bg-purple-500', generic: 'bg-gray-500'
+                        };
+                        const iconLabels: Record<string, string> = {
+                          pdf: 'PDF', word: 'DOC', excel: 'XLS', ppt: 'PPT', archive: 'ZIP', image: 'IMG', generic: 'FILE'
+                        };
+                        const iconColor = iconColors[iconType] || 'bg-gray-500';
+                        const iconLabel = iconLabels[iconType] || (docData.ext?.toUpperCase() || 'FILE');
+                        const displayName = docData.name || 'file';
+                        const truncName = displayName.length > 28 ? displayName.slice(0, 25) + '…' : displayName;
+                        return (
+                          <div className={`flex flex-col`}>
+                            <div className={`flex items-center gap-3 min-w-[220px] max-w-[260px] px-3 pt-3 pb-2`}>
+                              {/* File type icon */}
+                              <div className={`flex-shrink-0 w-11 h-11 ${iconColor} rounded-xl flex flex-col items-center justify-center shadow-sm`}>
+                                <span className="text-white text-[9px] font-black leading-none tracking-wider">{iconLabel}</span>
+                              </div>
+                              {/* File info */}
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-[13px] font-semibold leading-tight truncate ${isMine ? 'text-white' : 'text-black'}`} title={displayName}>
+                                  {truncName}
+                                </p>
+                                <p className={`text-[11px] mt-0.5 font-medium ${isMine ? 'text-gray-300' : 'text-gray-500'}`}>
+                                  {docData.size ? formatFileSize(docData.size) : docData.ext?.toUpperCase() || ''}
+                                </p>
+                              </div>
+                              {/* Download button */}
+                              <a
+                                href={docData.url}
+                                download={docData.name || 'file'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+                                  isMine ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-black/5 hover:bg-black/10 text-black'
+                                }`}
+                                title="Download"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                  <polyline points="7 10 12 15 17 10"/>
+                                  <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                              </a>
+                            </div>
+                            {/* Timestamp in natural flow for docData */}
+                            <div className={`flex justify-end items-center gap-1 px-3 pb-1.5 text-[10px] font-bold ${isMine ? 'text-gray-300' : 'text-gray-400'}`}>
+                              {m.is_edited && !m.is_deleted && <span className="opacity-70 mr-0.5">Edited</span>}
+                              <span suppressHydrationWarning>{new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              {isMine && m.localStatus === 'sending' && (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 ml-0.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                              )}
+                              {isMine && m.localStatus === 'failed' && (
+                                <button onClick={(e) => { e.stopPropagation(); handleRetry(m); }} className="text-red-400 font-bold ml-0.5" title="Retry">
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      {!mediaData && !docData && (
                         <span className="break-words whitespace-pre-wrap">{textContent}<span className="inline-block w-[75px]" /></span>
                       )}
                     </>
                   )}
                   
-                  {/* Timestamp & Status inside bubble */}
-                  <div className={`flex items-center gap-1 text-[10px] font-bold ${mediaData && !m.is_deleted ? 'absolute bottom-2 right-2 bg-black/40 text-white px-1.5 py-0.5 rounded-full' : (isMine ? 'absolute bottom-[4px] right-[8px] text-gray-300' : 'absolute bottom-[4px] right-[8px] text-gray-400')}`}>
-                    {m.is_edited && !m.is_deleted && <span className="opacity-70 mr-0.5">Edited</span>}
-                    <span>{new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    {isMine && m.localStatus === 'sending' && (
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 ml-0.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    )}
-                    {isMine && m.localStatus === 'failed' && (
-                      <button onClick={(e) => { e.stopPropagation(); handleRetry(m); }} className="text-red-400 font-bold ml-0.5" title="Retry">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                      </button>
-                    )}
-                  </div>
+                  {/* Timestamp & Status inside bubble (Hidden for docData as it is rendered inline) */}
+                  {!docData && (
+                    <div className={`flex items-center gap-1 text-[10px] font-bold ${
+                      mediaData && !m.is_deleted
+                        ? 'absolute bottom-2 right-2 bg-black/40 text-white px-1.5 py-0.5 rounded-full'
+                        : (isMine ? 'absolute bottom-[4px] right-[8px] text-gray-300' : 'absolute bottom-[4px] right-[8px] text-gray-400')
+                    }`}>
+                      {m.is_edited && !m.is_deleted && <span className="opacity-70 mr-0.5">Edited</span>}
+                      <span suppressHydrationWarning>{new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {isMine && m.localStatus === 'sending' && (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 ml-0.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      )}
+                      {isMine && m.localStatus === 'failed' && (
+                        <button onClick={(e) => { e.stopPropagation(); handleRetry(m); }} className="text-red-400 font-bold ml-0.5" title="Retry">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {/* Clear float to ensure bubble wraps timestamp */}
-                  {!mediaData && <div className="clear-both"></div>}
+                  {!mediaData && !docData && <div className="clear-both"></div>}
 
                   {/* Reactions list at bottom of bubble */}
                   {m.reactions && m.reactions.length > 0 && !m.localStatus && (
@@ -1036,7 +1374,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="h-4 w-full flex-shrink-0" />
       </div>
 
       {/* Emoji Picker */}
@@ -1072,9 +1410,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
       {/* Attachment Menu */}
       {showAttachMenu && (
-        <div className="bg-white border-t border-gray-100 px-6 py-5 flex justify-around items-center" onClick={() => setShowAttachMenu(false)}>
+        <div className="bg-white border-t border-gray-100 px-4 py-5 flex justify-around items-center" onClick={() => setShowAttachMenu(false)}>
           <button onClick={() => handleAttach("image")} className="flex flex-col items-center gap-2 group">
-            <div className="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+            <div className="w-13 h-13 rounded-2xl bg-black text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform w-14 h-14">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
               </svg>
@@ -1096,6 +1434,18 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               </svg>
             </div>
             <span className="text-[12px] font-semibold text-gray-500">Audio</span>
+          </button>
+          <button onClick={handleAttachDocument} className="flex flex-col items-center gap-2 group">
+            <div className="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+            <span className="text-[12px] font-semibold text-gray-500">File</span>
           </button>
         </div>
       )}
@@ -1160,13 +1510,20 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         </div>
       )}
 
-      {/* Hidden file input */}
+      {/* Hidden file inputs */}
       <input
         ref={fileInputRef}
         type="file"
         className="hidden"
         accept={fileTypeRef.current === 'image' ? 'image/*' : fileTypeRef.current === 'video' ? 'video/*' : 'audio/*'}
         onChange={handleFileSelected}
+      />
+      <input
+        ref={docInputRef}
+        type="file"
+        className="hidden"
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,.rar,.jpg,.jpeg,.png,.webp"
+        onChange={handleDocumentSelected}
       />
 
       {/* Composer Area */}
@@ -1189,6 +1546,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                  replyTo?.type === 'image' ? '📷 Image' : 
                  replyTo?.type === 'video' ? '🎥 Video' : 
                  replyTo?.type === 'audio' ? '🎵 Audio' : 
+                 replyTo?.type === 'document' ? (() => { try { return '📎 ' + JSON.parse(replyTo.content).name; } catch { return '📎 File'; } })() : 
                  (replyTo?.content.startsWith('{') ? JSON.parse(replyTo.content).text : replyTo?.content)}
               </p>
             </div>
@@ -1201,59 +1559,88 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         <div className="px-2 py-2 flex items-end gap-1.5">
         
         {/* Input area */}
-        <div className="flex-1 bg-white rounded-3xl shadow-sm flex items-end overflow-hidden transition-all min-h-[44px]">
-          {/* Emoji toggle (inside input like WhatsApp) */}
-          <button
-            type="button"
-            onClick={() => { setShowEmojiPicker(v => !v); setShowAttachMenu(false); }}
-            className={`p-2.5 pb-2 ml-1 flex-shrink-0 transition-colors ${showEmojiPicker ? 'text-black' : 'text-gray-400 hover:text-gray-500'}`}
-            aria-label="Emoji"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-              <line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/>
-            </svg>
-          </button>
+        <div className="flex-1 bg-white rounded-3xl shadow-sm flex items-end overflow-hidden transition-all min-h-[44px] relative">
+          {isRecording ? (
+            <div className="flex-1 flex items-center px-4 py-2.5 h-[44px] justify-between bg-white w-full">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
+                <span className="text-red-500 font-medium">
+                  {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                </span>
+              </div>
+              
+              {isRecordingLocked ? (
+                <button 
+                  type="button"
+                  onClick={cancelVoiceRecording}
+                  className="text-gray-500 hover:text-red-500 font-medium text-sm transition-colors"
+                >
+                  Cancel
+                </button>
+              ) : (
+                <div className="flex items-center gap-1 text-gray-400">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
+                  <span className="text-sm font-medium text-nowrap hidden sm:block">Slide to cancel</span>
+                  <span className="text-sm font-medium text-nowrap sm:hidden">Cancel</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Emoji toggle (inside input like WhatsApp) */}
+              <button
+                type="button"
+                onClick={() => { setShowEmojiPicker(v => !v); setShowAttachMenu(false); }}
+                className={`p-2.5 pb-2 ml-1 flex-shrink-0 transition-colors ${showEmojiPicker ? 'text-black' : 'text-gray-400 hover:text-gray-500'}`}
+                aria-label="Emoji"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                  <line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/>
+                </svg>
+              </button>
 
-          <textarea
-            ref={inputRef}
-            rows={1}
-            value={newMessage}
-            onChange={handleTyping}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (editingMessage) {
-                  handleEdit(e);
-                } else {
-                  handleSend(e);
-                }
-              }
-            }}
-            onFocus={() => {
-              setTimeout(() => {
-                if (messagesEndRef.current?.parentElement) {
-                  const container = messagesEndRef.current.parentElement;
-                  container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
-                }
-              }, 300);
-            }}
-            placeholder="Message..."
-            className="flex-1 bg-transparent py-2.5 px-2 focus:outline-none focus:ring-0 focus:border-transparent border-none text-black font-medium placeholder-gray-400 text-[16px] sm:text-[15px] min-w-0 resize-none max-h-[120px] overflow-y-auto self-center"
-            style={{ lineHeight: '1.4' }}
-          />
+              <textarea
+                ref={inputRef}
+                rows={1}
+                value={newMessage}
+                onChange={handleTyping}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (editingMessage) {
+                      handleEdit(e);
+                    } else {
+                      handleSend(e);
+                    }
+                  }
+                }}
+                onFocus={() => {
+                  setTimeout(() => {
+                    if (messagesEndRef.current?.parentElement) {
+                      const container = messagesEndRef.current.parentElement;
+                      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+                    }
+                  }, 300);
+                }}
+                placeholder="Message..."
+                className="flex-1 bg-transparent py-2.5 px-2 focus:outline-none focus:ring-0 focus:border-transparent border-none text-black font-medium placeholder-gray-400 text-[16px] sm:text-[15px] min-w-0 resize-none max-h-[120px] overflow-y-auto self-center"
+                style={{ lineHeight: '1.4' }}
+              />
 
-          {/* Attachment button (inside input like WhatsApp) */}
-          <button
-            type="button"
-            onClick={() => { setShowAttachMenu(v => !v); setShowEmojiPicker(false); }}
-            className={`p-2.5 pb-2 mr-1 flex-shrink-0 transition-colors ${showAttachMenu ? 'text-black' : 'text-gray-400 hover:text-gray-500'}`}
-            aria-label="Attach"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)' }}>
-              <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-            </svg>
-          </button>
+              {/* Attachment button (inside input like WhatsApp) */}
+              <button
+                type="button"
+                onClick={() => { setShowAttachMenu(v => !v); setShowEmojiPicker(false); }}
+                className={`p-2.5 pb-2 mr-1 flex-shrink-0 transition-colors ${showAttachMenu ? 'text-black' : 'text-gray-400 hover:text-gray-500'}`}
+                aria-label="Attach"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)' }}>
+                  <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                </svg>
+              </button>
+            </>
+          )}
         </div>
 
         {/* Action Button (Mic or Send) */}
@@ -1261,14 +1648,14 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           <div className="p-3 bg-black text-white rounded-full flex-shrink-0 flex items-center justify-center shadow-md w-11 h-11 mb-[2px]">
             <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
           </div>
-        ) : newMessage.trim() ? (
+        ) : newMessage.trim() || isRecordingLocked ? (
           <button
             onPointerDown={(e) => e.preventDefault()}
-            onClick={editingMessage ? handleEdit : handleSend}
-            className={`p-3 text-white rounded-full transition-all shadow-md active:scale-95 flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center ${editingMessage ? 'bg-black hover:bg-gray-900' : 'bg-black hover:bg-gray-900'}`}
-            aria-label={editingMessage ? "Update" : "Send"}
+            onClick={isRecordingLocked ? stopAndSendVoiceRecording : (editingMessage ? handleEdit : handleSend)}
+            className={`p-3 text-white rounded-full transition-all shadow-md active:scale-95 flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center ${editingMessage && !isRecordingLocked ? 'bg-black hover:bg-gray-900' : 'bg-black hover:bg-gray-900'}`}
+            aria-label={isRecordingLocked ? "Send Audio" : (editingMessage ? "Update" : "Send")}
           >
-            {editingMessage ? (
+            {editingMessage && !isRecordingLocked ? (
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 6 9 17l-5-5"/>
               </svg>
@@ -1279,23 +1666,65 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             )}
           </button>
         ) : (
-          <button
-            onPointerDown={(e) => {
-              e.preventDefault();
-              setIsRecording(true);
-            }}
-            onPointerUp={() => {
-              setIsRecording(false);
-              alert("Voice recording is coming in a future update!");
-            }}
-            onPointerLeave={() => setIsRecording(false)}
-            className={`p-3 text-white rounded-full transition-all shadow-md flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center ${isRecording ? 'bg-red-500 scale-125' : 'bg-black hover:bg-gray-900 active:scale-95'}`}
-            aria-label="Voice Message"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>
-            </svg>
-          </button>
+          <div className="relative">
+            {/* Lock indicator sliding up */}
+            {isRecording && !isRecordingLocked && audioSwipeDeltaY < -20 && (
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-white px-2 py-1 rounded-full shadow-sm text-gray-500 text-xs font-bold flex items-center gap-1 border border-gray-100 whitespace-nowrap opacity-80 animate-in fade-in slide-in-from-bottom-2">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Lock
+              </div>
+            )}
+            <button
+              onPointerDown={(e) => {
+                e.preventDefault();
+                if (e.isPrimary) {
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  audioSwipeStartX.current = e.clientX;
+                  audioSwipeStartY.current = e.clientY;
+                  startVoiceRecording();
+                }
+              }}
+              onPointerMove={(e) => {
+                if (isRecording && !isRecordingLocked && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                  const deltaX = e.clientX - audioSwipeStartX.current;
+                  const deltaY = e.clientY - audioSwipeStartY.current;
+                  
+                  if (deltaY < -50) {
+                    setIsRecordingLocked(true);
+                    setAudioSwipeDeltaX(0);
+                    setAudioSwipeDeltaY(0);
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                  } else if (deltaX < -50) {
+                    cancelVoiceRecording();
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                  } else {
+                    if (deltaX < 0) setAudioSwipeDeltaX(deltaX);
+                    if (deltaY < 0) setAudioSwipeDeltaY(deltaY);
+                  }
+                }
+              }}
+              onPointerUp={(e) => {
+                e.preventDefault();
+                if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+                }
+                if (isRecording && !isRecordingLocked) {
+                  stopAndSendVoiceRecording();
+                }
+              }}
+              className={`p-3 text-white rounded-full transition-all shadow-md flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center z-10 relative ${isRecording ? 'bg-red-500 shadow-red-500/30' : 'bg-black hover:bg-gray-900 active:scale-95'}`}
+              style={{
+                transform: (isRecording && !isRecordingLocked) 
+                  ? `translate(${audioSwipeDeltaX}px, ${audioSwipeDeltaY}px) scale(1.25)` 
+                  : 'none'
+              }}
+              aria-label="Voice Message"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>
+              </svg>
+            </button>
+          </div>
         )}
 
         </div>

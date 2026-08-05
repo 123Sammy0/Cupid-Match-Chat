@@ -24,6 +24,9 @@ export default function GlobalPresence() {
     const supabase = createClient();
 
     // --- Global presence channel (presence only, no postgres_changes) ---
+    const existingPresence = supabase.getChannels().find((c: any) => c.topic === 'realtime:global_presence');
+    if (existingPresence) supabase.removeChannel(existingPresence);
+
     const channel = supabase.channel('global_presence', {
       config: { presence: { key: userId } }
     });
@@ -58,7 +61,11 @@ export default function GlobalPresence() {
       });
 
     // --- Separate channel for message delivery tracking ---
-    const deliveryChannel = supabase.channel(`delivery:${userId}`)
+    const deliveryChannelName = `delivery:${userId}`;
+    const existingDelivery = supabase.getChannels().find((c: any) => c.topic === `realtime:${deliveryChannelName}`);
+    if (existingDelivery) supabase.removeChannel(existingDelivery);
+
+    const deliveryChannel = supabase.channel(deliveryChannelName)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
