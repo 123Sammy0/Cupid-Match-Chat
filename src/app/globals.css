@@ -251,6 +251,8 @@
   padding: 0 var(--space-6);
   background: #FFFFFF;
   border-bottom: 1px solid var(--border-faint);
+  /* Prevent any item from overflowing */
+  overflow: hidden;
 }
 
 .topbar-left {
@@ -301,6 +303,8 @@
   max-width: 440px;
   width: 100%;
   margin: 0 auto;
+  /* Prevent flex children from overflowing */
+  min-width: 0;
 }
 
 .search-icon {
@@ -309,8 +313,11 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-faint);
-  pointer-events: none;
+  /* clickable on mobile for submit */
   display: flex;
+  align-items: center;
+  cursor: pointer;
+  z-index: 1;
 }
 
 #searchInput {
@@ -324,10 +331,14 @@
   font-size: 13px;
   color: var(--ink);
   transition: background var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
+  /* Prevent iOS zoom on focus */
+  font-size: max(16px, 13px);
 }
 #searchInput:focus {
   background: var(--white);
   border-color: var(--ink-15);
+  /* Revert font-size on focus to avoid layout reflow */
+  font-size: 13px;
 }
 #searchInput::placeholder {
   color: var(--text-faint);
@@ -368,16 +379,21 @@
   color: var(--bg);
 }
 
-/* Icon buttons */
+/* Icon buttons — minimum 44×44 touch target via padding */
 .icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* Visual size */
   width: 36px;
   height: 36px;
+  /* Expanded touch target without affecting layout */
+  min-width: 44px;
+  min-height: 44px;
   border-radius: var(--r-full);
   color: var(--text-muted);
   transition: color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
+  flex-shrink: 0;
 }
 .icon-btn:hover { color: var(--ink); background: var(--ink-04); }
 
@@ -436,6 +452,31 @@
   z-index: 90;
   background: #FFFFFF;
   border-bottom: 1px solid var(--border-faint);
+  /* Fade indicators for hidden content left/right */
+  position: sticky;
+}
+
+/* Fade-edge indicator wrapper */
+.chip-bar-inner {
+  position: relative;
+}
+.chip-bar-inner::before,
+.chip-bar-inner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  z-index: 1;
+  pointer-events: none;
+}
+.chip-bar-inner::before {
+  left: 0;
+  background: linear-gradient(to right, #ffffff 0%, transparent 100%);
+}
+.chip-bar-inner::after {
+  right: 0;
+  background: linear-gradient(to left, #ffffff 0%, transparent 100%);
 }
 
 .chip-scroll {
@@ -446,11 +487,17 @@
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  /* Smooth momentum touch scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  /* Prevent CLS caused by overflow */
+  contain: layout;
 }
 .chip-scroll::-webkit-scrollbar { display: none; }
 
 /* Chips — refined from pill to catalog label style */
 .chip {
+  /* Visual */
   height: 36px;
   padding: 0 var(--space-5);
   border-radius: var(--r-full);
@@ -462,7 +509,13 @@
   border: none;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
+  /* Touch target */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   transition: color var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
+  scroll-snap-align: start;
 }
 .chip:hover {
   background: var(--bg-alt);
@@ -499,11 +552,15 @@
 
 .hero h1 {
   font-family: var(--font-display);
-  font-size: 5rem;
-  line-height: 1.05;
+  /* Fluid scale: 28px on 320px, 80px on desktop */
+  font-size: clamp(1.75rem, 6vw + 0.5rem, 5rem);
+  line-height: 1.08;
   color: var(--ink);
   margin-bottom: var(--space-6);
   letter-spacing: -0.02em;
+  /* Prevent text overflow on narrow screens */
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .hero h1 em {
   font-style: italic;
@@ -511,7 +568,8 @@
 }
 
 .hero-sub {
-  font-size: 20px;
+  /* Fluid: 15px → 20px */
+  font-size: clamp(0.9375rem, 2vw + 0.5rem, 1.25rem);
   color: var(--text-muted);
   line-height: 1.6;
   margin-bottom: var(--space-8);
@@ -569,19 +627,28 @@
 /* Hero visual — collage of stacked cards */
 .hero-visual {
   position: relative;
-  height: clamp(320px, 40vw, 480px);
+  /* Fluid height preventing overflow on all screen sizes */
+  height: clamp(260px, 40vw, 480px);
+  /* Prevent collage from causing horizontal overflow */
+  overflow: hidden;
+  /* Ensure it takes full width in single-column layout */
+  width: 100%;
 }
 
 .hero-card {
   position: absolute;
   border-radius: var(--r-xl);
   overflow: hidden;
-  border: 3px solid var(--cream);
+  border: 3px solid #FFFFFF;
+  /* Prevent images from bleeding outside */
+  contain: layout;
 }
 .hero-card img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Prevent CLS by enforcing dimensions */
+  display: block;
 }
 /* Shadow via outline, no box-shadow */
 .hero-card::after {
@@ -590,6 +657,7 @@
   inset: 0;
   border-radius: inherit;
   box-shadow: inset 0 0 0 1px var(--ink-08);
+  pointer-events: none;
 }
 
 .hero-card-1 {
@@ -2035,67 +2103,184 @@ form { display: grid; gap: 12px; }
     padding-top: var(--space-10);
   }
   .hero-text { order: 2; }
-  .hero-visual { order: 1; height: 320px; width: 100%; max-width: 480px; margin: 0 auto; }
+  .hero-visual {
+    order: 1;
+    height: clamp(260px, 50vw, 360px);
+    width: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+  }
   .hero-sub { max-width: 100%; }
   .topnav { display: none; }
   .hamburger { display: flex; }
 }
 
-/* ── 3 → 2 columns at 640px ── */
-@media (max-width: 640px) {
+/* ══ MOBILE — 480px and below ══════════════════════════════ */
+@media (max-width: 480px) {
   :root {
-    --topbar-h: 58px;
-    --gutter: 14px;
+    --topbar-h: 56px;
+    --gutter: 16px;
   }
 
-  .pins-grid { columns: 2 160px; column-gap: 10px; }
+  /* Stop any rogue horizontal overflow */
+  html, body { overflow-x: hidden; max-width: 100vw; }
+
+  /* ── HEADER ── */
+  .topbar {
+    /* Left icon | Search (flex:1) | Right icons */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 12px;
+    height: var(--topbar-h);
+  }
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .hamburger {
+    display: flex;
+    min-width: 44px;
+    min-height: 44px;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    flex-shrink: 0;
+  }
+  .brand {
+    font-size: 16px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  /* Search gets all remaining space but with a min-width of 0 */
+  .search-wrap {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+  }
+  #searchInput {
+    height: 36px;
+    /* Prevent iOS auto-zoom on focus (requires font-size >= 16px) */
+    font-size: 16px;
+    padding-left: 36px;
+  }
+  .search-icon {
+    left: 10px;
+  }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-shrink: 0;
+  }
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .topnav { display: none; }
+
+  /* ── CHIP BAR ── */
+  .chip-scroll {
+    padding: 4px 16px;
+    gap: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chip {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    min-height: 44px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+    padding: var(--space-8) var(--gutter) var(--space-5);
+    overflow: hidden;
+  }
+  .hero-text { order: 2; }
+  .hero-visual {
+    order: 1;
+    height: clamp(200px, 55vw, 280px);
+    width: 100%;
+    overflow: hidden;
+  }
+  /* Adjust collage card sizes proportionally so nothing clips */
+  .hero-card-1 { width: 56%; height: 74%; }
+  .hero-card-2 { width: 46%; height: 56%; }
+  .hero-card-3 { width: 32%; height: 36%; bottom: 30%; right: 49%; }
+
+  .hero h1 {
+    /* Max 3-4 lines: roughly 26px on 320px screen */
+    font-size: clamp(1.625rem, 7vw, 2.75rem);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+  }
+  .eyebrow { font-size: 11px; margin-bottom: var(--space-4); }
+  .hero-sub { font-size: 0.9375rem; line-height: 1.55; margin-bottom: var(--space-6); }
+  .hero-actions { flex-direction: column; gap: 10px; }
+  .hero-actions .btn { width: 100%; min-height: 48px; }
+
+  /* ── PINS SECTION ── */
+  .pins-section {
+    padding: var(--space-5) var(--gutter) var(--space-10);
+    overflow-x: hidden;
+  }
+  .pins-grid { columns: 2 140px; column-gap: 10px; }
   .pin-card, .pin-quote, .pin-book { margin-bottom: 10px; border-radius: var(--r-md); }
   .skeleton-pin { margin-bottom: 10px; border-radius: var(--r-md); }
-
-  .topbar { padding: 0 var(--gutter); gap: var(--space-3); }
-  .brand { font-size: 17px; }
-  .search-wrap { max-width: none; }
-  #searchInput { height: 34px; font-size: 12px; }
-  .topbar-right { gap: 0; }
-  .icon-btn { width: 34px; height: 34px; }
-
-  .chip-scroll { padding: 6px var(--gutter); gap: 6px; }
-  .chip { height: 28px; padding: 0 12px; font-size: 12px; }
-
-  .hero { padding: var(--space-8) var(--gutter) var(--space-6); }
-  .hero-visual { height: 240px; }
-  .hero h1 { letter-spacing: -0.03em; }
-  .hero-actions { flex-direction: column; gap: var(--space-2); }
-  .btn { width: 100%; }
-
-  .pins-section { padding: var(--space-5) var(--gutter) var(--space-10); }
-
-  .pin-quote-text { font-size: 15px; }
   .pin-meta { padding: var(--space-2) var(--space-3) var(--space-3); }
+  .pin-quote-text { font-size: 14px; }
 
-  .auth-card { padding: 38px var(--space-6) 30px; border-radius: var(--r-xl); }
-  .auth-card h2 { font-size: 28px; }
+  /* ── AUTH ── */
+  .auth-card { padding: 32px var(--space-5) 28px; border-radius: var(--r-xl); }
+  .auth-card h2 { font-size: 26px; }
 
+  /* ── PIN OVERLAY ── */
   .pin-overlay-inner { grid-template-columns: 1fr; }
-  .pin-overlay-img-wrap { min-height: 240px; max-height: 40dvh; }
-  .pin-overlay-meta { padding: var(--space-6) var(--space-5) var(--space-5); }
-  .pin-overlay-title { font-size: 20px; }
+  .pin-overlay-img-wrap { min-height: 220px; max-height: 38dvh; }
+  .pin-overlay-meta { padding: var(--space-5) var(--gutter) var(--space-5); }
+  .pin-overlay-title { font-size: 18px; }
 
-  .message-list { padding: var(--space-5) var(--space-4); }
-  .message { max-width: 86%; font-size: 13px; }
+  /* ── CHAT ── */
+  .message-list { padding: var(--space-4) var(--space-3); }
+  .message { max-width: 88%; font-size: 13px; }
   .chat-header { padding: 0 var(--space-3); gap: var(--space-2); }
   .chat-actions { gap: var(--space-1); }
-  .round-btn { width: 34px; height: 34px; }
-  .composer { padding: 8px var(--space-3) 10px; gap: var(--space-1); }
+  .round-btn { width: 40px; height: 40px; min-width: 44px; min-height: 44px; }
+  .composer { padding: 8px var(--space-3) 10px; gap: 8px; }
 }
 
-/* ── 2 → tight 2 columns at 380px ── */
-@media (max-width: 380px) {
-  .pins-grid { columns: 2 140px; column-gap: 8px; }
+/* ══ EXTRA-NARROW — 360px and below ════════════════════════ */
+@media (max-width: 360px) {
+  :root {
+    --topbar-h: 52px;
+    --gutter: 14px;
+  }
+  .brand { font-size: 14px; }
+  .icon-btn { min-width: 40px; width: 40px; }
+  #searchInput { font-size: 15px; }
+  .chip { height: 34px; padding: 0 12px; font-size: 12.5px; min-height: 40px; }
+  .hero h1 { font-size: clamp(1.5rem, 8vw, 2rem); }
+  .pins-grid { column-gap: 8px; }
   .pin-card, .pin-quote, .pin-book { margin-bottom: 8px; }
-  .brand { font-size: 15px; }
   .pin-quote-text { font-size: 13px; }
-  .pin-book-title { font-size: 16px; }
+  .pin-book-title { font-size: 15px; }
+}
+
+/* ══ 320px — minimum supported ═════════════════════════════ */
+@media (max-width: 320px) {
+  :root { --gutter: 12px; }
+  .brand { font-size: 13px; letter-spacing: -0.05em; }
+  .hamburger { min-width: 40px; width: 40px; }
+  .hero h1 { font-size: 1.375rem; }
+  .pins-section { padding-left: 12px; padding-right: 12px; }
 }
 
 /* ── Reduced motion ── */

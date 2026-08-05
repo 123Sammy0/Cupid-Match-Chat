@@ -248,12 +248,14 @@ export default function Home() {
       <div className={`drawer-overlay ${isDrawerOpen ? 'visible' : ''}`} id="drawerOverlay" aria-hidden={!isDrawerOpen} onClick={toggleDrawer}></div>
 
       <div className="chip-bar" id="shelves" role="navigation" aria-label="Browse by category">
-        <div className="chip-scroll">
-          {["All", "Aesthetic Quotes", "Motivational", "Study", "Short Quotes", "Life", "Inspirational", "Meaningful"].map((cat) => (
-            <button key={cat} className={`chip ${activeCategory === cat.toLowerCase() ? "active" : ""}`} onClick={() => setActiveCategory(cat.toLowerCase())}>
-              {cat}
-            </button>
-          ))}
+        <div className="chip-bar-inner">
+          <div className="chip-scroll">
+            {["All", "Aesthetic Quotes", "Motivational", "Study", "Short Quotes", "Life", "Inspirational", "Meaningful"].map((cat) => (
+              <button key={cat} className={`chip ${activeCategory === cat.toLowerCase() ? "active" : ""}`} onClick={() => setActiveCategory(cat.toLowerCase())}>
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
