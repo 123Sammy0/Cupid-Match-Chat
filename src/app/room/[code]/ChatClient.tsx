@@ -1748,7 +1748,15 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   stopAndSendVoiceRecording();
                 }
               }}
-              className={`p-3 text-white rounded-full transition-all shadow-md flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center z-10 relative ${isRecording ? 'bg-red-500 shadow-red-500/30' : 'bg-black hover:bg-gray-900 active:scale-95'}`}
+              onPointerCancel={(e) => {
+                if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+                }
+                if (isRecording && !isRecordingLocked) {
+                  cancelVoiceRecording();
+                }
+              }}
+              className={`touch-none select-none p-3 text-white rounded-full transition-all shadow-md flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center z-10 relative ${isRecording ? 'bg-red-500 shadow-red-500/30' : 'bg-black hover:bg-gray-900 active:scale-95'}`}
               style={{
                 transform: (isRecording && !isRecordingLocked) 
                   ? `translate(${audioSwipeDeltaX}px, ${audioSwipeDeltaY}px) scale(1.25)` 
