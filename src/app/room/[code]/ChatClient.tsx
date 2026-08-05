@@ -1590,7 +1590,51 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         )}
 
         {/* ── Unified Composer — ONE pill holds everything ── */}
-        <div>
+        <div className="relative">
+          {/* Floating Attachment Menu */}
+          {showAttachMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowAttachMenu(false)} />
+              <div 
+                className="absolute right-1 z-50 animate-in fade-in zoom-in-95 duration-200 origin-bottom"
+                style={{ bottom: '100%', paddingBottom: '12px' }}
+              >
+                <div 
+                  className="flex flex-col items-center p-2 gap-3 bg-white/70 dark:bg-black/70 backdrop-blur-[20px] rounded-[20px] border border-black/5 dark:border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.12)]"
+                >
+                  <button 
+                    onClick={() => handleAttach('image')} 
+                    className="w-[44px] h-[44px] rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all text-black dark:text-white" 
+                    aria-label="Gallery"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                  </button>
+                  <button 
+                    onClick={() => handleAttach('camera')} 
+                    className="w-[44px] h-[44px] rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all text-black dark:text-white" 
+                    aria-label="Camera"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                  </button>
+                  <button 
+                    onClick={() => handleAttach('audio')} 
+                    className="w-[44px] h-[44px] rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all text-black dark:text-white" 
+                    aria-label="Audio"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                  </button>
+                  <button 
+                    onClick={() => handleAttach('document')} 
+                    className="w-[44px] h-[44px] rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all text-black dark:text-white" 
+                    aria-label="Document"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
 
           {/* THE floating white pill container */}
           <div
@@ -1791,14 +1835,16 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     type="button"
                     tabIndex={newMessage ? -1 : 0}
                     onClick={() => {}}
-                    onPointerDown={() => {
+                    onPointerDown={(e) => {
+                      if (e.pointerType === 'mouse' && e.button !== 0) return;
                       longPressTimerRef.current = setTimeout(() => {
                         longPressTimerRef.current = null;
                         if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([20, 30, 20]);
                         handleAttach(lastUsedAttachment);
                       }, 400);
                     }}
-                    onPointerUp={() => {
+                    onPointerUp={(e) => {
+                      if (e.pointerType === 'mouse' && e.button !== 0) return;
                       if (longPressTimerRef.current) {
                         clearTimeout(longPressTimerRef.current);
                         longPressTimerRef.current = null;
@@ -1843,7 +1889,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   <button
                     type="button"
                     tabIndex={newMessage ? -1 : 0}
-                    onClick={() => handleAttach('image')}
+                    onClick={() => handleAttach('camera')}
                     style={{
                       width: 38, minHeight: 52,
                       color: '#8E8E93',
