@@ -1620,15 +1620,16 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         {/* Unified Composer Container */}
         <div className="px-3 py-2.5 flex items-end gap-2">
 
-          {/* ── Pill Container (holds emoji + textarea + attachment + camera) ── */}
+          {/* ── Pill Container ── */}
           <div
-            className="flex-1 flex items-end gap-0 min-w-0 transition-all duration-200"
+            className="flex-1 flex items-end min-w-0"
             style={{
               background: '#F2F2F7',
               borderRadius: 26,
               border: '1px solid rgba(0,0,0,0.07)',
               overflow: 'hidden',
               minHeight: 48,
+              transition: 'all 200ms ease',
             }}
           >
             {/* Recording State — inside the pill */}
@@ -1657,25 +1658,46 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               </div>
             ) : (
               <>
-                {/* Emoji Button */}
-                <button
-                  type="button"
-                  onClick={() => { setShowEmojiPicker(v => !v); setShowAttachMenu(false); }}
-                  className="flex-shrink-0 flex items-center justify-center transition-all duration-150 active:scale-90"
+                {/* ── Emoji Button — collapses when typing ── */}
+                <div
                   style={{
-                    width: 44,
-                    minHeight: 48,
-                    color: showEmojiPicker ? '#000' : '#8E8E93',
+                    maxWidth: newMessage ? 0 : 44,
+                    opacity: newMessage ? 0 : 1,
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    transition: 'max-width 220ms cubic-bezier(0.4,0,0.2,1), opacity 180ms ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
-                  aria-label="Emoji"
                 >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                    <line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/>
-                  </svg>
-                </button>
+                  <button
+                    type="button"
+                    tabIndex={newMessage ? -1 : 0}
+                    onClick={() => { setShowEmojiPicker(v => !v); setShowAttachMenu(false); }}
+                    style={{
+                      width: 44,
+                      minHeight: 48,
+                      color: showEmojiPicker ? '#000' : '#8E8E93',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'color 150ms ease',
+                    }}
+                    aria-label="Emoji"
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                      <line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/>
+                    </svg>
+                  </button>
+                </div>
 
-                {/* Auto-expanding Textarea */}
+                {/* ── Auto-expanding Textarea — always visible ── */}
                 <textarea
                   ref={inputRef}
                   rows={1}
@@ -1689,49 +1711,95 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   }}
                   onFocus={() => { setTimeout(() => scrollToBottom(true), 300); }}
                   placeholder="Message…"
-                  className="flex-1 bg-transparent focus:outline-none resize-none min-w-0 placeholder-[#8E8E93] text-black"
                   style={{
+                    flex: 1,
+                    background: 'transparent',
                     fontSize: 16,
                     lineHeight: '1.45',
                     paddingTop: 13,
                     paddingBottom: 13,
+                    paddingLeft: newMessage ? 14 : 4,
                     maxHeight: 130,
                     overflowY: 'auto',
                     border: 'none',
                     outline: 'none',
+                    resize: 'none',
                     fontFamily: 'inherit',
                     fontWeight: 400,
+                    color: '#000',
+                    minWidth: 0,
+                    transition: 'padding-left 220ms cubic-bezier(0.4,0,0.2,1)',
                   }}
+                  className="placeholder-[#8E8E93]"
                 />
 
-                {/* Attachment Button */}
-                <button
-                  type="button"
-                  onClick={() => { setShowAttachMenu(v => !v); setShowEmojiPicker(false); }}
-                  className="flex-shrink-0 flex items-center justify-center transition-all duration-150 active:scale-90"
+                {/* ── Attachment Button — collapses when typing ── */}
+                <div
                   style={{
-                    width: 40,
-                    minHeight: 48,
-                    color: showAttachMenu ? '#000' : '#8E8E93',
+                    maxWidth: newMessage ? 0 : 40,
+                    opacity: newMessage ? 0 : 1,
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    transition: 'max-width 220ms cubic-bezier(0.4,0,0.2,1), opacity 180ms ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
-                  aria-label="Attach"
                 >
-                  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)' }}>
-                    <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                  </svg>
-                </button>
-
-                {/* Camera Button — only visible when input is empty */}
-                {!newMessage.trim() && (
                   <button
                     type="button"
-                    onClick={() => handleAttach('image')}
-                    className="flex-shrink-0 flex items-center justify-center transition-all duration-150 active:scale-90"
+                    tabIndex={newMessage ? -1 : 0}
+                    onClick={() => { setShowAttachMenu(v => !v); setShowEmojiPicker(false); }}
                     style={{
                       width: 40,
                       minHeight: 48,
+                      color: showAttachMenu ? '#000' : '#8E8E93',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'color 150ms ease',
+                    }}
+                    aria-label="Attach"
+                  >
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)' }}>
+                      <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {/* ── Camera Button — collapses when typing ── */}
+                <div
+                  style={{
+                    maxWidth: newMessage ? 0 : 44,
+                    opacity: newMessage ? 0 : 1,
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    transition: 'max-width 220ms cubic-bezier(0.4,0,0.2,1), opacity 180ms ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <button
+                    type="button"
+                    tabIndex={newMessage ? -1 : 0}
+                    onClick={() => handleAttach('image')}
+                    style={{
+                      width: 44,
+                      minHeight: 48,
+                      paddingRight: 8,
                       color: '#8E8E93',
-                      paddingRight: 6,
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
                     }}
                     aria-label="Camera"
                   >
@@ -1740,16 +1808,16 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                       <circle cx="12" cy="13" r="3"/>
                     </svg>
                   </button>
-                )}
+                </div>
               </>
             )}
           </div>
 
-          {/* ── Action Button — Mic or Send (outside pill, always visible) ── */}
+          {/* ── Action Button — morphs between Mic / Send / Loading ── */}
           {isUploading ? (
             <div
               className="flex-shrink-0 flex items-center justify-center"
-              style={{ width: 46, height: 46, borderRadius: 23, background: '#000', color: '#fff' }}
+              style={{ width: 46, height: 46, borderRadius: 23, background: '#000', color: '#fff', transition: 'all 200ms ease' }}
             >
               <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
             </div>
@@ -1758,7 +1826,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             <button
               onPointerDown={(e) => e.preventDefault()}
               onClick={isRecordingLocked ? stopAndSendVoiceRecording : (editingMessage ? handleEdit : handleSend)}
-              className="flex-shrink-0 flex items-center justify-center transition-all duration-150 active:scale-90"
+              className="flex-shrink-0 flex items-center justify-center active:scale-90"
               style={{
                 width: 46,
                 height: 46,
@@ -1767,6 +1835,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 color: '#fff',
                 boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
                 flexShrink: 0,
+                transition: 'transform 150ms cubic-bezier(0.34,1.56,0.64,1), box-shadow 200ms ease, background 200ms ease',
+                cursor: 'pointer',
+                border: 'none',
               }}
               aria-label={isRecordingLocked ? 'Send Audio' : (editingMessage ? 'Update' : 'Send')}
             >
