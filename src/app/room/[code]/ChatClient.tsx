@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { markConversationRead, markConversationDelivered, blockUser, editMessage, deleteMessage } from "@/app/actions/chat";
 import Image from "next/image";
 import { CustomAudioPlayer } from "./CustomAudioPlayer";
+import { LazyImage } from "@/app/components/LazyImage";
 
 // Emoji data by category
 const EMOJI_CATEGORIES = [
@@ -1255,11 +1256,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   ) : (
                     <>
                       {mediaData?.type === 'image' && (
-                        <img 
+                        <LazyImage 
                           src={mediaData.url} 
                           alt="image" 
                           className="max-w-[240px] sm:max-w-[280px] max-h-[320px] object-cover rounded-[16px] cursor-pointer hover:opacity-90 transition-opacity" 
                           onClick={() => setActivePreviewImage(mediaData.url)}
+                          fetchPriority={idx >= arr.length - 2 ? "high" : "auto"}
                         />
                       )}
                       {mediaData?.type === 'video' && (
@@ -1565,212 +1567,294 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         </button>
       )}
 
-      {/* Composer Area */}
-      <div className="bg-[#F0F2F5]/50 border-t border-gray-100 z-20 flex flex-col">
-        
-        {/* Reply/Edit Banner */}
+      {/* ── COMPOSER ─────────────────────────────────────────────── */}
+      <div
+        className="flex-shrink-0 relative z-20"
+        style={{
+          background: 'rgba(255,255,255,0.92)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(0,0,0,0.06)',
+        }}
+      >
+        {/* Reply / Edit Banner */}
         {(replyTo || editingMessage) && (
-          <div className="px-4 pt-3 pb-1 flex items-center justify-between animate-in slide-in-from-bottom-2">
-            <div className={`flex-1 bg-white p-3 rounded-2xl border-l-4 ${editingMessage ? 'border-black' : 'border-black'} shadow-sm text-sm`}>
-              <div className="flex items-center gap-1.5 mb-0.5">
-                {editingMessage ? (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-black"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                ) : null}
-                <p className={`font-bold text-black text-xs`}>
-                  {editingMessage ? 'Editing message' : (replyTo?.sender_id === user.id ? 'You' : otherUser?.username || 'Unknown')}
+          <div
+            className="flex items-center gap-2 px-4 pt-3 pb-1 animate-in slide-in-from-bottom-2 duration-200"
+          >
+            <div
+              className="flex-1 flex items-start gap-2.5 bg-gray-50 border border-gray-200/80 rounded-2xl px-3.5 py-2.5"
+              style={{ borderLeft: '3px solid #000' }}
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-bold text-black mb-0.5 flex items-center gap-1.5">
+                  {editingMessage ? (
+                    <>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                      Editing message
+                    </>
+                  ) : (
+                    replyTo?.sender_id === user.id ? 'You' : otherUser?.username || 'Unknown'
+                  )}
+                </p>
+                <p className="text-[12px] text-gray-500 line-clamp-1 leading-4">
+                  {editingMessage ? editingMessage.content :
+                   replyTo?.type === 'image' ? '📷 Image' :
+                   replyTo?.type === 'video' ? '🎥 Video' :
+                   replyTo?.type === 'audio' ? '🎵 Audio' :
+                   replyTo?.type === 'document' ? (() => { try { return '📎 ' + JSON.parse(replyTo.content).name; } catch { return '📎 File'; } })() :
+                   (replyTo?.content?.startsWith('{') ? JSON.parse(replyTo.content).text : replyTo?.content)}
                 </p>
               </div>
-              <p className="text-gray-600 line-clamp-1">
-                {editingMessage ? editingMessage.content : 
-                 replyTo?.type === 'image' ? '📷 Image' : 
-                 replyTo?.type === 'video' ? '🎥 Video' : 
-                 replyTo?.type === 'audio' ? '🎵 Audio' : 
-                 replyTo?.type === 'document' ? (() => { try { return '📎 ' + JSON.parse(replyTo.content).name; } catch { return '📎 File'; } })() : 
-                 (replyTo?.content.startsWith('{') ? JSON.parse(replyTo.content).text : replyTo?.content)}
-              </p>
             </div>
-            <button onClick={() => { setReplyTo(null); setEditingMessage(null); setNewMessage(''); }} className="p-2 ml-2 bg-gray-200 hover:bg-gray-300 rounded-full text-gray-600 transition-colors">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            <button
+              onClick={() => { setReplyTo(null); setEditingMessage(null); setNewMessage(''); }}
+              className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors"
+              aria-label="Dismiss"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
           </div>
         )}
 
-        <div className="px-2 py-2 flex items-end gap-1.5">
-        
-        {/* Input area */}
-        <div className="flex-1 bg-white rounded-3xl shadow-sm flex items-end overflow-hidden transition-all min-h-[44px] relative">
-          {isRecording ? (
-            <div className="flex-1 flex items-center px-4 py-2.5 h-[44px] justify-between bg-white w-full">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-red-500 font-medium">
+        {/* Unified Composer Container */}
+        <div className="px-3 py-2.5 flex items-end gap-2">
+
+          {/* ── Pill Container (holds emoji + textarea + attachment + camera) ── */}
+          <div
+            className="flex-1 flex items-end gap-0 min-w-0 transition-all duration-200"
+            style={{
+              background: '#F2F2F7',
+              borderRadius: 26,
+              border: '1px solid rgba(0,0,0,0.07)',
+              overflow: 'hidden',
+              minHeight: 48,
+            }}
+          >
+            {/* Recording State — inside the pill */}
+            {isRecording ? (
+              <div className="flex-1 flex items-center px-4 gap-3" style={{ minHeight: 48 }}>
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse flex-shrink-0" />
+                <span className="text-red-500 font-semibold text-[15px] tabular-nums">
                   {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
                 </span>
+                <div className="flex-1" />
+                {isRecordingLocked ? (
+                  <button
+                    type="button"
+                    onClick={cancelVoiceRecording}
+                    className="text-[13px] font-semibold text-gray-400 hover:text-red-500 transition-colors pr-1"
+                  >
+                    Cancel
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-1 text-gray-400">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6"/></svg>
+                    <span className="text-[12px] font-medium hidden sm:block">Slide to cancel</span>
+                    <span className="text-[12px] font-medium sm:hidden">Cancel</span>
+                  </div>
+                )}
               </div>
-              
-              {isRecordingLocked ? (
-                <button 
+            ) : (
+              <>
+                {/* Emoji Button */}
+                <button
                   type="button"
-                  onClick={cancelVoiceRecording}
-                  className="text-gray-500 hover:text-red-500 font-medium text-sm transition-colors"
+                  onClick={() => { setShowEmojiPicker(v => !v); setShowAttachMenu(false); }}
+                  className="flex-shrink-0 flex items-center justify-center transition-all duration-150 active:scale-90"
+                  style={{
+                    width: 44,
+                    minHeight: 48,
+                    color: showEmojiPicker ? '#000' : '#8E8E93',
+                  }}
+                  aria-label="Emoji"
                 >
-                  Cancel
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+                    <line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/>
+                  </svg>
                 </button>
+
+                {/* Auto-expanding Textarea */}
+                <textarea
+                  ref={inputRef}
+                  rows={1}
+                  value={newMessage}
+                  onChange={handleTyping}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (editingMessage) { handleEdit(e); } else { handleSend(e); }
+                    }
+                  }}
+                  onFocus={() => { setTimeout(() => scrollToBottom(true), 300); }}
+                  placeholder="Message…"
+                  className="flex-1 bg-transparent focus:outline-none resize-none min-w-0 placeholder-[#8E8E93] text-black"
+                  style={{
+                    fontSize: 16,
+                    lineHeight: '1.45',
+                    paddingTop: 13,
+                    paddingBottom: 13,
+                    maxHeight: 130,
+                    overflowY: 'auto',
+                    border: 'none',
+                    outline: 'none',
+                    fontFamily: 'inherit',
+                    fontWeight: 400,
+                  }}
+                />
+
+                {/* Attachment Button */}
+                <button
+                  type="button"
+                  onClick={() => { setShowAttachMenu(v => !v); setShowEmojiPicker(false); }}
+                  className="flex-shrink-0 flex items-center justify-center transition-all duration-150 active:scale-90"
+                  style={{
+                    width: 40,
+                    minHeight: 48,
+                    color: showAttachMenu ? '#000' : '#8E8E93',
+                  }}
+                  aria-label="Attach"
+                >
+                  <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)' }}>
+                    <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                  </svg>
+                </button>
+
+                {/* Camera Button — only visible when input is empty */}
+                {!newMessage.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => handleAttach('image')}
+                    className="flex-shrink-0 flex items-center justify-center transition-all duration-150 active:scale-90"
+                    style={{
+                      width: 40,
+                      minHeight: 48,
+                      color: '#8E8E93',
+                      paddingRight: 6,
+                    }}
+                    aria-label="Camera"
+                  >
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                      <circle cx="12" cy="13" r="3"/>
+                    </svg>
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* ── Action Button — Mic or Send (outside pill, always visible) ── */}
+          {isUploading ? (
+            <div
+              className="flex-shrink-0 flex items-center justify-center"
+              style={{ width: 46, height: 46, borderRadius: 23, background: '#000', color: '#fff' }}
+            >
+              <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            </div>
+          ) : newMessage.trim() || isRecordingLocked ? (
+            /* Send / Confirm button */
+            <button
+              onPointerDown={(e) => e.preventDefault()}
+              onClick={isRecordingLocked ? stopAndSendVoiceRecording : (editingMessage ? handleEdit : handleSend)}
+              className="flex-shrink-0 flex items-center justify-center transition-all duration-150 active:scale-90"
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: 23,
+                background: '#000',
+                color: '#fff',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
+                flexShrink: 0,
+              }}
+              aria-label={isRecordingLocked ? 'Send Audio' : (editingMessage ? 'Update' : 'Send')}
+            >
+              {editingMessage && !isRecordingLocked ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
               ) : (
-                <div className="flex items-center gap-1 text-gray-400">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
-                  <span className="text-sm font-medium text-nowrap hidden sm:block">Slide to cancel</span>
-                  <span className="text-sm font-medium text-nowrap sm:hidden">Cancel</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 2 }}>
+                  <path d="m22 2-7 20-4-9-9-4 20-7z"/><path d="M22 2 11 13"/>
+                </svg>
+              )}
+            </button>
+          ) : (
+            /* Mic button — with swipe-to-lock / swipe-to-cancel */
+            <div className="relative flex-shrink-0">
+              {/* Lock tooltip */}
+              {isRecording && !isRecordingLocked && audioSwipeDeltaY < -20 && (
+                <div className="absolute -top-11 left-1/2 -translate-x-1/2 bg-white px-2.5 py-1 rounded-full shadow-sm text-gray-600 text-[11px] font-bold flex items-center gap-1 border border-gray-100 whitespace-nowrap animate-in fade-in slide-in-from-bottom-2 duration-150">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  Lock
                 </div>
               )}
-            </div>
-          ) : (
-            <>
-              {/* Emoji toggle (inside input like WhatsApp) */}
               <button
-                type="button"
-                onClick={() => { setShowEmojiPicker(v => !v); setShowAttachMenu(false); }}
-                className={`p-2.5 pb-2 ml-1 flex-shrink-0 transition-colors ${showEmojiPicker ? 'text-black' : 'text-gray-400 hover:text-gray-500'}`}
-                aria-label="Emoji"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                  <line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/>
-                </svg>
-              </button>
-
-              <textarea
-                ref={inputRef}
-                rows={1}
-                value={newMessage}
-                onChange={handleTyping}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if (editingMessage) {
-                      handleEdit(e);
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  if (e.isPrimary) {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    audioSwipeStartX.current = e.clientX;
+                    audioSwipeStartY.current = e.clientY;
+                    startVoiceRecording();
+                  }
+                }}
+                onPointerMove={(e) => {
+                  if (isRecording && !isRecordingLocked && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                    const deltaX = e.clientX - audioSwipeStartX.current;
+                    const deltaY = e.clientY - audioSwipeStartY.current;
+                    if (deltaY < -50) {
+                      setIsRecordingLocked(true);
+                      setAudioSwipeDeltaX(0); setAudioSwipeDeltaY(0);
+                      e.currentTarget.releasePointerCapture(e.pointerId);
+                    } else if (deltaX < -50) {
+                      cancelVoiceRecording();
+                      e.currentTarget.releasePointerCapture(e.pointerId);
                     } else {
-                      handleSend(e);
+                      if (deltaX < 0) setAudioSwipeDeltaX(deltaX);
+                      if (deltaY < 0) setAudioSwipeDeltaY(deltaY);
                     }
                   }
                 }}
-                onFocus={() => {
-                  setTimeout(() => {
-                    scrollToBottom(true);
-                  }, 300);
+                onPointerUp={(e) => {
+                  e.preventDefault();
+                  if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                  }
+                  if (isRecording && !isRecordingLocked) { stopAndSendVoiceRecording(); }
                 }}
-                placeholder="Message..."
-                className="flex-1 bg-transparent py-2.5 px-2 focus:outline-none focus:ring-0 focus:border-transparent border-none text-black font-medium placeholder-gray-400 text-[16px] sm:text-[15px] min-w-0 resize-none max-h-[120px] overflow-y-auto self-center"
-                style={{ lineHeight: '1.4' }}
-              />
-
-              {/* Attachment button (inside input like WhatsApp) */}
-              <button
-                type="button"
-                onClick={() => { setShowAttachMenu(v => !v); setShowEmojiPicker(false); }}
-                className={`p-2.5 pb-2 mr-1 flex-shrink-0 transition-colors ${showAttachMenu ? 'text-black' : 'text-gray-400 hover:text-gray-500'}`}
-                aria-label="Attach"
+                onPointerCancel={(e) => {
+                  if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
+                    e.currentTarget.releasePointerCapture(e.pointerId);
+                  }
+                  if (isRecording && !isRecordingLocked) { cancelVoiceRecording(); }
+                }}
+                className="touch-none select-none flex items-center justify-center transition-colors duration-150"
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 23,
+                  background: isRecording ? '#FF3B30' : '#000',
+                  color: '#fff',
+                  boxShadow: isRecording
+                    ? '0 0 0 8px rgba(255,59,48,0.15), 0 2px 12px rgba(255,59,48,0.3)'
+                    : '0 2px 12px rgba(0,0,0,0.18)',
+                  transform: (isRecording && !isRecordingLocked)
+                    ? `translate(${audioSwipeDeltaX}px, ${audioSwipeDeltaY}px) scale(1.18)`
+                    : 'scale(1)',
+                  transition: (isRecording && !isRecordingLocked)
+                    ? 'background 0.15s, box-shadow 0.15s'
+                    : 'background 0.2s, box-shadow 0.2s, transform 0.15s',
+                  zIndex: 10,
+                  position: 'relative',
+                }}
+                aria-label="Voice Message"
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-45deg)' }}>
-                  <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>
                 </svg>
               </button>
-            </>
+            </div>
           )}
-        </div>
-
-        {/* Action Button (Mic or Send) */}
-        {isUploading ? (
-          <div className="p-3 bg-black text-white rounded-full flex-shrink-0 flex items-center justify-center shadow-md w-11 h-11 mb-[2px]">
-            <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-          </div>
-        ) : newMessage.trim() || isRecordingLocked ? (
-          <button
-            onPointerDown={(e) => e.preventDefault()}
-            onClick={isRecordingLocked ? stopAndSendVoiceRecording : (editingMessage ? handleEdit : handleSend)}
-            className={`p-3 text-white rounded-full transition-all shadow-md active:scale-95 flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center ${editingMessage && !isRecordingLocked ? 'bg-black hover:bg-gray-900' : 'bg-black hover:bg-gray-900'}`}
-            aria-label={isRecordingLocked ? "Send Audio" : (editingMessage ? "Update" : "Send")}
-          >
-            {editingMessage && !isRecordingLocked ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M20 6 9 17l-5-5"/>
-              </svg>
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-0.5">
-                <path d="m22 2-7 20-4-9-9-4 20-7z"/><path d="M22 2 11 13"/>
-              </svg>
-            )}
-          </button>
-        ) : (
-          <div className="relative">
-            {/* Lock indicator sliding up */}
-            {isRecording && !isRecordingLocked && audioSwipeDeltaY < -20 && (
-              <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-white px-2 py-1 rounded-full shadow-sm text-gray-500 text-xs font-bold flex items-center gap-1 border border-gray-100 whitespace-nowrap opacity-80 animate-in fade-in slide-in-from-bottom-2">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Lock
-              </div>
-            )}
-            <button
-              onPointerDown={(e) => {
-                e.preventDefault();
-                if (e.isPrimary) {
-                  e.currentTarget.setPointerCapture(e.pointerId);
-                  audioSwipeStartX.current = e.clientX;
-                  audioSwipeStartY.current = e.clientY;
-                  startVoiceRecording();
-                }
-              }}
-              onPointerMove={(e) => {
-                if (isRecording && !isRecordingLocked && e.currentTarget.hasPointerCapture(e.pointerId)) {
-                  const deltaX = e.clientX - audioSwipeStartX.current;
-                  const deltaY = e.clientY - audioSwipeStartY.current;
-                  
-                  if (deltaY < -50) {
-                    setIsRecordingLocked(true);
-                    setAudioSwipeDeltaX(0);
-                    setAudioSwipeDeltaY(0);
-                    e.currentTarget.releasePointerCapture(e.pointerId);
-                  } else if (deltaX < -50) {
-                    cancelVoiceRecording();
-                    e.currentTarget.releasePointerCapture(e.pointerId);
-                  } else {
-                    if (deltaX < 0) setAudioSwipeDeltaX(deltaX);
-                    if (deltaY < 0) setAudioSwipeDeltaY(deltaY);
-                  }
-                }
-              }}
-              onPointerUp={(e) => {
-                e.preventDefault();
-                if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
-                  e.currentTarget.releasePointerCapture(e.pointerId);
-                }
-                if (isRecording && !isRecordingLocked) {
-                  stopAndSendVoiceRecording();
-                }
-              }}
-              onPointerCancel={(e) => {
-                if (e.currentTarget.hasPointerCapture && e.currentTarget.hasPointerCapture(e.pointerId)) {
-                  e.currentTarget.releasePointerCapture(e.pointerId);
-                }
-                if (isRecording && !isRecordingLocked) {
-                  cancelVoiceRecording();
-                }
-              }}
-              className={`touch-none select-none p-3 text-white rounded-full transition-all shadow-md flex-shrink-0 w-11 h-11 mb-[2px] flex items-center justify-center z-10 relative ${isRecording ? 'bg-red-500 shadow-red-500/30' : 'bg-black hover:bg-gray-900 active:scale-95'}`}
-              style={{
-                transform: (isRecording && !isRecordingLocked) 
-                  ? `translate(${audioSwipeDeltaX}px, ${audioSwipeDeltaY}px) scale(1.25)` 
-                  : 'none'
-              }}
-              aria-label="Voice Message"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/>
-              </svg>
-            </button>
-          </div>
-        )}
-
         </div>
       </div>
     </div>
