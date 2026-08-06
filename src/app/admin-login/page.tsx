@@ -18,12 +18,32 @@ export default function AdminLoginPage() {
 
     try {
       const supabase = createClient();
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      let { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      // If login fails for the permanent admin, it means they haven't registered this email in Supabase yet.
+      // We will automatically sign them up.
+      if (authError && email === "mdsaakib002@gmail.com") {
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        
+        if (signUpError) throw signUpError;
+        if (!signUpData.user) throw new Error("Account created but email confirmation required. Please check your email.");
+        
+        // After signup, we need to log them in (if email confirmations are off, this works immediately)
+        authData = signUpData;
+        authError = null;
+      }
+
       if (authError) throw authError;
+
+      if (!authData?.user) {
+        throw new Error("Authentication failed. No user returned.");
+      }
 
       // Check if the user is a super_admin
       const { data: profile } = await supabase
