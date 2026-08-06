@@ -6,16 +6,19 @@ import { revalidatePath } from "next/cache";
 
 // Helper to get authenticated server client (Service Role for Admin operations)
 export const getAdminSupabase = async () => {
+  const cookieStore = await cookies();
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         getAll() {
-          return cookies().getAll();
+          return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => cookies().set(name, value, options));
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+          } catch (e) {}
         },
       },
     }
@@ -24,12 +27,13 @@ export const getAdminSupabase = async () => {
 
 // Foundational Security Guard: Checks if the current user is a super_admin
 export const verifySuperAdmin = async () => {
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return cookies().getAll(); },
+        getAll() { return cookieStore.getAll(); },
         setAll() {},
       }
     }
