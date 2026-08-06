@@ -38,7 +38,7 @@ export async function getProfile() {
   // Try to fetch with all new columns
   const { data, error } = await supabase
     .from('profiles')
-    .select('username, avatar_url, bio, privacy_settings')
+    .select('id, username, avatar_url, bio, privacy_settings')
     .eq('id', user.id)
     .single();
 

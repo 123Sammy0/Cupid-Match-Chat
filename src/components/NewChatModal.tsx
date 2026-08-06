@@ -31,7 +31,6 @@ export default function NewChatModal({ onClose, onChatCreated }: { onClose: () =
     const res = await createDirectConversation(userId);
     if (res.success && res.conversationId) {
       onChatCreated();
-      onClose();
       router.push(`/room/${res.conversationId}`);
     } else {
       setRequestSentTo(null);
@@ -78,7 +77,11 @@ export default function NewChatModal({ onClose, onChatCreated }: { onClose: () =
           )}
 
           {!isSearching && results.map((user) => (
-            <div key={user.id} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl cursor-pointer transition-colors group">
+            <div 
+              key={user.id} 
+              onClick={() => handleSendRequest(user.id)}
+              className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-2xl cursor-pointer transition-colors"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-gradient-to-tr from-[#3A2034] to-[#5a3652] text-white rounded-[20px] flex items-center justify-center font-bold text-lg shadow-sm">
                   {user.username.charAt(0).toUpperCase()}
@@ -95,7 +98,7 @@ export default function NewChatModal({ onClose, onChatCreated }: { onClose: () =
                   Opening...
                 </button>
               ) : (
-                <button onClick={() => handleSendRequest(user.id)} className="px-5 py-2 bg-[#D97A89] text-white rounded-xl text-[13px] font-bold hover:bg-[#b35e6b] shadow-md hover:shadow-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 active:scale-95 flex items-center gap-1.5">
+                <button className="px-5 py-2 bg-[#D97A89] text-white rounded-xl text-[13px] font-bold hover:bg-[#b35e6b] shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-1.5">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
                   Message
                 </button>

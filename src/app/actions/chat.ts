@@ -99,6 +99,31 @@ export async function createDirectConversation(targetUserId: string) {
   return { success: true, conversationId: conversation.id };
 }
 
+export async function getConversationDetails(conversationId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Unauthorized" };
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createAdminClient();
+
+  const { data: participants, error } = await adminSupabase
+    .from('conversation_participants')
+    .select('profile_id, profiles(*)')
+    .eq('conversation_id', conversationId);
+
+  if (error) return { success: false, message: error.message };
+
+  if (!participants || !participants.some((p: any) => p.profile_id === user.id)) {
+    return { success: false, message: "Not a participant" };
+  }
+
+  const otherParticipant = participants.find((p: any) => p.profile_id !== user.id);
+  const otherUser = otherParticipant ? { id: otherParticipant.profile_id, ...(otherParticipant.profiles as any) } : null;
+
+  return { success: true, otherUser };
+}
+
 export async function acceptChatRequest(requestId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

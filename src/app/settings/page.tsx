@@ -1,22 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getProfile, updateProfile } from "@/app/actions/settings";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<any>(null);
-  const [bio, setBio] = useState("");
-  const [privacy, setPrivacy] = useState({ online_status: "everyone", last_seen: "everyone" });
-  const [avatarUrl, setAvatarUrl] = useState("");
+  const [profile, setProfile] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = sessionStorage.getItem("cupid_cache_profile");
+        return cached ? JSON.parse(cached) : null;
+      } catch (e) { return null; }
+    }
+    return null;
+  });
+  const [bio, setBio] = useState(profile?.bio || "");
+  const [privacy, setPrivacy] = useState(profile?.privacy_settings || { online_status: "everyone", last_seen: "everyone" });
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const AVATARS = ["😀", "😎", "🤩", "🦊", "🐼", "🦄", "🐶", "🐱", "🦁", "🐙", "🦋", "🍄", "🍉", "🍕", "🚀", "🎸"];
 
+  const [isClient, setIsClient] = useState(false);
+
   useEffect(() => {
+    setIsClient(true);
     try {
       const cached = sessionStorage.getItem("cupid_cache_profile");
       if (cached) {
@@ -34,10 +47,12 @@ export default function SettingsPage() {
       const data: any = await getProfile();
       if (data) {
         setProfile(data);
-        setBio(data.bio || "");
-        setAvatarUrl(data.avatar_url || "");
-        if (data.privacy_settings) {
-          setPrivacy(data.privacy_settings);
+        if (!profile) { // Only update state if it was null initially
+          setBio(data.bio || "");
+          setAvatarUrl(data.avatar_url || "");
+          if (data.privacy_settings) {
+            setPrivacy(data.privacy_settings);
+          }
         }
         try {
           sessionStorage.setItem("cupid_cache_profile", JSON.stringify(data));
@@ -46,6 +61,35 @@ export default function SettingsPage() {
     };
     loadProfile();
   }, []);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image must be less than 5MB");
+      return;
+    }
+    setIsUploadingImage(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split('.').pop();
+      const path = `avatars/${profile.id}/${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('chat-media')
+        .upload(path, file, { cacheControl: '3600', upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('chat-media').getPublicUrl(path);
+      setAvatarUrl(urlData.publicUrl);
+    } catch (error: any) {
+      alert("Failed to upload image: " + error.message);
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -79,7 +123,7 @@ export default function SettingsPage() {
     router.push("/auth");
   };
 
-  if (!profile) {
+  if (!isClient || !profile) {
     return <div className="flex h-[100dvh] items-center justify-center bg-white text-black">Loading...</div>;
   }
 
@@ -102,9 +146,27 @@ export default function SettingsPage() {
           
           {/* Profile Section */}
           <div className="flex flex-col items-center gap-4 text-center">
-            <div className="relative">
-              <div className="w-24 h-24 bg-gradient-to-br from-[#3A2034] to-[#5a3652] text-white rounded-[30px] flex items-center justify-center font-bold text-5xl shadow-md">
-                {avatarUrl ? avatarUrl : profile.username.charAt(0).toUpperCase()}
+            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageUpload} 
+                accept="image/*" 
+                className="hidden" 
+              />
+              <div className="w-24 h-24 bg-gradient-to-br from-[#3A2034] to-[#5a3652] text-white rounded-[30px] flex items-center justify-center font-bold text-5xl shadow-md overflow-hidden relative">
+                {isUploadingImage ? (
+                  <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : avatarUrl && avatarUrl.startsWith('http') ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  avatarUrl ? avatarUrl : profile.username.charAt(0).toUpperCase()
+                )}
+                
+                {/* Upload Overlay */}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                </div>
               </div>
             </div>
             <div>

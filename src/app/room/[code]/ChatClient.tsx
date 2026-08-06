@@ -12,6 +12,122 @@ import dynamic from 'next/dynamic';
 
 const CameraModal = dynamic(() => import('./CameraModal'), { ssr: false });
 
+const MessageContextMenu = ({ m, isMine, onReply, onEdit, onDeleteMe, onDeleteEveryone, onReact }: any) => {
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = popoverRef.current;
+    if (!el) return;
+
+    // Reset any prior inline styles
+    el.style.top = '';
+    el.style.bottom = '';
+    el.style.left = '';
+    el.style.right = '';
+    el.style.transform = '';
+
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const MARGIN = 10;
+    const COMPOSER_H = 80; // approx composer bar height
+
+    // ── Vertical: prefer above, fallback below, fallback centre ──
+    if (rect.top < MARGIN) {
+      // clips top → push down
+      el.style.top = `${MARGIN - rect.top}px`;
+    } else if (rect.bottom > vh - COMPOSER_H) {
+      // clips bottom → pull up
+      const overflowY = rect.bottom - (vh - COMPOSER_H);
+      el.style.marginTop = `-${overflowY}px`;
+    }
+
+    // ── Horizontal: keep inside viewport ──
+    const rect2 = el.getBoundingClientRect();
+    if (rect2.left < MARGIN) {
+      el.style.transform = `translateX(${MARGIN - rect2.left}px)`;
+    } else if (rect2.right > vw - MARGIN) {
+      el.style.transform = `translateX(-${rect2.right - (vw - MARGIN)}px)`;
+    }
+  }, []);
+
+  return (
+    <div
+      ref={popoverRef}
+      className={`absolute bottom-full mb-2 ${
+        isMine ? 'right-0' : 'left-0'
+      } z-50 animate-in fade-in zoom-in-95 duration-150 origin-bottom`}
+      style={{ minWidth: 192 }}
+    >
+      {/* Unified glassmorphism card */}
+      <div
+        style={{
+          background: 'rgba(255,255,255,0.72)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.55)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.14), 0 1px 4px rgba(0,0,0,0.08)',
+          borderRadius: 18,
+          overflow: 'hidden',
+        }}
+      >
+        {/* ── Reaction emoji row ── */}
+        <div className={`flex items-center justify-${isMine ? 'end' : 'start'} gap-0.5 px-2 py-2 border-b border-white/40`}>
+          {['❤️', '👍', '😂', '😮', '😢', '🙏'].map(emoji => (
+            <button
+              key={emoji}
+              onClick={(e) => { e.stopPropagation(); onReact(m.id, emoji); }}
+              className="text-[22px] w-9 h-9 flex items-center justify-center rounded-full hover:bg-black/8 active:scale-90 transition-all duration-100"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Action rows ── */}
+        <div className="flex flex-col text-[13.5px] font-medium text-gray-900">
+          <button
+            onClick={(e) => { e.stopPropagation(); onReply(); }}
+            className="flex items-center gap-2.5 px-4 py-[10px] hover:bg-black/5 active:bg-black/10 transition-colors whitespace-nowrap"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+            Reply
+          </button>
+
+          {isMine && m.type === 'text' && !m.is_deleted && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              className="flex items-center gap-2.5 px-4 py-[10px] hover:bg-black/5 active:bg-black/10 transition-colors whitespace-nowrap border-t border-white/40"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              Edit
+            </button>
+          )}
+
+          <button
+            onClick={(e) => { e.stopPropagation(); onDeleteMe(); }}
+            className="flex items-center gap-2.5 px-4 py-[10px] text-red-500 hover:bg-red-50/80 active:bg-red-100/80 transition-colors whitespace-nowrap border-t border-white/40"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            Delete for Me
+          </button>
+
+          {isMine && !m.is_deleted && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDeleteEveryone(); }}
+              className="flex items-center gap-2.5 px-4 py-[10px] text-red-500 hover:bg-red-50/80 active:bg-red-100/80 transition-colors whitespace-nowrap border-t border-white/40"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              Delete for Everyone
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 // Emoji data by category
 const EMOJI_CATEGORIES = [
   {
@@ -87,6 +203,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [audioSwipeDeltaY, setAudioSwipeDeltaY] = useState(0);
   const [replyTo, setReplyTo] = useState<any>(null);
   const [messageMenu, setMessageMenu] = useState<string | null>(null);
+  // Selection Mode
+  const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const longPressTimerRef2 = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFiredRef = useRef(false);
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [chatSearchQuery, setChatSearchQuery] = useState("");
@@ -108,6 +229,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const swipeMessageRef = useRef<any>(null);
   const [swipingId, setSwipingId] = useState<string | null>(null);
   const [swipeDelta, setSwipeDelta] = useState(0);
+  // Double-tap quick-react
+  const doubleTapRef = useRef<{ id: string; ts: number } | null>(null);
+  const singleTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [heartAnimId, setHeartAnimId] = useState<string | null>(null);
   // Read receipts & Presence
   const [otherLastRead, setOtherLastRead] = useState<string | null>(null);
   const [otherLastDelivered, setOtherLastDelivered] = useState<string | null>(null);
@@ -578,25 +703,81 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     swipeStartX.current = e.touches[0].clientX;
     swipeMessageRef.current = msg;
     setSwipingId(msg.id);
+    // Long-press → selection mode
+    longPressFiredRef.current = false;
+    if (longPressTimerRef2.current) clearTimeout(longPressTimerRef2.current);
+    longPressTimerRef2.current = setTimeout(() => {
+      longPressFiredRef.current = true;
+      if (navigator.vibrate) navigator.vibrate([40]);
+      setSelectedMessage(msg);
+      setMessageMenu(null);
+      // Cancel any pending double-tap
+      if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+      doubleTapRef.current = null;
+    }, 500);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    // If user moves, cancel long-press
+    const deltaX = Math.abs(e.touches[0].clientX - swipeStartX.current);
+    const deltaY = Math.abs((e.touches[0].clientY || 0) - (swipeStartX.current || 0));
+    if (deltaX > 10) {
+      if (longPressTimerRef2.current) clearTimeout(longPressTimerRef2.current);
+    }
     if (!swipingId) return;
     const delta = e.touches[0].clientX - swipeStartX.current;
-    // Only allow swiping right (positive delta)
     if (delta > 0 && delta < 120) {
       setSwipeDelta(delta);
     }
   };
 
   const handleTouchEnd = () => {
-    if (swipeDelta > 60 && swipeMessageRef.current) {
-      setReplyTo(swipeMessageRef.current);
-      inputRef.current?.focus();
+    if (longPressTimerRef2.current) clearTimeout(longPressTimerRef2.current);
+    if (!longPressFiredRef.current) {
+      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+      const threshold = isMobile ? 25 : 60;
+      if (swipeDelta > threshold && swipeMessageRef.current) {
+        setReplyTo(swipeMessageRef.current);
+        inputRef.current?.focus();
+      }
     }
     setSwipingId(null);
     setSwipeDelta(0);
     swipeMessageRef.current = null;
+  };
+
+
+  const handleDoubleTap = (msgId: string) => {
+    const now = Date.now();
+    const DOUBLE_TAP_MS = 300;
+    // Cancel any pending single-tap menu open
+    if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+
+    if (doubleTapRef.current && doubleTapRef.current.id === msgId && now - doubleTapRef.current.ts < DOUBLE_TAP_MS) {
+      // Double tap detected — toggle ❤️
+      doubleTapRef.current = null;
+      if (navigator.vibrate) navigator.vibrate(30);
+
+      // Check if user already reacted with ❤️
+      const msg = messages.find(m => m.id === msgId);
+      const hasHeartAlready = msg?.reactions?.some((r: any) => r.user_id === user.id && r.emoji === '❤️');
+
+      if (!hasHeartAlready) {
+        setHeartAnimId(msgId);
+        setTimeout(() => setHeartAnimId(null), 700);
+      }
+
+      handleReact(msgId, '❤️');
+    } else {
+      doubleTapRef.current = { id: msgId, ts: now };
+      // Schedule menu open after double-tap window
+      singleTapTimerRef.current = setTimeout(() => {
+        if (doubleTapRef.current?.id === msgId) {
+          doubleTapRef.current = null;
+          setMessageMenu((prev: string | null) => msgId === prev ? null : msgId);
+        }
+      }, 310);
+    }
   };
 
   const handleClearChat = async () => {
@@ -1043,10 +1224,94 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         </div>
       )}
 
+      {/* Delete Confirmation Bottom Sheet */}
+      {showDeleteDialog && selectedMessage && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center"
+          onClick={() => setShowDeleteDialog(false)}
+        >
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200" />
+          <div
+            className="relative w-full max-w-lg bg-white rounded-t-[28px] pb-safe pt-2 px-4 pb-6 animate-in slide-in-from-bottom-4 duration-200 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+            <p className="text-center text-[15px] font-semibold text-black mb-4">Delete message?</p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => { handleDelete(selectedMessage.id, false); setShowDeleteDialog(false); setSelectedMessage(null); }}
+                className="w-full py-3.5 rounded-2xl bg-red-50 text-red-500 font-semibold text-[15px] hover:bg-red-100 active:bg-red-200 transition-colors"
+              >
+                Delete for Me
+              </button>
+              {selectedMessage.sender_id === user.id && !selectedMessage.is_deleted && (
+                <button
+                  onClick={() => { handleDelete(selectedMessage.id, true); setShowDeleteDialog(false); setSelectedMessage(null); }}
+                  className="w-full py-3.5 rounded-2xl bg-red-500 text-white font-semibold text-[15px] hover:bg-red-600 active:bg-red-700 transition-colors"
+                >
+                  Delete for Everyone
+                </button>
+              )}
+              <button
+                onClick={() => setShowDeleteDialog(false)}
+                className="w-full py-3.5 rounded-2xl bg-gray-100 text-black font-semibold text-[15px] hover:bg-gray-200 active:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="flex items-center justify-between px-2 py-2 bg-white/95 backdrop-blur-xl text-black z-10 border-b border-gray-100 sticky top-0 relative">
         
-        {isSearchingChat ? (
+        {/* Selection Mode Toolbar */}
+        {selectedMessage ? (
+          <div className="flex-1 flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Left: cancel */}
+            <button
+              onClick={() => { setSelectedMessage(null); setMessageMenu(null); }}
+              className="p-2 rounded-full hover:bg-slate-100 text-gray-500 hover:text-black transition-all active:scale-90 flex items-center gap-1"
+              aria-label="Cancel selection"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+
+            {/* Centre: label */}
+            <span className="text-[15px] font-semibold text-black">1 selected</span>
+
+            {/* Right: actions */}
+            <div className="flex items-center gap-0.5">
+              {/* Reply */}
+              <button
+                onClick={() => { setReplyTo(selectedMessage); setSelectedMessage(null); inputRef.current?.focus(); }}
+                className="p-2 rounded-full hover:bg-slate-100 text-black transition-all active:scale-90"
+                aria-label="Reply"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
+              </button>
+              {/* Edit — only own text messages */}
+              {selectedMessage.sender_id === user.id && selectedMessage.type === 'text' && !selectedMessage.is_deleted && (
+                <button
+                  onClick={() => { setEditingMessage(selectedMessage); setNewMessage(selectedMessage.content); setSelectedMessage(null); inputRef.current?.focus(); }}
+                  className="p-2 rounded-full hover:bg-slate-100 text-black transition-all active:scale-90"
+                  aria-label="Edit"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                </button>
+              )}
+              {/* Delete */}
+              <button
+                onClick={() => setShowDeleteDialog(true)}
+                className="p-2 rounded-full hover:bg-red-50 text-red-500 transition-all active:scale-90"
+                aria-label="Delete"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              </button>
+            </div>
+          </div>
+        ) : isSearchingChat ? (
           <div className="flex-1 flex items-center gap-2 px-2 animate-in fade-in slide-in-from-right-4 duration-200">
             <button onClick={() => { setIsSearchingChat(false); setChatSearchQuery(""); }} className="p-2 rounded-full hover:bg-slate-100 text-gray-400 hover:text-black transition-all active:scale-90 active:bg-slate-200 select-none cursor-pointer" aria-label="Back">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
@@ -1123,7 +1388,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       </header>
 
       {/* Messages */}
-      <div onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 bg-white" onClick={() => { setShowEmojiPicker(false); setShowAttachMenu(false); setMessageMenu(null); setShowHeaderMenu(false); }}>
+      <div onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 bg-white" onClick={() => { setShowEmojiPicker(false); setShowAttachMenu(false); setMessageMenu(null); setShowHeaderMenu(false); if (selectedMessage) setSelectedMessage(null); }}>
         {(() => {
           // Merge: prefer confirmed DB messages over optimistic local ones (same id)
           const confirmedIds = new Set(messages.map((m: any) => m.id));
@@ -1189,63 +1454,101 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 </div>
               )}
               <div 
-                className={`flex flex-col w-full ${isMine ? 'items-end pr-[6px]' : 'items-start pl-[6px]'} mb-2 relative`}
+                className={`flex flex-col w-full ${isMine ? 'items-end pr-[6px]' : 'items-start pl-[6px]'} relative ${
+                  m.reactions && m.reactions.length > 0 && !m.localStatus ? 'mb-5' : 'mb-2'
+                }`}
               onTouchStart={(e) => handleTouchStart(e, m)}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
             >
+              {/* Selection-mode subtle highlight */}
+              {selectedMessage?.id === m.id && (
+                <div className="absolute inset-0 rounded-[20px] bg-black/5 pointer-events-none z-10 animate-in fade-in duration-150" />
+              )}
+
+              {/* Inline Reaction Bar — shown above selected message */}
+              {selectedMessage?.id === m.id && (
+                <div
+                  className={`flex items-center gap-1 mb-1.5 animate-in fade-in slide-in-from-bottom-2 duration-200 ${
+                    isMine ? 'justify-end' : 'justify-start'
+                  }`}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div
+                    style={{
+                      background: 'rgba(255,255,255,0.82)',
+                      backdropFilter: 'blur(20px)',
+                      WebkitBackdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(0,0,0,0.07)',
+                      boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+                      borderRadius: 999,
+                      padding: '6px 8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
+                    }}
+                  >
+                    {['❤️','👍','😂','😮','😢','🙏'].map(emoji => (
+                      <button
+                        key={emoji}
+                        onClick={() => { handleReact(m.id, emoji); setSelectedMessage(null); }}
+                        className="text-[22px] w-9 h-9 flex items-center justify-center rounded-full hover:bg-black/8 active:scale-90 transition-all duration-100"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Heart pop animation on double-tap */}
+              {heartAnimId === m.id && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+                  <span
+                    className="text-5xl select-none"
+                    style={{
+                      animation: 'heartPop 0.65s ease-out forwards',
+                    }}
+                  >❤️</span>
+                </div>
+              )}
               {/* Swipe icon indicator behind message */}
-              {swipingId === m.id && swipeDelta > 20 && (
+              {swipingId === m.id && swipeDelta > 15 && (
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-black animate-pulse flex items-center gap-1">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>
                 </div>
               )}
 
               <div 
-                className={`relative max-w-[85%] text-[15px] shadow-sm leading-relaxed cursor-pointer group ${isMine ? 'bg-black text-white' : 'bg-white border border-gray-100 text-black'} ${showTail && isMine ? 'rounded-[20px] rounded-br-none' : showTail && !isMine ? 'rounded-[20px] rounded-bl-none' : 'rounded-[20px]'}`}
-                onClick={(e) => { e.stopPropagation(); setMessageMenu(m.id === messageMenu ? null : m.id); }}
+                className={`relative max-w-[85%] text-[15px] shadow-sm leading-relaxed cursor-pointer group ${
+                  isMine ? 'bg-black text-white' : 'bg-white border border-gray-100 text-black'
+                } ${
+                  showTail && isMine ? 'rounded-[20px] rounded-br-none' : showTail && !isMine ? 'rounded-[20px] rounded-bl-none' : 'rounded-[20px]'
+                } ${
+                  selectedMessage?.id === m.id ? (isMine ? 'ring-2 ring-white/40' : 'ring-2 ring-black/15') : ''
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (selectedMessage) {
+                    // Tapping while in selection mode deselects
+                    setSelectedMessage(null);
+                    return;
+                  }
+                  handleDoubleTap(m.id);
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  // Desktop right-click → enter selection mode
+                  setSelectedMessage(m);
+                  setMessageMenu(null);
+                }}
                 style={{ 
                   transform: swipingId === m.id ? `translateX(${Math.min(swipeDelta, 80)}px)` : 'none', 
                   transition: swipingId === m.id ? 'none' : 'transform 0.15s ease-out' 
                 }}
               >
                 
-                {/* Context Menu Dropdown */}
-                {messageMenu === m.id && (
-                  <div className="relative">
-                    {/* Reaction Emojis Row Above Menu */}
-                    <div className={`absolute bottom-full mb-2 ${isMine ? 'right-0' : 'left-0'} bg-white border border-gray-100 shadow-xl rounded-full px-2 py-1.5 z-40 flex items-center gap-1.5 animate-in fade-in slide-in-from-bottom-2 duration-150`}>
-                      {["❤️", "👍", "😂", "😮", "😢", "🙏"].map(emoji => (
-                        <button 
-                          key={emoji} 
-                          onClick={(e) => { e.stopPropagation(); handleReact(m.id, emoji); }} 
-                          className="text-lg hover:scale-125 transition-transform px-0.5 active:scale-90"
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                    {/* Main Actions Dropdown */}
-                    <div className={`absolute top-0 ${isMine ? 'right-full mr-2' : 'left-full ml-2'} w-36 bg-white border border-gray-100 shadow-xl rounded-xl py-1 z-30 flex flex-col text-sm text-black font-medium animate-in fade-in zoom-in duration-150`}>
-                      <button onClick={(e) => { e.stopPropagation(); setReplyTo(m); setMessageMenu(null); inputRef.current?.focus(); }} className="px-4 py-2 text-left hover:bg-slate-50 transition-colors flex items-center gap-2">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg> Reply
-                      </button>
-                      {isMine && m.type === 'text' && !m.is_deleted && (
-                        <button onClick={(e) => { e.stopPropagation(); setEditingMessage(m); setNewMessage(m.content); setMessageMenu(null); inputRef.current?.focus(); }} className="px-4 py-2 text-left hover:bg-slate-50 transition-colors flex items-center gap-2">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Edit
-                        </button>
-                      )}
-                      <button onClick={(e) => { e.stopPropagation(); handleDelete(m.id, false); }} className="px-4 py-2 text-left text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Delete for me
-                      </button>
-                      {isMine && !m.is_deleted && (
-                        <button onClick={(e) => { e.stopPropagation(); handleDelete(m.id, true); }} className="px-4 py-2 text-left text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2 border-t border-gray-100">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg> Delete for everyone
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
+                {/* No floating context menu any more — selection handled by long-press/toolbar */}
                 
                 {/* Tail SVG */}
                 {showTail && isMine && (
@@ -1279,12 +1582,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   ) : (
                     <>
                       {mediaData?.type === 'image' && (
-                        <LazyImage 
+                        <img 
                           src={mediaData.url} 
                           alt="image" 
-                          className="w-[200px] sm:w-[260px] h-[180px] sm:h-[220px] object-cover rounded-[16px] cursor-pointer hover:opacity-90 transition-opacity" 
+                          className="w-52 sm:w-64 h-40 sm:h-48 object-cover rounded-[16px] cursor-pointer hover:opacity-90 transition-opacity" 
                           onClick={() => setActivePreviewImage(mediaData.url)}
-                          fetchPriority={idx >= arr.length - 2 ? "high" : "auto"}
+                          loading="lazy"
                         />
                       )}
                       {mediaData?.type === 'video' && (
@@ -1386,19 +1689,24 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   )}
                   {/* Clear float to ensure bubble wraps timestamp */}
                   {!mediaData && !docData && <div className="clear-both"></div>}
-
-                  {/* Reactions list at bottom of bubble */}
-                  {m.reactions && m.reactions.length > 0 && !m.localStatus && (
-                    <div className={`absolute bottom-[-10px] ${isMine ? 'right-4' : 'left-4'} flex items-center gap-0.5 bg-white border border-gray-100 shadow-sm rounded-full px-1.5 py-0.5 z-20`}>
-                      {Array.from(new Set(m.reactions.map((r: any) => r.emoji))).map((emoji: any) => (
-                        <span key={emoji} className="text-[12px]">{emoji}</span>
-                      ))}
-                      {m.reactions.length > 1 && (
-                        <span className="text-[9px] text-gray-400 font-bold ml-0.5">{m.reactions.length}</span>
-                      )}
-                    </div>
-                  )}
                 </div>
+
+                {/* Reaction badge — absolutely positioned OUTSIDE and BELOW the bubble */}
+                {m.reactions && m.reactions.length > 0 && !m.localStatus && (
+                  <div
+                    className={`absolute top-full flex items-center gap-[3px] pointer-events-none z-20 mt-[-4px] ${
+                      isMine ? 'right-[32px]' : 'left-[8px]'
+                    }`}
+                  >
+                    {Array.from(new Set(m.reactions.map((r: any) => r.emoji))).map((emoji: any) => (
+                      <span
+                        key={emoji}
+                        className="text-[13px] sm:text-[16px] leading-none select-none"
+                        style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.22))' }}
+                      >{emoji}</span>
+                    ))}
+                  </div>
+                )}
               </div>
               {/* Instagram-style Seen label — shown below the last message the other user has read */}
               {isMine && !m.localStatus && otherLastRead && (() => {
@@ -1750,7 +2058,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             ) : (
               /* ── Normal (non-recording) state ── */
               <>
-                {/* Emoji — collapses when typing */}
+                {/* Home Button — collapses when typing */}
                 <div
                   style={{
                     maxWidth: newMessage ? 0 : 46,
@@ -1766,20 +2074,16 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   <button
                     type="button"
                     tabIndex={newMessage ? -1 : 0}
-                    onClick={() => { setShowEmojiPicker(v => !v); setShowAttachMenu(false); }}
+                    onClick={() => router.push('/')}
+                    className="text-[#8E8E93] hover:text-black active:scale-95 transition-all"
                     style={{
                       width: 46, minHeight: 52,
-                      color: showEmojiPicker ? '#000' : '#8E8E93',
                       flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: 'none', border: 'none', cursor: 'pointer',
-                      transition: 'color 150ms ease',
                     }}
-                    aria-label="Emoji"
+                    aria-label="Home"
                   >
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                      <line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/>
-                    </svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                   </button>
                 </div>
 

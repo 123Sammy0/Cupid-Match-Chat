@@ -1,48 +1,102 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+"use client";
+
+import { use, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import ChatClient from "./ChatClient";
+import { createClient } from "@/lib/supabase/client";
+import { getProfile } from "@/app/actions/settings";
+import { getConversationDetails } from "@/app/actions/chat";
 
-export default async function ChatRoomPage({ params }: { params: any }) {
-  const resolvedParams = await Promise.resolve(params);
+export default function ChatRoomPage({ params }: { params: any }) {
+  const resolvedParams = use(params) as any;
   const code = resolvedParams.code;
+  const router = useRouter();
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Initialize from cache to enable instant rendering
+  const [data, setData] = useState<{ user: any; profile: any; otherUser: any } | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cachedProfileStr = sessionStorage.getItem("cupid_cache_profile");
+        const cachedOtherUserStr = sessionStorage.getItem(`cupid_other_user_${code}`);
+        
+        if (cachedProfileStr) {
+          const profile = JSON.parse(cachedProfileStr);
+          // Assuming user.id == profile.id
+          const user = { id: profile.id }; 
+          const otherUser = cachedOtherUserStr ? JSON.parse(cachedOtherUserStr) : null;
+          return { user, profile, otherUser };
+        }
+      } catch (e) {}
+    }
+    return null;
+  });
 
-  if (!user) {
-    redirect("/auth");
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+    
+    // Fetch fresh data in the background or if cache is missing
+    const loadFresh = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/auth");
+        return;
+      }
+      
+      let profile = data?.profile;
+      if (!profile) {
+        profile = await getProfile();
+        if (!profile) return;
+      }
+
+      let otherUser = data?.otherUser;
+      if (!otherUser) {
+        const res = await getConversationDetails(code);
+        if (!res.success) {
+          router.push("/room"); // Redirect if not a participant or error
+          return;
+        }
+        otherUser = res.otherUser;
+        try {
+          if (otherUser) {
+            sessionStorage.setItem(`cupid_other_user_${code}`, JSON.stringify(otherUser));
+          }
+        } catch (e) {}
+      }
+      
+      // Update state with fresh data
+      setData(prev => ({ user, profile, otherUser }));
+    };
+    
+    loadFresh();
+  }, [code, router]);
+
+  // Prevent hydration errors by matching initial server state
+  if (!isClient) {
+    return <div className="fixed inset-0 w-full bg-white flex flex-col items-center justify-center sm:static sm:h-[100dvh] sm:p-4 overflow-hidden"></div>;
   }
 
-  // Use Admin Client to bypass RLS restrictions and parallelize queries
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const adminSupabase = createAdminClient();
-
-  // Fetch profile and participants IN PARALLEL to reduce latency by >60%
-  const [profileRes, participantsRes] = await Promise.all([
-    adminSupabase.from('profiles').select('*').eq('id', user.id).single(),
-    adminSupabase
-      .from('conversation_participants')
-      .select('profile_id, profiles(*)')
-      .eq('conversation_id', code)
-  ]);
-
-  const profile = profileRes.data;
-  const participants = participantsRes.data;
-
-  if (!participants || !participants.some((p: any) => p.profile_id === user.id)) {
-    redirect("/room"); // Not a participant
+  // Once client mounts, render instantly if we have cache, otherwise show minimal fallback
+  if (!data || !data.user) {
+    return (
+      <div className="fixed inset-0 w-full bg-white flex flex-col items-center justify-center sm:static sm:h-[100dvh] sm:p-4 overflow-hidden">
+        <div className="w-full max-w-[450px] h-full sm:h-[90vh] sm:rounded-[32px] overflow-hidden flex flex-col items-center justify-center bg-white sm:border sm:border-gray-100 sm:shadow-xl relative animate-pulse">
+          <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-black animate-spin"></div>
+        </div>
+      </div>
+    );
   }
-
-  const otherParticipant = participants.find((p: any) => p.profile_id !== user.id);
 
   return (
     <div className="fixed inset-0 w-full bg-white flex flex-col items-center justify-center sm:static sm:h-[100dvh] sm:p-4 overflow-hidden">
       <div className="w-full max-w-[450px] h-full sm:h-[90vh] sm:rounded-[32px] overflow-hidden flex flex-col bg-white sm:border sm:border-gray-100 sm:shadow-xl relative">
         <ChatClient 
           conversationId={code} 
-          user={user} 
-          profile={profile} 
-          otherUser={otherParticipant ? { id: otherParticipant.profile_id, ...(otherParticipant.profiles as any) } : null} 
+          user={data.user} 
+          profile={data.profile} 
+          otherUser={data.otherUser} 
         />
       </div>
     </div>

@@ -77,15 +77,14 @@ export default function GlobalPresence() {
       })
       .subscribe();
 
-    // Update last_seen immediately when tab becomes hidden or closed
     const handleLeave = () => {
       if (document.visibilityState === 'hidden') {
-        updateLastSeen().catch(console.error);
+        fetch('/api/presence', { method: 'POST', body: JSON.stringify({ userId }), keepalive: true }).catch(() => {});
       }
     };
 
     const handleUnload = () => {
-      updateLastSeen().catch(console.error);
+      fetch('/api/presence', { method: 'POST', body: JSON.stringify({ userId }), keepalive: true }).catch(() => {});
     };
 
     document.addEventListener('visibilitychange', handleLeave);
@@ -96,7 +95,7 @@ export default function GlobalPresence() {
       document.removeEventListener('visibilitychange', handleLeave);
       window.removeEventListener('pagehide', handleUnload);
       window.removeEventListener('beforeunload', handleUnload);
-      updateLastSeen().catch(console.error);
+      fetch('/api/presence', { method: 'POST', body: JSON.stringify({ userId }), keepalive: true }).catch(() => {});
       // Clean up delivery tracking, but presence is shared globally so don't completely destroy it here 
       // since layout might be persisting it.
       supabase.removeChannel(deliveryChannel);
