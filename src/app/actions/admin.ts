@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 // Helper to get authenticated server client (Service Role for Admin operations)
-export const getAdminSupabase = () => {
+export const getAdminSupabase = async () => {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -52,7 +52,7 @@ export const verifySuperAdmin = async () => {
 };
 
 // Admin Protection Guard: Prevent Super Admin from modifying their own critical state
-export const guardAgainstSelfHarm = (adminId: string, targetId: string, actionName: string) => {
+export const guardAgainstSelfHarm = async (adminId: string, targetId: string, actionName: string) => {
   if (adminId === targetId) {
     throw new Error(`Self-protection triggered: Super Admin cannot perform ${actionName} on their own account.`);
   }
@@ -61,7 +61,7 @@ export const guardAgainstSelfHarm = (adminId: string, targetId: string, actionNa
 // Example Admin Action: Fetch all users securely bypassing RLS via Service Role
 export const getAdminUsers = async () => {
   await verifySuperAdmin();
-  const adminSupabase = getAdminSupabase();
+  const adminSupabase = await getAdminSupabase();
 
   const { data, error } = await adminSupabase
     .from("profiles")
