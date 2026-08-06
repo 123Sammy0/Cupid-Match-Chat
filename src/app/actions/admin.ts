@@ -3,6 +3,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 // Helper to get authenticated server client (Service Role for Admin operations)
 export const getAdminSupabase = async () => {
@@ -40,7 +41,7 @@ export const verifySuperAdmin = async () => {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  if (!user) redirect("/admin/login");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -49,7 +50,7 @@ export const verifySuperAdmin = async () => {
     .single();
 
   if (profile?.role !== "super_admin" && user.email !== "mdsaakib002@gmail.com") {
-    throw new Error("Forbidden: Super Admin access required");
+    redirect("/");
   }
 
   return user;

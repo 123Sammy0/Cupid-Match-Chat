@@ -32,7 +32,6 @@ export async function middleware(req: NextRequest) {
   // Route Protection Logic
   const path = req.nextUrl.pathname;
 
-  // Admin Routes Protection
   if (path.startsWith('/admin')) {
     if (!user) {
       // Not logged in -> redirect to standard auth if not already on admin login
@@ -40,25 +39,9 @@ export async function middleware(req: NextRequest) {
         return NextResponse.redirect(new URL('/admin/login', req.url));
       }
     } else {
-      // Check admin role
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      const isSuperAdmin = profile?.role === 'super_admin' || user.email === 'mdsaakib002@gmail.com';
-
-      if (!isSuperAdmin) {
-        // Logged in but not an admin -> redirect to standard home
-        if (path !== '/admin/login') {
-          return NextResponse.redirect(new URL('/', req.url));
-        }
-      } else {
-        // Is admin, trying to access login -> redirect to admin dashboard
-        if (path === '/admin/login') {
-          return NextResponse.redirect(new URL('/admin', req.url));
-        }
+      // Is logged in, trying to access login -> redirect to admin dashboard
+      if (path === '/admin/login') {
+        return NextResponse.redirect(new URL('/admin', req.url));
       }
     }
   }
