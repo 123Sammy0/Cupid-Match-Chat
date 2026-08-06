@@ -73,17 +73,18 @@ export default function ChatRoomPage({ params }: { params: any }) {
     loadFresh();
   }, [code, router]);
 
-  // Prevent hydration errors by matching initial server state
-  if (!isClient) {
-    return <div className="fixed inset-0 w-full bg-white flex flex-col items-center justify-center sm:static sm:h-[100dvh] sm:p-4 overflow-hidden"></div>;
-  }
-
-  // Once client mounts, render instantly if we have cache, otherwise show minimal fallback
-  if (!data || !data.user) {
+  // Render ChatClient immediately. 
+  // If we are on the server or data is not yet available, pass a placeholder user so ChatClient can render its native skeleton.
+  if (!isClient || !data || !data.user) {
     return (
       <div className="fixed inset-0 w-full bg-white flex flex-col items-center justify-center sm:static sm:h-[100dvh] sm:p-4 overflow-hidden">
-        <div className="w-full max-w-[450px] h-full sm:h-[90vh] sm:rounded-[32px] overflow-hidden flex flex-col items-center justify-center bg-white sm:border sm:border-gray-100 sm:shadow-xl relative animate-pulse">
-          <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-black animate-spin"></div>
+        <div className="w-full max-w-[450px] h-full sm:h-[90vh] sm:rounded-[32px] overflow-hidden flex flex-col bg-white sm:border sm:border-gray-100 sm:shadow-xl relative">
+          <ChatClient 
+            conversationId={code} 
+            user={{ id: 'loading' }} 
+            profile={null} 
+            otherUser={null} 
+          />
         </div>
       </div>
     );

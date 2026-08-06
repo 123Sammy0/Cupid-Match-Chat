@@ -206,8 +206,12 @@ export default function ChatHome() {
                 {pendingRequests.map(req => (
                   <div key={req.id} className="p-4 bg-white rounded-[24px] border border-gray-100 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center font-bold text-2xl shadow-sm">
-                        {req.profiles?.avatar_url ? req.profiles.avatar_url : req.profiles?.username?.charAt(0).toUpperCase()}
+                      <div className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center font-bold text-2xl shadow-sm overflow-hidden">
+                        {req.profiles?.avatar_url ? (
+                          <img src={req.profiles.avatar_url} alt={req.profiles.username} className="w-full h-full object-cover" />
+                        ) : (
+                          req.profiles?.username?.charAt(0).toUpperCase()
+                        )}
                       </div>
                       <div>
                         <p className="font-semibold text-[15px] text-black">{req.profiles?.username}</p>
@@ -272,13 +276,17 @@ export default function ChatHome() {
                     className={`flex items-center gap-4 p-3 rounded-2xl cursor-pointer select-none transition-all duration-150 group relative animate-in fade-in slide-in-from-bottom-2 active:scale-[0.97] active:bg-slate-200/90 ${tappedConvId === conv.id ? 'bg-slate-200/90 scale-[0.98] shadow-inner border border-black/10' : longPressId === conv.id ? 'bg-slate-100' : 'hover:bg-slate-100'}`}
                   >
                     <div className="relative">
-                      <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-bold text-2xl shadow-sm relative">
-                        {conv.other_user?.avatar_url ? conv.other_user.avatar_url : conv.other_user?.username?.charAt(0).toUpperCase() || '?'}
-                        {/* Online dot */}
-                        {conv.other_user?.last_seen && (Date.now() - new Date(conv.other_user.last_seen).getTime() < 150000) && (
-                          <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></div>
+                      <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-bold text-2xl shadow-sm relative overflow-hidden">
+                        {conv.other_user?.avatar_url ? (
+                          <img src={conv.other_user.avatar_url} alt={conv.other_user.username} className="w-full h-full object-cover" />
+                        ) : (
+                          conv.other_user?.username?.charAt(0).toUpperCase() || '?'
                         )}
                       </div>
+                      {/* Online dot */}
+                      {conv.other_user?.last_seen && (Date.now() - new Date(conv.other_user.last_seen).getTime() < 150000) && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full z-10"></div>
+                      )}
                     </div>
                     
                     <div className="flex-1 min-w-0 pr-2">
