@@ -1333,11 +1333,20 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               </button>
               
-              <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowContactModal(true)}>
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-bold text-2xl shadow-sm overflow-hidden">
-                    <AvatarImage url={otherUser?.avatar_url} username={otherUser?.username} />
-              </div>
+              {user?.id === 'loading' ? (
+                <div className="flex items-center gap-3 w-full animate-pulse ml-1">
+                  <div className="w-10 h-10 rounded-full bg-slate-100"></div>
+                  <div className="flex flex-col gap-1.5">
+                    <div className="w-24 h-4 bg-slate-100 rounded"></div>
+                    <div className="w-16 h-3 bg-slate-100 rounded"></div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowContactModal(true)}>
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-bold text-2xl shadow-sm overflow-hidden">
+                      <AvatarImage url={otherUser?.avatar_url} username={otherUser?.username} />
+                </div>
               {otherUserOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"/>}
             </div>
             <div className="flex flex-col">
@@ -1347,8 +1356,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               </span>
             </div>
           </div>
+          )}
         </div>
 
+        {user?.id !== 'loading' && (
         <div className="flex items-center gap-0.5 relative">
           <button onClick={() => setShowCallModal("voice")} className="p-2 rounded-full hover:bg-slate-100 text-black transition-colors" aria-label="Voice Call">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1384,13 +1395,22 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             </div>
           )}
         </div>
+        )}
           </>
         )}
       </header>
 
       {/* Messages */}
       <div onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 bg-white" onClick={() => { setShowEmojiPicker(false); setShowAttachMenu(false); setMessageMenu(null); setShowHeaderMenu(false); if (selectedMessage) setSelectedMessage(null); }}>
-        {(() => {
+        {user?.id === 'loading' ? (
+          <div className="flex flex-col gap-4 w-full opacity-50 pointer-events-none mt-2">
+             <div className="w-2/3 h-12 bg-slate-100 rounded-2xl rounded-bl-none animate-pulse self-start"></div>
+             <div className="w-1/2 h-12 bg-black/10 rounded-2xl rounded-br-none animate-pulse self-end"></div>
+             <div className="w-3/4 h-16 bg-slate-100 rounded-2xl rounded-bl-none animate-pulse self-start"></div>
+             <div className="w-2/3 h-12 bg-black/10 rounded-2xl rounded-br-none animate-pulse self-end"></div>
+             <div className="w-1/2 h-12 bg-slate-100 rounded-2xl rounded-bl-none animate-pulse self-start"></div>
+          </div>
+        ) : (() => {
           // Merge: prefer confirmed DB messages over optimistic local ones (same id)
           const confirmedIds = new Set(messages.map((m: any) => m.id));
           const pendingOnly = localMessages.filter(m => !confirmedIds.has(m.id));
