@@ -268,6 +268,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
   useEffect(() => {
     if (!conversationId) return;
+    if (user?.id === 'loading') return;
 
     try {
       const cached = sessionStorage.getItem(`cupid_messages_${conversationId}`);
@@ -479,7 +480,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       channelRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId]);
+  }, [conversationId, user?.id, otherUser?.id, profile?.username, otherUser?.username]);
 
   const scrollToBottom = (force = false) => {
     if (messagesEndRef.current?.parentElement) {
@@ -668,10 +669,13 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     const msg = messages.find(m => m.id === msgId);
     if (!msg) return;
 
-    let currentReactions = [];
+    let currentReactions: any[] = [];
     try {
       if (msg.reactions) {
-        currentReactions = typeof msg.reactions === 'string' ? JSON.parse(msg.reactions) : msg.reactions;
+        const parsed = typeof msg.reactions === 'string' ? JSON.parse(msg.reactions) : msg.reactions;
+        if (Array.isArray(parsed)) {
+          currentReactions = [...parsed];
+        }
       }
     } catch {}
 
@@ -681,7 +685,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       if (currentReactions[existingIdx].emoji === emoji) {
         currentReactions.splice(existingIdx, 1);
       } else {
-        currentReactions[existingIdx].emoji = emoji;
+        currentReactions[existingIdx] = { ...currentReactions[existingIdx], emoji };
       }
     } else {
       currentReactions.push({ user_id: user.id, username: profile?.username, emoji });
@@ -750,7 +754,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
   const handleDoubleTap = (msgId: string) => {
     const now = Date.now();
-    const DOUBLE_TAP_MS = 300;
+    const DOUBLE_TAP_MS = 400;
     // Cancel any pending single-tap menu open
     if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
 
@@ -761,7 +765,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
       // Check if user already reacted with ❤️
       const msg = messages.find(m => m.id === msgId);
-      const hasHeartAlready = msg?.reactions?.some((r: any) => r.user_id === user.id && r.emoji === '❤️');
+      const parsedReactions = msg?.reactions ? (typeof msg.reactions === 'string' ? JSON.parse(msg.reactions) : msg.reactions) : [];
+      const hasHeartAlready = Array.isArray(parsedReactions) && parsedReactions.some((r: any) => r.user_id === user.id && r.emoji === '❤️');
 
       if (!hasHeartAlready) {
         setHeartAnimId(msgId);
@@ -777,7 +782,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           doubleTapRef.current = null;
           setMessageMenu((prev: string | null) => msgId === prev ? null : msgId);
         }
-      }, 310);
+      }, 410);
     }
   };
 
@@ -1540,7 +1545,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               )}
 
               <div 
-                className={`relative max-w-[85%] text-[15px] shadow-sm leading-relaxed cursor-pointer group ${
+                className={`relative max-w-[85%] text-[15px] shadow-sm leading-relaxed cursor-pointer group touch-manipulation ${
                   isMine ? 'bg-black text-white' : 'bg-white border border-gray-100 text-black'
                 } ${
                   showTail && isMine ? 'rounded-[20px] rounded-br-none' : showTail && !isMine ? 'rounded-[20px] rounded-bl-none' : 'rounded-[20px]'
