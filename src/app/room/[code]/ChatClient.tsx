@@ -269,6 +269,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   useEffect(() => {
     if (!conversationId) return;
     if (user?.id === 'loading') return;
+    if (!otherUser?.id) return;
 
     try {
       const cached = sessionStorage.getItem(`cupid_messages_${conversationId}`);
@@ -321,6 +322,23 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     let authSub: any;
     let realtimeSetupDone = false;
     let isMounted = true;
+    let handleSyncRef: any = null;
+
+    const handleSync = (e: any) => {
+      const state = e.detail;
+      const isOnline = Object.values(state).some((presences: any) =>
+        presences.some((p: any) => p.user_id === otherUser?.id)
+      );
+      setOtherUserOnline(isOnline);
+    };
+    handleSyncRef = handleSync;
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('global_presence_sync', handleSync);
+      if ((window as any)._globalPresenceState) {
+        handleSync({ detail: (window as any)._globalPresenceState });
+      }
+    }
 
     const setupChannels = async () => {
       // Step 1: Get session and set auth token BEFORE subscribing
@@ -348,21 +366,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       authSub = subscription;
 
       // Step 3: NOW create and subscribe channels (token is set)
-      // ─── CHANNEL 1: Presence ────────────────────────────────────────────────
-      const handleSync = (e: any) => {
-        const state = e.detail;
-        const isOnline = Object.values(state).some((presences: any) =>
-          presences.some((p: any) => p.user_id === otherUser?.id)
-        );
-        setOtherUserOnline(isOnline);
-      };
-
-      if (typeof window !== 'undefined') {
-        window.addEventListener('global_presence_sync', handleSync);
-        if ((window as any)._globalPresenceState) {
-          handleSync({ detail: (window as any)._globalPresenceState });
-        }
-      }
+      // ─── CHANNEL 1: Presence (Handled outside setupChannels) ────────────────
 
       // ─── CHANNEL 2: Room broadcast (typing + instant messages) ──────────────
       const roomChannelName = `room:${conversationId}`;
@@ -473,6 +477,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       isMounted = false;
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
+      if (typeof window !== 'undefined' && handleSyncRef) {
+        window.removeEventListener('global_presence_sync', handleSyncRef);
+      }
       if (authSub) authSub.unsubscribe();
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       if (roomChannel) supabaseClient.removeChannel(roomChannel);
