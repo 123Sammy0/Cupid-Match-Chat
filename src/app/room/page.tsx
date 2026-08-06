@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getConversations, getPendingRequests, acceptChatRequest, rejectChatRequest, deleteConversation } from "@/app/actions/chat";
 import NewChatModal from "@/components/NewChatModal";
 import { createClient } from "@/lib/supabase/client";
+import AvatarImage from "@/app/components/AvatarImage";
 
 export default function ChatHome() {
   const router = useRouter();
@@ -207,11 +208,7 @@ export default function ChatHome() {
                   <div key={req.id} className="p-4 bg-white rounded-[24px] border border-gray-100 flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center font-bold text-2xl shadow-sm overflow-hidden">
-                        {req.profiles?.avatar_url ? (
-                          <img src={req.profiles.avatar_url} alt={req.profiles.username} className="w-full h-full object-cover" />
-                        ) : (
-                          req.profiles?.username?.charAt(0).toUpperCase()
-                        )}
+                        <AvatarImage url={req.profiles?.avatar_url} username={req.profiles?.username} />
                       </div>
                       <div>
                         <p className="font-semibold text-[15px] text-black">{req.profiles?.username}</p>
@@ -277,11 +274,7 @@ export default function ChatHome() {
                   >
                     <div className="relative">
                       <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-bold text-2xl shadow-sm relative overflow-hidden">
-                        {conv.other_user?.avatar_url ? (
-                          <img src={conv.other_user.avatar_url} alt={conv.other_user.username} className="w-full h-full object-cover" />
-                        ) : (
-                          conv.other_user?.username?.charAt(0).toUpperCase() || '?'
-                        )}
+                        <AvatarImage url={conv.other_user?.avatar_url} username={conv.other_user?.username} />
                       </div>
                       {/* Online dot */}
                       {conv.other_user?.last_seen && (Date.now() - new Date(conv.other_user.last_seen).getTime() < 150000) && (

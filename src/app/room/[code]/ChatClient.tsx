@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { markConversationRead, markConversationDelivered, blockUser, editMessage, deleteMessage } from "@/app/actions/chat";
 import Image from "next/image";
 import { CustomAudioPlayer } from "./CustomAudioPlayer";
+import AvatarImage from "@/app/components/AvatarImage";
 import { LazyImage } from "@/app/components/LazyImage";
 import dynamic from 'next/dynamic';
 
@@ -1171,8 +1172,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       {showCallModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCallModal(null)}>
           <div className="bg-white rounded-[32px] p-8 w-full max-w-[300px] flex flex-col items-center gap-5 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="w-20 h-20 rounded-full bg-black text-white flex items-center justify-center font-bold text-3xl shadow-lg">
-              {otherUser?.username?.charAt(0).toUpperCase() || '?'}
+            <div className="w-20 h-20 rounded-full bg-black text-white flex items-center justify-center font-bold text-3xl shadow-lg overflow-hidden">
+              <AvatarImage url={otherUser?.avatar_url} username={otherUser?.username} />
             </div>
             <div className="text-center">
               <p className="font-bold text-[20px] text-black">{otherUser?.username || 'Unknown'}</p>
@@ -1197,8 +1198,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             <button onClick={() => setShowContactModal(false)} className="absolute top-4 right-4 p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
             </button>
-            <div className="w-28 h-28 rounded-full bg-black text-white flex items-center justify-center font-bold text-5xl shadow-lg mt-2">
-              {otherUser?.avatar_url ? otherUser.avatar_url : otherUser?.username?.charAt(0).toUpperCase() || '?'}
+            <div className="w-28 h-28 rounded-full bg-black text-white flex items-center justify-center font-bold text-5xl shadow-lg mt-2 overflow-hidden">
+              <AvatarImage url={otherUser?.avatar_url} username={otherUser?.username} />
             </div>
             <div className="text-center w-full mt-2">
               <h2 className="font-bold text-[24px] text-black break-words">{otherUser?.username || 'Unknown'}</h2>
@@ -1334,8 +1335,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               
               <div className="flex items-center gap-2 cursor-pointer" onClick={() => setShowContactModal(true)}>
                 <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-bold text-2xl shadow-sm">
-                    {otherUser?.avatar_url ? otherUser.avatar_url : otherUser?.username?.charAt(0).toUpperCase() || '?'}
+                  <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-bold text-2xl shadow-sm overflow-hidden">
+                    <AvatarImage url={otherUser?.avatar_url} username={otherUser?.username} />
               </div>
               {otherUserOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"/>}
             </div>
