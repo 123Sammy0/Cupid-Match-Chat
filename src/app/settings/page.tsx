@@ -65,8 +65,8 @@ export default function SettingsPage() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert("Image must be less than 5MB");
+    if (file.size > 10 * 1024 * 1024) {
+      alert("Image must be less than 10MB");
       return;
     }
     setIsUploadingImage(true);
