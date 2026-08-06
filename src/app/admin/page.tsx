@@ -1,106 +1,123 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import { lockAccountAction } from "@/app/actions/admin";
+"use client";
 
-export default async function AdminDashboard() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+import { useEffect, useState } from "react";
+// We will import Server Actions for data fetching here once the backend logic is complete.
 
-  if (!user) {
-    redirect("/auth");
-  }
+export default function AdminDashboard() {
+  // In a real implementation, we would fetch this from a Server Action: `getDashboardMetrics()`
+  // For the UI placeholder, we'll use state to represent loading.
+  const [metrics, setMetrics] = useState({
+    totalUsers: 0,
+    onlineUsers: 0,
+    totalChats: 0,
+    totalMessages: 0,
+    images: 0,
+    videos: 0,
+    audio: 0,
+    documents: 0,
+    totalStorageMB: 0,
+    todayNewUsers: 0,
+    activeRooms: 0,
+  });
 
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!profile || profile.role !== 'admin' || !profile.active) {
-    redirect("/room");
-  }
-
-  // Fetch all users
-  const { data: allProfiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: true });
-  
-  // Fetch audit logs
-  const { data: auditLogs } = await supabase.from('admin_audit').select('*').order('created_at', { ascending: false }).limit(20);
+  useEffect(() => {
+    // Mocking fetch delay for Phase 2 UI building
+    setTimeout(() => {
+      setMetrics({
+        totalUsers: 1245,
+        onlineUsers: 87,
+        totalChats: 890,
+        totalMessages: 12450,
+        images: 4500,
+        videos: 320,
+        audio: 1200,
+        documents: 50,
+        totalStorageMB: 12500,
+        todayNewUsers: 45,
+        activeRooms: 12,
+      });
+      setIsLoading(false);
+    }, 1000);
+  }, []);
 
   return (
-    <div className="min-h-[100dvh] w-full bg-white p-8">
-      <div className="max-w-4xl mx-auto bg-white shadow-xl p-8 rounded-2xl border border-gray-100">
-        <header className="flex justify-between items-center mb-8 border-b pb-4">
-          <div>
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-            <p className="text-sm text-gray-500">Manage access and review activity</p>
-          </div>
-          <a href="/room" className="btn btn-ghost px-4 py-2 border rounded hover:bg-gray-50">Back to Rooms</a>
-        </header>
-
-        <section className="mb-10">
-          <h2 className="text-xl font-semibold mb-4">User Accounts</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b bg-gray-50 text-sm">
-                  <th className="p-3">Username</th>
-                  <th className="p-3">Role</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Last Login</th>
-                  <th className="p-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allProfiles?.map(p => (
-                  <tr key={p.id} className="border-b">
-                    <td className="p-3 font-medium">{p.username}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-1 text-xs rounded-full ${p.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                        {p.role}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <span className={`px-2 py-1 text-xs rounded-full ${p.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {p.active ? 'Active' : 'Locked'}
-                      </span>
-                    </td>
-                    <td className="p-3 text-sm text-gray-500">
-                      {p.last_login_at ? new Date(p.last_login_at).toLocaleString() : 'Never'}
-                    </td>
-                    <td className="p-3 text-right">
-                      {p.role !== 'admin' && (
-                        <form action={async () => {
-                          "use server";
-                          await lockAccountAction(p.id, !p.active);
-                        }}>
-                          <button type="submit" className={`text-xs px-3 py-1 rounded border ${p.active ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-green-200 text-green-600 hover:bg-green-50'}`}>
-                            {p.active ? 'Lock Account' : 'Unlock'}
-                          </button>
-                        </form>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-xl font-semibold mb-4">Audit Logs</h2>
-          <div className="bg-gray-50 border rounded-lg p-4 overflow-y-auto max-h-64">
-            {auditLogs && auditLogs.length > 0 ? (
-              <ul className="space-y-3">
-                {auditLogs.map(log => (
-                  <li key={log.id} className="text-sm">
-                    <span className="text-gray-400">[{new Date(log.created_at).toLocaleString()}]</span>{' '}
-                    <span className="font-semibold">{log.action}</span> - {log.target_type} ({log.target_id})
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-gray-500 italic">No audit logs found.</p>
-            )}
-          </div>
-        </section>
-
+    <div className="flex flex-col gap-8 max-w-7xl mx-auto">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+        <p className="text-zinc-400 mt-1">Live statistics and platform health.</p>
       </div>
+
+      {/* Main Metric Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard title="Total Users" value={metrics.totalUsers} trend="+12% this week" loading={isLoading} />
+        <MetricCard title="Online Users" value={metrics.onlineUsers} trend="Live" highlight loading={isLoading} />
+        <MetricCard title="Total Messages" value={metrics.totalMessages} trend="+5k today" loading={isLoading} />
+        <MetricCard title="Storage Used" value={`${(metrics.totalStorageMB / 1024).toFixed(2)} GB`} trend="Stable" loading={isLoading} />
+      </div>
+
+      {/* Secondary Metrics */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="col-span-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+          <h2 className="text-lg font-semibold mb-4">Platform Activity (Last 7 Days)</h2>
+          <div className="h-64 flex items-end gap-2 justify-between">
+            {/* Mock Chart */}
+            {[40, 70, 45, 90, 65, 85, 100].map((h, i) => (
+              <div key={i} className="w-full bg-zinc-800 rounded-t-md relative group" title={`${h} activity score`}>
+                <div 
+                  className="absolute bottom-0 w-full bg-white rounded-t-md transition-all duration-1000" 
+                  style={{ height: isLoading ? "0%" : `${h}%` }}
+                ></div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 flex flex-col gap-4">
+          <h2 className="text-lg font-semibold">Media Breakdown</h2>
+          <div className="flex-1 flex flex-col justify-center gap-4">
+            <MediaStat label="Images" count={metrics.images} color="bg-blue-500" loading={isLoading} />
+            <MediaStat label="Videos" count={metrics.videos} color="bg-purple-500" loading={isLoading} />
+            <MediaStat label="Audio" count={metrics.audio} color="bg-emerald-500" loading={isLoading} />
+            <MediaStat label="Docs" count={metrics.documents} color="bg-orange-500" loading={isLoading} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({ title, value, trend, highlight = false, loading = false }: any) {
+  return (
+    <div className={`p-6 rounded-2xl border ${highlight ? 'bg-white text-black border-white' : 'bg-zinc-900 border-zinc-800'}`}>
+      <h3 className={`text-sm font-medium ${highlight ? 'text-zinc-500' : 'text-zinc-400'}`}>{title}</h3>
+      <div className="mt-2 flex items-baseline gap-2">
+        {loading ? (
+          <div className={`h-8 w-24 rounded animate-pulse ${highlight ? 'bg-zinc-200' : 'bg-zinc-800'}`}></div>
+        ) : (
+          <span className="text-3xl font-bold tracking-tight">{value}</span>
+        )}
+      </div>
+      <div className={`mt-2 text-xs font-medium ${highlight ? 'text-emerald-600' : 'text-emerald-400'}`}>
+        {loading ? '...' : trend}
+      </div>
+    </div>
+  );
+}
+
+function MediaStat({ label, count, color, loading }: any) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <div className={`w-3 h-3 rounded-full ${color}`}></div>
+        <span className="text-sm text-zinc-400">{label}</span>
+      </div>
+      {loading ? (
+        <div className="w-12 h-4 bg-zinc-800 rounded animate-pulse"></div>
+      ) : (
+        <span className="text-sm font-semibold">{count.toLocaleString()}</span>
+      )}
     </div>
   );
 }
