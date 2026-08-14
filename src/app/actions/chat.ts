@@ -451,3 +451,81 @@ export async function deleteMessage(messageId: string, forEveryone: boolean) {
 
   return { success: true };
 }
+
+export async function getMessages(conversationId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, messages: [], error: "Unauthorized" };
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createAdminClient();
+
+  // Security: verify the caller is a participant
+  const { data: participant } = await adminSupabase
+    .from('conversation_participants')
+    .select('profile_id')
+    .eq('conversation_id', conversationId)
+    .eq('profile_id', user.id)
+    .single();
+
+  if (!participant) {
+    return { success: false, messages: [], error: "Not a participant" };
+  }
+
+  const { data, error } = await adminSupabase
+    .from('messages')
+    .select('*, profiles(username)')
+    .eq('conversation_id', conversationId)
+    .order('sent_at', { ascending: true });
+
+  if (error) {
+    return { success: false, messages: [], error: error.message };
+  }
+
+  return { success: true, messages: data || [] };
+}
+
+export async function sendMessageServer(
+  conversationId: string,
+  content: string,
+  type: string = 'text',
+  messageId?: string,
+  expiresAt?: string
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Unauthorized" };
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createAdminClient();
+
+  // Security: verify the caller is a participant
+  const { data: participant } = await adminSupabase
+    .from('conversation_participants')
+    .select('profile_id')
+    .eq('conversation_id', conversationId)
+    .eq('profile_id', user.id)
+    .single();
+
+  if (!participant) {
+    return { success: false, error: "Not a participant" };
+  }
+
+  const msgId = messageId || crypto.randomUUID();
+  const expiry = expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  const { error } = await adminSupabase.from('messages').insert({
+    id: msgId,
+    sender_id: user.id,
+    conversation_id: conversationId,
+    content,
+    type,
+    expires_at: expiry
+  });
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, messageId: msgId };
+}

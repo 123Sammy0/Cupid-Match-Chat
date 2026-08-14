@@ -443,12 +443,21 @@ export default function Home() {
       </header>
 
       {/* Mobile Drawer */}
-      <div className="mobile-drawer" id="mobileDrawer" aria-hidden={!isDrawerOpen} aria-label="Mobile navigation">
+      <div className="mobile-drawer flex flex-col justify-between" id="mobileDrawer" aria-hidden={!isDrawerOpen} aria-label="Mobile navigation">
         <nav>
           <a href="#shelves" onClick={() => setDrawerOpen(false)}>Browse</a>
           <a href="#collection" onClick={() => setDrawerOpen(false)}>Collections</a>
           <a href="#notes" onClick={() => setDrawerOpen(false)}>Notes</a>
         </nav>
+        <div className="p-6 mt-auto">
+          <button 
+            onClick={() => window.location.href = '/gate'}
+            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-[var(--surface-color)] border border-black/[0.03] text-gray-400 hover:text-[var(--text)] transition-colors"
+          >
+            <span className="text-[12px] uppercase tracking-widest font-medium opacity-60">Private Entry</span>
+            <span className="text-[10px]">✦</span>
+          </button>
+        </div>
       </div>
       <div 
         className={`drawer-overlay ${isDrawerOpen ? 'visible' : ''}`} 

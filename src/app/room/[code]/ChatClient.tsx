@@ -4,7 +4,7 @@ import type { Session } from "@supabase/supabase-js";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { markConversationRead, markConversationDelivered, blockUser, editMessage, deleteMessage } from "@/app/actions/chat";
+import { markConversationRead, markConversationDelivered, blockUser, editMessage, deleteMessage, getMessages, sendMessageServer } from "@/app/actions/chat";
 import Image from "next/image";
 import { CustomAudioPlayer } from "./CustomAudioPlayer";
 import AvatarImage from "@/app/components/AvatarImage";
@@ -241,28 +241,18 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [otherUserLastSeen, setOtherUserLastSeen] = useState<string | null>(otherUser?.last_seen || null);
   const [localMessages, setLocalMessages] = useState<any[]>([]); // Track Sending and Failed messages
 
-  // PHASE 2 — Lifecycle remount detection
+  // Lifecycle mount detection
   useEffect(() => {
-    console.log('[LIFECYCLE] ChatClient MOUNTED', Date.now());
-    return () => console.log('[LIFECYCLE] ChatClient UNMOUNTED', Date.now());
+    return () => console.log('[LIFECYCLE] ChatClient UNMOUNTED');
   }, []);
 
-  // PHASE 3 — Log whenever localMessages changes and track when it actually PAINTS
-  useEffect(() => {
-    if (localMessages.length === 0) return;
-    requestAnimationFrame(() => {
-      console.log(`[PAINT] localMessages updated & painted. count=${localMessages.length}`, Date.now());
-    });
-  }, [localMessages]);
 
-  // PHASE 4 — sessionStorage write commented out to isolate blocking effect
-  // Uncomment to restore: this JSON.stringifies all messages on every message change
+
+  // Cache messages to sessionStorage for instant re-render on navigation
   useEffect(() => {
     if (conversationId && messages.length > 0) {
       try {
-        // TEMPORARILY DISABLED FOR LATENCY DIAGNOSIS:
-        // sessionStorage.setItem(`cupid_messages_${conversationId}`, JSON.stringify(messages));
-        console.log('[DIAG] sessionStorage write skipped (disabled for testing)');
+        sessionStorage.setItem(`cupid_messages_${conversationId}`, JSON.stringify(messages));
       } catch (e) {}
     }
   }, [messages, conversationId]);
@@ -279,16 +269,31 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
     const supabaseClient = supabase;
 
+    // Use server action for reliable message fetching (bypasses browser JWT race condition)
     const fetchMessages = async () => {
-      const { data } = await supabaseClient
-        .from('messages')
-        .select('*, profiles(username)')
-        .eq('conversation_id', conversationId)
-        .order('sent_at', { ascending: true });
-      if (data) {
-        setMessages(data);
-        setLocalMessages(prev => prev.filter(m => !data.some((d: any) => d.id === m.id)));
-        try { sessionStorage.setItem(`cupid_messages_${conversationId}`, JSON.stringify(data)); } catch (e) {}
+      try {
+        const result = await getMessages(conversationId);
+        if (result.success && result.messages) {
+          console.log(`[DIAGNOSTIC] fetchMessages (server) returned ${result.messages.length} messages`);
+          setMessages(result.messages);
+          setLocalMessages(prev => prev.filter(m => !result.messages.some((d: any) => d.id === m.id)));
+          try { sessionStorage.setItem(`cupid_messages_${conversationId}`, JSON.stringify(result.messages)); } catch (e) {}
+        } else {
+          console.error('[DIAGNOSTIC] fetchMessages server error:', result.error);
+          // Fallback: try browser client (might work if session is established)
+          const { data } = await supabaseClient
+            .from('messages')
+            .select('*, profiles(username)')
+            .eq('conversation_id', conversationId)
+            .order('sent_at', { ascending: true });
+          if (data && data.length > 0) {
+            console.log(`[DIAGNOSTIC] fetchMessages (browser fallback) returned ${data.length} messages`);
+            setMessages(data);
+            setLocalMessages(prev => prev.filter(m => !data.some((d: any) => d.id === m.id)));
+          }
+        }
+      } catch (err) {
+        console.error('[DIAGNOSTIC] fetchMessages exception:', err);
       }
     };
 
@@ -595,17 +600,14 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     channelRef.current?.send({ type: 'broadcast', event: 'new_message', payload });
     console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] broadcast .send() dispatched (${(performance.now()-tBroadcast).toFixed(1)}ms for send call itself)`);
 
-    // DB insert timing
+    // DB insert via server action (bypasses browser JWT race condition)
     const tInsert = performance.now();
-    console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] starting supabase insert...`);
-    const { error } = await supabase.from('messages').insert({
-      id: msgId, sender_id: user.id, conversation_id: conversationId,
-      content: finalContent, type: 'text', expires_at: expiresAt
-    });
-    console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] supabase insert resolved | insert took ${(performance.now()-tInsert).toFixed(1)}ms | error=${JSON.stringify(error)}`);
+    console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] starting server insert...`);
+    const insertResult = await sendMessageServer(conversationId, finalContent, 'text', msgId, expiresAt);
+    console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] server insert resolved | insert took ${(performance.now()-tInsert).toFixed(1)}ms | error=${insertResult.error || 'none'}`);
 
-    if (error) {
-      console.error("Message insert error:", error);
+    if (!insertResult.success) {
+      console.error("Message insert error:", insertResult.error);
       setLocalMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, localStatus: 'failed' } : m));
     } else {
       // Direct update to prevent the disappear-and-reappear flicker
@@ -621,11 +623,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
   const handleRetry = async (msg: any) => {
     setLocalMessages(prev => prev.map(m => m.id === msg.id ? { ...m, localStatus: 'sending' } : m));
-    const { error } = await supabase.from('messages').insert({
-      id: msg.id, sender_id: msg.sender_id, conversation_id: msg.conversation_id,
-      content: msg.content, type: msg.type, expires_at: msg.expires_at
-    });
-    if (error) {
+    const result = await sendMessageServer(msg.conversation_id, msg.content, msg.type, msg.id, msg.expires_at);
+    if (!result.success) {
       setLocalMessages(prev => prev.map(m => m.id === msg.id ? { ...m, localStatus: 'failed' } : m));
     }
   };
@@ -979,11 +978,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         expires_at: expiresAt, profiles: { username: profile?.username }
       }]);
 
-      const { error: insertError } = await supabase.from('messages').insert({
-        id: msgId, sender_id: user.id, conversation_id: conversationId,
-        content: msgContent, type: 'audio', expires_at: expiresAt
-      });
-      if (insertError) throw insertError;
+      const insertResult = await sendMessageServer(conversationId, msgContent, 'audio', msgId, expiresAt);
+      if (!insertResult.success) throw new Error(insertResult.error || 'Insert failed');
     } catch (err: any) {
       console.error('Voice upload failed:', err);
       alert('Upload failed: ' + (err.message || 'Unknown error'));
@@ -1046,11 +1042,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           content: msgContent, type: 'image', sent_at: new Date().toISOString(),
           expires_at: expiresAt, profiles: { username: profile?.username }
         }]);
-        const { error: insertError } = await supabase.from('messages').insert({
-          id: msgId, sender_id: user.id, conversation_id: conversationId,
-          content: msgContent, type: 'image', expires_at: expiresAt
-        });
-        if (insertError) throw insertError;
+        const insertResult = await sendMessageServer(conversationId, msgContent, 'image', msgId, expiresAt);
+        if (!insertResult.success) throw new Error(insertResult.error || 'Insert failed');
       } catch (err: any) {
         alert('Upload failed: ' + (err.message || 'Unknown error'));
       } finally {
@@ -1090,11 +1083,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         expires_at: expiresAt, profiles: { username: profile?.username }
       }]);
 
-      const { error: insertError } = await supabase.from('messages').insert({
-        id: msgId, sender_id: user.id, conversation_id: conversationId,
-        content: msgContent, type: 'document', expires_at: expiresAt
-      });
-      if (insertError) throw insertError;
+      const insertResult = await sendMessageServer(conversationId, msgContent, 'document', msgId, expiresAt);
+      if (!insertResult.success) throw new Error(insertResult.error || 'Insert failed');
       setUploadProgress(100);
     } catch (err: any) {
       console.error('Document upload failed:', err);
@@ -1145,12 +1135,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         expires_at: expiresAt, profiles: { username: profile?.username }
       }]);
 
-      const { error: insertError } = await supabase.from('messages').insert({
-        id: msgId, sender_id: user.id, conversation_id: conversationId,
-        content: msgContent, type, expires_at: expiresAt
-      });
+      const insertResult = await sendMessageServer(conversationId, msgContent, type, msgId, expiresAt);
 
-      if (insertError) throw insertError;
+      if (!insertResult.success) throw new Error(insertResult.error || 'Insert failed');
     } catch (err: any) {
       console.error('Upload failed:', err);
       alert('Upload failed: ' + (err.message || 'Unknown error'));
@@ -1597,10 +1584,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 
                 {/* Tail SVG */}
                 {showTail && isMine && (
-                  <svg className="absolute -right-[6px] bottom-0 text-text-main w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M0 0v13h8C4 13 1 9 0 0z"/></svg>
+                  <svg className="absolute -right-[6px] bottom-0 text-black w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M0 0v13h8C4 13 1 9 0 0z"/></svg>
                 )}
                 {showTail && !isMine && (
-                  <svg className="absolute -left-[6px] bottom-0 text-accent w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M8 0v13H0C4 13 7 9 8 0z"/></svg>
+                  <svg className="absolute -left-[6px] bottom-0 text-slate-100 w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M8 0v13H0C4 13 7 9 8 0z"/></svg>
                 )}
 
                 <div className={`relative ${mediaData ? 'p-1' : docData ? 'p-1' : 'px-3 pt-2 pb-1.5'} z-10`}>

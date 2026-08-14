@@ -1,6 +1,6 @@
 "use client";
 
-import type { User } from "@supabase/supabase-js";
+import type { User, Session } from "@supabase/supabase-js";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { updateLastSeen, markConversationDelivered, markAllConversationsDelivered } from "@/app/actions/chat";
@@ -23,82 +23,116 @@ export default function GlobalPresence() {
     if (!userId) return;
     const supabase = createClient();
 
-    // --- Global presence channel (presence only, no postgres_changes) ---
-    const existingPresence = supabase.getChannels().find((c: any) => c.topic === 'realtime:global_presence');
-    if (existingPresence) supabase.removeChannel(existingPresence);
+    const setup = async () => {
+      // Step 1: Set realtime auth BEFORE subscribing to any channels
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        await supabase.realtime.setAuth(session.access_token);
+      }
 
-    const channel = supabase.channel('global_presence', {
-      config: { presence: { key: userId } }
-    });
-    channelRef.current = channel;
-
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        if (typeof window !== 'undefined') {
-          (window as any)._globalPresenceState = state;
-          window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
-        }
-      })
-      .on('presence', { event: 'join' }, () => {
-        const state = channel.presenceState();
-        if (typeof window !== 'undefined') {
-          (window as any)._globalPresenceState = state;
-          window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
-        }
-      })
-      .on('presence', { event: 'leave' }, () => {
-        const state = channel.presenceState();
-        if (typeof window !== 'undefined') {
-          (window as any)._globalPresenceState = state;
-          window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
-        }
-      })
-      .subscribe(async (status: string) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({ user_id: userId, online_at: new Date().toISOString() });
+      const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((_event: string, newSession: Session | null) => {
+        if (newSession?.access_token) {
+          supabase.realtime.setAuth(newSession.access_token);
         }
       });
 
-    // --- Separate channel for message delivery tracking ---
-    const deliveryChannelName = `delivery:${userId}`;
-    const existingDelivery = supabase.getChannels().find((c: any) => c.topic === `realtime:${deliveryChannelName}`);
-    if (existingDelivery) supabase.removeChannel(existingDelivery);
+      // --- Global presence channel ---
+      const existingPresence = supabase.getChannels().find((c: any) => c.topic === 'realtime:global_presence');
+      if (existingPresence) supabase.removeChannel(existingPresence);
 
-    const deliveryChannel = supabase.channel(deliveryChannelName)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages'
-      }, (payload: any) => {
-        if (payload.new.sender_id !== userId) {
-          markConversationDelivered(payload.new.conversation_id).catch(console.error);
+      const channel = supabase.channel('global_presence', {
+        config: { presence: { key: userId } }
+      });
+      channelRef.current = channel;
+
+      channel
+        .on('presence', { event: 'sync' }, () => {
+          const state = channel.presenceState();
+          if (typeof window !== 'undefined') {
+            (window as any)._globalPresenceState = state;
+            window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
+          }
+        })
+        .on('presence', { event: 'join' }, () => {
+          const state = channel.presenceState();
+          if (typeof window !== 'undefined') {
+            (window as any)._globalPresenceState = state;
+            window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
+          }
+        })
+        .on('presence', { event: 'leave' }, () => {
+          const state = channel.presenceState();
+          if (typeof window !== 'undefined') {
+            (window as any)._globalPresenceState = state;
+            window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
+          }
+        })
+        .subscribe(async (status: string) => {
+          if (status === 'SUBSCRIBED') {
+            await channel.track({ user_id: userId, online_at: new Date().toISOString() });
+          }
+        });
+
+      // --- Delivery tracking channel ---
+      const deliveryChannelName = `delivery:${userId}`;
+      const existingDelivery = supabase.getChannels().find((c: any) => c.topic === `realtime:${deliveryChannelName}`);
+      if (existingDelivery) supabase.removeChannel(existingDelivery);
+
+      const deliveryChannel = supabase.channel(deliveryChannelName)
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+        }, (payload: any) => {
+          if (payload.new.sender_id !== userId) {
+            markConversationDelivered(payload.new.conversation_id).catch(console.error);
+          }
+        })
+        .subscribe();
+
+      // --- Last seen heartbeat (every 30 seconds) ---
+      updateLastSeen().catch(() => {});
+      const heartbeat = setInterval(() => {
+        updateLastSeen().catch(() => {});
+      }, 30000);
+
+      // --- Visibility / unload handlers ---
+      const handleLeave = () => {
+        if (document.visibilityState === 'hidden') {
+          fetch('/api/presence', { method: 'POST', body: JSON.stringify({ userId }), keepalive: true }).catch(() => {});
+        } else if (document.visibilityState === 'visible') {
+          // Re-track presence when coming back
+          if (channelRef.current) {
+            channelRef.current.track({ user_id: userId, online_at: new Date().toISOString() }).catch(() => {});
+          }
+          updateLastSeen().catch(() => {});
         }
-      })
-      .subscribe();
+      };
 
-    const handleLeave = () => {
-      if (document.visibilityState === 'hidden') {
+      const handleUnload = () => {
         fetch('/api/presence', { method: 'POST', body: JSON.stringify({ userId }), keepalive: true }).catch(() => {});
-      }
+      };
+
+      document.addEventListener('visibilitychange', handleLeave);
+      window.addEventListener('pagehide', handleUnload);
+      window.addEventListener('beforeunload', handleUnload);
+
+      return () => {
+        clearInterval(heartbeat);
+        authSub?.unsubscribe();
+        document.removeEventListener('visibilitychange', handleLeave);
+        window.removeEventListener('pagehide', handleUnload);
+        window.removeEventListener('beforeunload', handleUnload);
+        fetch('/api/presence', { method: 'POST', body: JSON.stringify({ userId }), keepalive: true }).catch(() => {});
+        supabase.removeChannel(deliveryChannel);
+      };
     };
 
-    const handleUnload = () => {
-      fetch('/api/presence', { method: 'POST', body: JSON.stringify({ userId }), keepalive: true }).catch(() => {});
-    };
-
-    document.addEventListener('visibilitychange', handleLeave);
-    window.addEventListener('pagehide', handleUnload);
-    window.addEventListener('beforeunload', handleUnload);
+    let cleanupFn: (() => void) | undefined;
+    setup().then(fn => { cleanupFn = fn; });
 
     return () => {
-      document.removeEventListener('visibilitychange', handleLeave);
-      window.removeEventListener('pagehide', handleUnload);
-      window.removeEventListener('beforeunload', handleUnload);
-      fetch('/api/presence', { method: 'POST', body: JSON.stringify({ userId }), keepalive: true }).catch(() => {});
-      // Clean up delivery tracking, but presence is shared globally so don't completely destroy it here 
-      // since layout might be persisting it.
-      supabase.removeChannel(deliveryChannel);
+      cleanupFn?.();
     };
   }, [userId]);
 
