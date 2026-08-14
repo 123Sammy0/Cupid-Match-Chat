@@ -41,7 +41,7 @@ export default function ChatRoomPage({ params }: { params: any }) {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        router.push("/auth");
+        router.push("/");
         return;
       }
       
@@ -55,7 +55,7 @@ export default function ChatRoomPage({ params }: { params: any }) {
       if (!otherUser) {
         const res = await getConversationDetails(code);
         if (!res.success) {
-          router.push("/room"); // Redirect if not a participant or error
+          router.push("/"); // Redirect if not a participant or error
           return;
         }
         otherUser = res.otherUser;

@@ -22,6 +22,13 @@ export default function ChatHome() {
       setIsLoading(true);
     }
     try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/");
+        return;
+      }
+
       const [convs, reqs] = await Promise.all([
         getConversations(),
         getPendingRequests()
