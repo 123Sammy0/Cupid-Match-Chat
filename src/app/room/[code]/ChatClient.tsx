@@ -1501,15 +1501,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 className={`flex flex-col w-full ${isMine ? 'items-end pr-[6px]' : 'items-start pl-[6px]'} relative ${
                   m.reactions && m.reactions.length > 0 && !m.localStatus ? 'mb-5' : 'mb-2'
                 }`}
-              onTouchStart={(e) => handleTouchStart(e, m)}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
             >
-              {/* Selection-mode subtle highlight */}
-              {selectedMessage?.id === m.id && (
-                <div className="absolute inset-0 rounded-[20px] bg-black/5 pointer-events-none z-10 animate-in fade-in duration-150" />
-              )}
-
               {/* Inline Reaction Bar — shown above selected message */}
               {selectedMessage?.id === m.id && (
                 <div
@@ -1570,6 +1562,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 } ${
                   selectedMessage?.id === m.id ? (isMine ? 'ring-2 ring-white/40' : 'ring-2 ring-black/15') : ''
                 }`}
+                onTouchStart={(e) => handleTouchStart(e, m)}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (selectedMessage) {
@@ -1591,6 +1586,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   transition: swipingId === m.id ? 'none' : 'transform 0.15s ease-out' 
                 }}
               >
+                {/* Selection-mode subtle highlight on the bubble itself */}
+                {selectedMessage?.id === m.id && (
+                  <div className={`absolute inset-0 pointer-events-none z-10 animate-in fade-in duration-150 bg-black/10 ${
+                    showTail && isMine ? 'rounded-[20px] rounded-br-none' : showTail && !isMine ? 'rounded-[20px] rounded-bl-none' : 'rounded-[20px]'
+                  }`} />
+                )}
                 
                 {/* No floating context menu any more — selection handled by long-press/toolbar */}
                 
