@@ -99,7 +99,7 @@
   --r-full: 9999px;
 
   /* Layout dimensions */
-  --topbar-h:  64px;
+  --topbar-h:  52px;
   --chipbar-h: 52px;
   --max-w:     1400px;
   --gutter:    24px;
@@ -245,10 +245,11 @@
   align-items: center;
   gap: var(--space-5);
   padding: 0 var(--space-6);
-  background: rgba(255, 241, 231, 0.94);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--border-faint);
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border-bottom: 1px solid rgba(50, 96, 128, 0.08);
+  box-shadow: 0 4px 30px rgba(50, 96, 128, 0.03);
 }
 
 .topbar-left {
@@ -1529,7 +1530,7 @@
 /* Mobile Devices (<= 640px) */
 @media (max-width: 640px) {
   :root {
-    --topbar-h: 56px;
+    --topbar-h: 46px;
     --gutter: 16px;
   }
 
