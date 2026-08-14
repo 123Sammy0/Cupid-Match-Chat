@@ -439,50 +439,6 @@ export default function Home() {
             <span className="quiet-star" aria-hidden="true">✦</span>
           </button>
 
-          {/* Circular user avatar and chevron menu */}
-          <div className="flex items-center gap-1.5 relative ml-1">
-            <button 
-              className="profile-avatar-btn" 
-              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-              title="User profile"
-            >
-              {profile?.username ? profile.username.charAt(0).toUpperCase() : "D"}
-            </button>
-            <button 
-              className="chevron-down-btn" 
-              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-              title="Profile menu"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m6 9 6 6 6-6"/>
-              </svg>
-            </button>
-
-            {/* Dropdown Menu */}
-            {isProfileMenuOpen && (
-              <div className="absolute right-0 top-[42px] z-[500] w-48 rounded-2xl bg-[#FFF8F2] p-2 border border-[rgba(50,96,128,0.1)] shadow-[0_12px_36px_rgba(50,96,128,0.12)] flex flex-col gap-1">
-                <a href="/settings" className="px-4 py-2.5 hover:bg-base text-[#326080] font-semibold text-sm rounded-xl transition-colors flex items-center gap-2">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                  Settings
-                </a>
-                <a href="/room" className="px-4 py-2.5 hover:bg-base text-[#326080] font-semibold text-sm rounded-xl transition-colors flex items-center gap-2">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  Private Chat
-                </a>
-                <div className="h-[1px] bg-border-soft my-1"></div>
-                <button 
-                  onClick={() => {
-                    localStorage.removeItem('supabase.auth.token');
-                    window.location.href = '/auth';
-                  }} 
-                  className="w-full text-left px-4 py-2.5 hover:bg-base text-rose-600 font-bold text-sm rounded-xl transition-colors flex items-center gap-2"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
-                  Sign Out
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </header>
 
