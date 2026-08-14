@@ -2119,6 +2119,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
                 {/* Textarea — always fills remaining space */}
                 <textarea
+                  id="message-input"
+                  name="message"
                   ref={inputRef}
                   rows={1}
                   value={newMessage}
