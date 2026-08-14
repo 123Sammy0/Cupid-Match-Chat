@@ -215,7 +215,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [isSearchingChat, setIsSearchingChat] = useState(false);
   const router = useRouter();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const myTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const theirTypingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const channelRef = useRef<any>(null);
   const supabaseRef = useRef(createClient());
   const supabase = supabaseRef.current;
@@ -390,10 +391,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           if (payload.payload?.user_id === otherUser?.id) {
             setOtherUserTyping(payload.payload.isTyping);
             if (payload.payload.isTyping) {
-              if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-              typingTimeoutRef.current = setTimeout(() => setOtherUserTyping(false), 3000);
+              if (theirTypingTimeoutRef.current) clearTimeout(theirTypingTimeoutRef.current);
+              theirTypingTimeoutRef.current = setTimeout(() => setOtherUserTyping(false), 3000);
             } else {
-              if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+              if (theirTypingTimeoutRef.current) clearTimeout(theirTypingTimeoutRef.current);
             }
           }
         })
@@ -481,7 +482,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         window.removeEventListener('global_presence_sync', handleSyncRef);
       }
       if (authSub) authSub.unsubscribe();
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (myTypingTimeoutRef.current) clearTimeout(myTypingTimeoutRef.current);
+      if (theirTypingTimeoutRef.current) clearTimeout(theirTypingTimeoutRef.current);
       if (roomChannel) supabaseClient.removeChannel(roomChannel);
       if (dbChannel) supabaseClient.removeChannel(dbChannel);
       channelRef.current = null;
@@ -498,6 +500,14 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       }
     }
   };
+
+  useEffect(() => {
+    // When the other user goes offline, their last_seen is effectively NOW.
+    // Optimistically update it to ensure high precision without another DB roundtrip.
+    if (!otherUserOnline && otherUser?.id) {
+      setOtherUserLastSeen(new Date().toISOString());
+    }
+  }, [otherUserOnline, otherUser?.id]);
 
   useEffect(() => {
     scrollToBottom(shouldForceScrollRef.current);
@@ -526,8 +536,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       isTypingRef.current = true;
       channelRef.current.send({ type: 'broadcast', event: 'typing', payload: { user_id: user.id, isTyping: true } });
     }
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => {
+    if (myTypingTimeoutRef.current) clearTimeout(myTypingTimeoutRef.current);
+    myTypingTimeoutRef.current = setTimeout(() => {
       isTypingRef.current = false;
       if (channelRef.current) channelRef.current.send({ type: 'broadcast', event: 'typing', payload: { user_id: user.id, isTyping: false } });
     }, 1500);
@@ -564,6 +574,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     }
     setShowEmojiPicker(false);
     isTypingRef.current = false;
+    if (myTypingTimeoutRef.current) clearTimeout(myTypingTimeoutRef.current);
     if (channelRef.current) channelRef.current.send({ type: 'broadcast', event: 'typing', payload: { user_id: user.id, isTyping: false } });
 
     const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
