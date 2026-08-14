@@ -1179,7 +1179,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   }, []);
 
   return (
-    <div id="chat-viewport-wrapper" className="w-full h-full flex flex-col relative overflow-hidden bg-white">
+    <div id="chat-viewport-wrapper" className="w-full h-full flex flex-col relative overflow-hidden bg-base">
       {/* Call Modal */}
       {showCallModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCallModal(null)}>
@@ -1277,7 +1277,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       )}
 
       {/* Header */}
-      <header className="flex items-center justify-between px-2 py-2 bg-white/95 backdrop-blur-xl text-black z-10 border-b border-gray-100 sticky top-0 relative">
+      <header className="flex items-center justify-between px-2 py-2 bg-surface/90 backdrop-blur-xl text-text-main z-10 border-b border-border-soft sticky top-0 relative">
         
         {/* Selection Mode Toolbar */}
         {selectedMessage ? (
@@ -1553,7 +1553,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
               <div 
                 className={`relative max-w-[85%] text-[15px] shadow-sm leading-relaxed cursor-pointer group touch-manipulation ${
-                  isMine ? 'bg-black text-white' : 'bg-white border border-gray-100 text-black'
+                  isMine ? 'bg-text-main text-base' : 'bg-accent text-text-main'
                 } ${
                   showTail && isMine ? 'rounded-[20px] rounded-br-none' : showTail && !isMine ? 'rounded-[20px] rounded-bl-none' : 'rounded-[20px]'
                 } ${
@@ -1595,7 +1595,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   
                   {/* Replied Message Preview */}
                   {replyData && (
-                    <div className={`mb-1.5 p-2 rounded-xl text-sm border-l-4 ${isMine ? 'bg-white/20 border-white/60 text-white/90' : 'bg-[#F0F2F5] border-black text-gray-700'}`}>
+                    <div className={`mb-1.5 p-2 rounded-xl text-sm border-l-4 ${isMine ? 'bg-white/30 border-black/40 text-black/90' : 'bg-white/30 border-black/40 text-black/90'}`}>
                       <p className={`font-bold text-xs mb-0.5 ${isMine ? 'text-white' : 'text-black'}`}>{replyData.replyTo.sender}</p>
                       <p className="line-clamp-2 leading-tight">
                         {replyData.replyTo.type === 'image' ? '📷 Image' : 
@@ -1653,10 +1653,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                               </div>
                               {/* File info */}
                               <div className="flex-1 min-w-0">
-                                <p className={`text-[13px] font-semibold leading-tight truncate ${isMine ? 'text-white' : 'text-black'}`} title={displayName}>
+                                <p className={`text-[13px] font-semibold leading-tight truncate text-black`} title={displayName}>
                                   {truncName}
                                 </p>
-                                <p className={`text-[11px] mt-0.5 font-medium ${isMine ? 'text-gray-300' : 'text-gray-500'}`}>
+                                <p className={`text-[11px] mt-0.5 font-medium text-black/60`}>
                                   {docData.size ? formatFileSize(docData.size) : docData.ext?.toUpperCase() || ''}
                                 </p>
                               </div>
@@ -1667,9 +1667,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-                                  isMine ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-black/5 hover:bg-black/10 text-black'
-                                }`}
+                                className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-colors bg-white/30 hover:bg-white/50 text-black`}
                                 title="Download"
                               >
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -1680,7 +1678,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                               </a>
                             </div>
                             {/* Timestamp in natural flow for docData */}
-                            <div className={`flex justify-end items-center gap-1 px-3 pb-1.5 text-[10px] font-bold ${isMine ? 'text-gray-300' : 'text-gray-400'}`}>
+                            <div className={`flex justify-end items-center gap-1 px-3 pb-1.5 text-[10px] font-bold text-black/60`}>
                               {m.is_edited && !m.is_deleted && <span className="opacity-70 mr-0.5">Edited</span>}
                               <span suppressHydrationWarning>{new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                               {isMine && m.localStatus === 'sending' && (
@@ -1706,7 +1704,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     <div className={`flex items-center gap-1 text-[10px] font-bold ${
                       mediaData && !m.is_deleted
                         ? 'absolute bottom-2 right-2 bg-black/40 text-white px-1.5 py-0.5 rounded-full'
-                        : (isMine ? 'absolute bottom-[4px] right-[8px] text-gray-300' : 'absolute bottom-[4px] right-[8px] text-gray-400')
+                        : 'absolute bottom-[4px] right-[8px] text-black/60'
                     }`}>
                       {m.is_edited && !m.is_deleted && <span className="opacity-70 mr-0.5">Edited</span>}
                       <span suppressHydrationWarning>{new Date(m.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -1985,10 +1983,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           {/* THE floating white pill container */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--color-surface)',
               borderRadius: 28,
-              border: '1px solid rgba(0,0,0,0.06)',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+              border: '1px solid var(--border)',
+              boxShadow: '0 4px 20px rgba(50, 96, 128, 0.08)',
               overflow: 'hidden',
               minHeight: 52,
               display: 'flex',
@@ -2272,7 +2270,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                       onClick={isRecordingLocked ? stopAndSendVoiceRecording : (editingMessage ? handleEdit : handleSend)}
                       style={{
                         width: 42, height: 42, borderRadius: 21,
-                        background: '#000', color: '#fff',
+                        background: 'var(--color-success)', color: 'var(--color-text-main)',
                         border: 'none', cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         boxShadow: '0 1px 8px rgba(0,0,0,0.22)',
@@ -2342,8 +2340,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                         className="touch-none select-none flex items-center justify-center"
                         style={{
                           width: 42, height: 42, borderRadius: 21,
-                          background: isRecording ? '#FF3B30' : '#000',
-                          color: '#fff',
+                          background: isRecording ? '#FF3B30' : 'var(--color-text-main)',
+                          color: 'var(--color-base)',
                           border: 'none', cursor: 'pointer',
                           boxShadow: isRecording
                             ? '0 0 0 8px rgba(255,59,48,0.12), 0 2px 10px rgba(255,59,48,0.3)'

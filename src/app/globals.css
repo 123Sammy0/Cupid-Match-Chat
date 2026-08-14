@@ -2,7 +2,7 @@
 
 /* ══════════════════════════════════════════════════════════════
    CUPID MATCH CHAT & LITTLE LIBRARY — UNIFIED DESIGN SYSTEM
-   Editorial Warmth meets High-End Glassmorphic Elegance
+   4-Color Palette: #FFF1E7 · #B5D2E6 · #326080 · #805232
    ══════════════════════════════════════════════════════════════ */
 
 @theme {
@@ -11,58 +11,64 @@
   --color-text-main: var(--text);
   --color-text-sub: var(--text-muted);
   --color-accent: var(--accent);
+  --color-accent-alt: var(--accent-alt);
+  --color-accent-light: var(--accent-light);
   --color-peach: var(--peach);
   --color-moss: var(--moss);
   --color-ink: var(--ink);
   --color-eucalyptus: var(--eucalyptus);
+  --color-border-soft: var(--border);
+  --color-success: #4CAF50;
 }
 
 :root {
-  /* ── Little Library Organic Editorial Palette ── */
-  --cream:         #FAF6EE;  /* Warm linen paper */
-  --parchment:     #F0E8D8;  /* Aged paper */
-  --moss:          #3E4B3A;  /* Deep forest sage */
-  --ink:           #1C2B1F;  /* Deep ink */
-  --eucalyptus:    #4F8B6E;  /* Muted sage */
-  --eucalyptus-l:  #7AAF94;
-  --peach:         #C48A6E;  /* Warm terracotta */
-  --peach-l:       #D4A48A;
-  --gold:          #A8924A;
-  --gold-l:        #C8B06A;
-  --chartreuse:    #E8D98A;
-  --sand:          #C9B99A;
-  --red:           #C48A6E;  /* Editorial warm accent */
+  /* ── Core 4-Color Palette ── */
+  --cream:         #FFF1E7;  /* Warm peach-cream canvas */
+  --parchment:     #FFF8F2;  /* Slightly lighter surface */
+  --moss:          #326080;  /* Deep teal-navy (alias) */
+  --ink:           #326080;  /* Primary text & headings */
+  --eucalyptus:    #4A7A98;  /* Mid-tone teal */
+  --eucalyptus-l:  #B5D2E6;  /* Sky-blue accent */
+  --peach:         #805232;  /* Copper-brown warm accent */
+  --peach-l:       #9A6B48;  /* Lighter copper */
+  --gold:          #805232;  /* Brand warm (alias) */
+  --gold-l:        #9A6B48;
+  --chartreuse:    #B5D2E6;  /* Sky-blue (alias) */
+  --sand:          #D4C4B0;  /* Muted warm neutral */
+  --red:           #805232;  /* Warm accent for actions */
   --white:         #FFFFFF;
-  --black:         #111111;
-  --gray-light:    #F0EAE1;
-  --gray:          #767676;
+  --black:         #1A3040;
+  --gray-light:    #F5EDE5;
+  --gray:          #6A8494;
 
-  /* Ink alpha layers */
-  --ink-04:        rgba(28, 43, 31, 0.04);
-  --ink-08:        rgba(28, 43, 31, 0.08);
-  --ink-15:        rgba(28, 43, 31, 0.15);
-  --ink-40:        rgba(28, 43, 31, 0.40);
+  /* Ink alpha layers (teal-based) */
+  --ink-04:        rgba(50, 96, 128, 0.04);
+  --ink-08:        rgba(50, 96, 128, 0.08);
+  --ink-15:        rgba(50, 96, 128, 0.15);
+  --ink-40:        rgba(50, 96, 128, 0.40);
 
-  /* Semantic Little Library Tokens */
-  --bg:            var(--cream);
-  --bg-alt:        var(--parchment);
-  --text:          var(--ink);
-  --text-muted:    #5A6956;
-  --text-faint:    #8E9B8B;
-  --accent:        var(--peach);
-  --accent-warm:   var(--peach);
-  --border:        rgba(28, 43, 31, 0.10);
-  --border-faint:  var(--ink-08);
+  /* Semantic Tokens */
+  --bg:            #FFF1E7;
+  --bg-alt:        #FFF8F2;
+  --text:          #326080;
+  --text-muted:    #5A7A90;
+  --text-faint:    #8BAAB8;
+  --accent:        #B5D2E6;
+  --accent-alt:    #B5D2E6;
+  --accent-light:  rgba(181, 210, 230, 0.3);
+  --accent-warm:   #805232;
+  --border:        rgba(50, 96, 128, 0.12);
+  --border-faint:  rgba(50, 96, 128, 0.06);
 
-  /* ── Glassmorphism & UI/UX Pro Max Tokens (Protected App) ── */
-  --glass-bg:             rgba(255, 255, 255, 0.78);
-  --glass-bg-subtle:      rgba(255, 255, 255, 0.55);
+  /* ── Glassmorphism Tokens ── */
+  --glass-bg:             rgba(255, 241, 231, 0.82);
+  --glass-bg-subtle:      rgba(255, 248, 242, 0.55);
   --glass-border:         rgba(255, 255, 255, 0.85);
-  --glass-border-faint:   rgba(0, 0, 0, 0.06);
+  --glass-border-faint:   rgba(50, 96, 128, 0.06);
   --glass-blur:           blur(24px) saturate(150%);
-  --glass-shadow:         0 20px 50px -12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.03);
-  --glass-card-shadow:    0 24px 64px -16px rgba(0, 0, 0, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.8);
-  --glass-button-glow:    0 8px 24px -4px rgba(28, 43, 31, 0.18);
+  --glass-shadow:         0 20px 50px -12px rgba(50, 96, 128, 0.08), 0 1px 3px rgba(0, 0, 0, 0.03);
+  --glass-card-shadow:    0 24px 64px -16px rgba(50, 96, 128, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+  --glass-button-glow:    0 8px 24px -4px rgba(50, 96, 128, 0.18);
 
   /* Typography */
   --font-display:  var(--font-playfair), Georgia, "Times New Roman", serif;
@@ -107,9 +113,9 @@
   --dur-slow:    380ms;
 
   /* Hairline Shadows */
-  --ring-focus:      0 0 0 3px rgba(79, 139, 110, 0.25);
-  --shadow-pin:      0 2px 8px -2px rgba(28, 43, 31, 0.06), 0 1px 2px 0 rgba(28, 43, 31, 0.04);
-  --shadow-overlay:  0 28px 80px -12px rgba(28, 43, 31, 0.24);
+  --ring-focus:      0 0 0 3px rgba(181, 210, 230, 0.4);
+  --shadow-pin:      0 2px 8px -2px rgba(50, 96, 128, 0.06), 0 1px 2px 0 rgba(50, 96, 128, 0.04);
+  --shadow-overlay:  0 28px 80px -12px rgba(50, 96, 128, 0.24);
 }
 
 /* ══ BASE RESET & ACCESSIBILITY ══════════════════════════════ */
@@ -239,7 +245,7 @@
   align-items: center;
   gap: var(--space-5);
   padding: 0 var(--space-6);
-  background: rgba(250, 246, 238, 0.92);
+  background: rgba(255, 241, 231, 0.94);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-faint);
@@ -312,7 +318,7 @@
 #searchInput {
   width: 100%;
   height: 38px;
-  background: rgba(28, 43, 31, 0.05);
+  background: rgba(50, 96, 128, 0.05);
   border: 1px solid transparent;
   border-radius: var(--r-full);
   padding: 0 16px 0 40px;
@@ -397,7 +403,7 @@
   left: 0;
   width: 270px;
   height: calc(100dvh - var(--topbar-h));
-  background: var(--cream);
+  background: #FFF1E7;
   border-right: 1px solid var(--border-faint);
   z-index: 200;
   transform: translateX(-100%);
@@ -422,7 +428,7 @@
   position: fixed;
   inset: 0;
   z-index: 190;
-  background: rgba(28, 43, 31, 0.25);
+  background: rgba(50, 96, 128, 0.25);
   backdrop-filter: blur(4px);
   opacity: 0;
   pointer-events: none;
@@ -439,7 +445,7 @@
   position: sticky;
   top: var(--topbar-h);
   z-index: 90;
-  background: rgba(250, 246, 238, 0.94);
+  background: rgba(255, 241, 231, 0.94);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-faint);
@@ -462,11 +468,11 @@
 }
 .chip-bar-inner::before {
   left: 0;
-  background: linear-gradient(to right, #FAF6EE 0%, transparent 100%);
+  background: linear-gradient(to right, #FFF1E7 0%, transparent 100%);
 }
 .chip-bar-inner::after {
   right: 0;
-  background: linear-gradient(to left, #FAF6EE 0%, transparent 100%);
+  background: linear-gradient(to left, #FFF1E7 0%, transparent 100%);
 }
 
 .chip-scroll {
@@ -491,7 +497,7 @@
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
-  background: rgba(28, 43, 31, 0.04);
+  background: rgba(50, 96, 128, 0.06);
   border: 1px solid transparent;
   white-space: nowrap;
   flex-shrink: 0;
@@ -501,7 +507,7 @@
   scroll-snap-align: start;
 }
 .chip:hover {
-  background: rgba(28, 43, 31, 0.08);
+  background: rgba(50, 96, 128, 0.1);
   color: var(--ink);
 }
 .chip.active {
@@ -595,14 +601,14 @@
 .btn:active { transform: scale(0.97); }
 
 .btn-primary {
-  background: var(--ink);
-  color: var(--cream);
-  border: 1px solid var(--ink);
-  box-shadow: 0 4px 14px -2px rgba(28, 43, 31, 0.2);
+  background: #326080;
+  color: #FFF1E7;
+  border: 1px solid #326080;
+  box-shadow: 0 4px 14px -2px rgba(50, 96, 128, 0.3);
 }
 .btn-primary:hover {
-  background: var(--moss);
-  border-color: var(--moss);
+  background: #2A5270;
+  border-color: #2A5270;
   transform: translateY(-1px);
 }
 
@@ -638,7 +644,7 @@
   border-radius: var(--r-xl);
   overflow: hidden;
   border: 4px solid var(--white);
-  box-shadow: 0 16px 36px -8px rgba(28, 43, 31, 0.12);
+  box-shadow: 0 16px 36px -8px rgba(50, 96, 128, 0.12);
   contain: layout;
   transition: transform var(--dur-slow) var(--ease);
 }
@@ -702,19 +708,19 @@
   border-radius: 16px;
   overflow: hidden;
   background: var(--parchment);
-  border: 1px solid rgba(28, 43, 31, 0.06);
-  box-shadow: 0 2px 6px -1px rgba(28, 43, 31, 0.05);
+  border: 1px solid rgba(50, 96, 128, 0.06);
+  box-shadow: 0 2px 6px -1px rgba(50, 96, 128, 0.05);
   transition: box-shadow var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
 }
 .pin-card-wrapper:hover .pin-image-box {
-  box-shadow: 0 14px 28px -6px rgba(28, 43, 31, 0.14);
-  border-color: rgba(28, 43, 31, 0.12);
+  box-shadow: 0 14px 28px -6px rgba(50, 96, 128, 0.14);
+  border-color: rgba(50, 96, 128, 0.12);
 }
 
 .pin-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.15) 50%, rgba(0, 0, 0, 0.45) 100%);
+  background: linear-gradient(to top, rgba(50, 96, 128, 0.7) 0%, rgba(50, 96, 128, 0.15) 50%, rgba(50, 96, 128, 0.5) 100%);
   opacity: 0;
   display: flex;
   flex-direction: column;
@@ -732,7 +738,7 @@
 /* Hover Top-Right Red Save Button */
 .pin-hover-save-btn {
   align-self: flex-end;
-  background: #E60023;
+  background: #805232;
   color: #FFFFFF;
   font-family: var(--font-ui);
   font-weight: 700;
@@ -741,11 +747,11 @@
   border-radius: 9999px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(230, 0, 35, 0.4);
+  box-shadow: 0 4px 14px rgba(128, 82, 50, 0.4);
   transition: all 0.18s var(--ease-spring);
 }
 .pin-hover-save-btn:hover {
-  background: #ad081b;
+  background: #6B4328;
   transform: scale(1.05);
 }
 .pin-hover-save-btn.saved {
@@ -846,7 +852,7 @@
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(15, 22, 16, 0.78);
+  background: rgba(26, 48, 64, 0.78);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   display: flex;
@@ -919,9 +925,9 @@
   width: 100%;
   max-width: 980px;
   max-height: 88vh;
-  background: var(--cream);
+  background: #FFF1E7;
   border-radius: 32px;
-  box-shadow: 0 32px 80px -16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 32px 80px -16px rgba(50, 96, 128, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2);
   display: flex;
   overflow: hidden;
   position: relative;
@@ -936,7 +942,7 @@
 /* Left Image Column */
 .pin-modal-image-col {
   flex: 1.15;
-  background: #18221A;
+  background: #1E3A4D;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -991,7 +997,7 @@
   max-width: 480px;
   display: flex;
   flex-direction: column;
-  background: var(--cream);
+  background: #FFF1E7;
   position: relative;
 }
 
@@ -1004,8 +1010,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--cream);
-  border-bottom: 1px solid rgba(28, 43, 31, 0.06);
+  background: #FFF1E7;
+  border-bottom: 1px solid rgba(50, 96, 128, 0.06);
 }
 .pin-modal-header-actions {
   display: flex;
@@ -1016,8 +1022,8 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(28, 43, 31, 0.05);
-  color: var(--ink);
+  background: rgba(50, 96, 128, 0.05);
+  color: #326080;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1026,17 +1032,17 @@
   transition: all 0.15s ease;
 }
 .pin-action-icon-btn:hover {
-  background: rgba(28, 43, 31, 0.1);
+  background: rgba(50, 96, 128, 0.1);
   transform: scale(1.06);
 }
 .pin-action-icon-btn.liked {
-  color: #E60023;
-  background: rgba(230, 0, 35, 0.1);
+  color: #805232;
+  background: rgba(128, 82, 50, 0.1);
 }
 
 /* Pinterest Red Save Button inside modal */
 .pin-save-btn {
-  background: #E60023;
+  background: #805232;
   color: #FFFFFF;
   font-family: var(--font-ui);
   font-weight: 700;
@@ -1045,17 +1051,17 @@
   border-radius: 9999px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(230, 0, 35, 0.35);
+  box-shadow: 0 4px 16px rgba(128, 82, 50, 0.35);
   transition: all 0.18s var(--ease-spring);
 }
 .pin-save-btn:hover {
-  background: #ad081b;
+  background: #6B4328;
   transform: scale(1.04);
 }
 .pin-save-btn.saved {
-  background: #111111;
+  background: #326080;
   color: #FFFFFF;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 14px rgba(50, 96, 128, 0.2);
 }
 
 /* Dropdown Menu */
@@ -1063,10 +1069,10 @@
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
-  background: #FFFFFF;
+  background: #FFF8F2;
   border-radius: 16px;
   padding: 8px;
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 16px 36px -4px rgba(50, 96, 128, 0.18), 0 0 0 1px rgba(50, 96, 128, 0.06);
   z-index: 50;
   min-width: 190px;
   display: flex;
@@ -1082,7 +1088,7 @@
   border-radius: 10px;
   font-size: 13px;
   font-weight: 500;
-  color: #222222;
+  color: #326080;
   cursor: pointer;
   transition: background 0.15s ease;
   text-align: left;
@@ -1139,8 +1145,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 0;
-  border-top: 1px solid rgba(28, 43, 31, 0.06);
-  border-bottom: 1px solid rgba(28, 43, 31, 0.06);
+  border-top: 1px solid rgba(50, 96, 128, 0.06);
+  border-bottom: 1px solid rgba(50, 96, 128, 0.06);
 }
 .pin-creator-left {
   display: flex;
@@ -1152,7 +1158,7 @@
   height: 44px;
   border-radius: 50%;
   object-fit: cover;
-  border: 1px solid rgba(28, 43, 31, 0.08);
+  border: 1px solid rgba(50, 96, 128, 0.08);
 }
 .pin-creator-info {
   display: flex;
@@ -1170,8 +1176,8 @@
 .pin-creator-visit-btn {
   padding: 8px 18px;
   border-radius: 9999px;
-  background: rgba(28, 43, 31, 0.06);
-  color: var(--ink);
+  background: rgba(50, 96, 128, 0.06);
+  color: #326080;
   font-size: 13px;
   font-weight: 600;
   transition: all 0.15s ease;
@@ -1202,7 +1208,7 @@
 .pin-tag-chip {
   padding: 6px 12px;
   border-radius: 9999px;
-  background: rgba(28, 43, 31, 0.05);
+  background: rgba(50, 96, 128, 0.06);
   font-size: 12px;
   font-weight: 500;
   color: var(--text-muted);
@@ -1234,7 +1240,7 @@
 .pin-comments-count {
   font-size: 12px;
   font-weight: 600;
-  background: rgba(28, 43, 31, 0.08);
+  background: rgba(50, 96, 128, 0.08);
   padding: 2px 8px;
   border-radius: 12px;
   color: var(--ink);
@@ -1257,7 +1263,7 @@
   background: rgba(255, 255, 255, 0.6);
   padding: 10px 12px;
   border-radius: 14px;
-  border: 1px solid rgba(28, 43, 31, 0.04);
+  border: 1px solid rgba(50, 96, 128, 0.04);
 }
 .pin-comment-avatar {
   width: 24px;
@@ -1290,7 +1296,7 @@
   align-items: center;
   gap: 8px;
   background: rgba(255, 255, 255, 0.85);
-  border: 1.5px solid rgba(28, 43, 31, 0.1);
+  border: 1.5px solid rgba(50, 96, 128, 0.1);
   border-radius: 9999px;
   padding: 4px 6px 4px 16px;
   transition: border-color 0.15s ease;
@@ -1308,7 +1314,7 @@
   padding: 6px 0;
 }
 .pin-comment-submit-btn {
-  background: #E60023;
+  background: #805232;
   color: #FFFFFF;
   font-size: 12.5px;
   font-weight: 700;
@@ -1319,7 +1325,7 @@
   transition: all 0.15s ease;
 }
 .pin-comment-submit-btn:hover {
-  background: #ad081b;
+  background: #6B4328;
 }
 
 /* Toast alert notification */
@@ -1328,7 +1334,7 @@
   bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
-  background: #111111;
+  background: #326080;
   color: #FFFFFF;
   padding: 12px 24px;
   border-radius: 9999px;
@@ -1337,7 +1343,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 16px 36px -4px rgba(50, 96, 128, 0.35);
   z-index: 2000;
   animation: toastSlideUp 0.22s var(--ease-spring);
 }
@@ -1420,14 +1426,14 @@
   border-top: 1px solid var(--border-faint);
   padding: var(--space-8) var(--gutter);
   text-align: center;
-  background: rgba(28, 43, 31, 0.02);
+  background: rgba(50, 96, 128, 0.03);
 }
 .footer-brand {
   font-family: var(--font-display);
   font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.03em;
-  color: var(--ink);
+  color: #326080;
   margin-bottom: var(--space-1);
 }
 .footer-copy {
@@ -1435,7 +1441,7 @@
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-faint);
+  color: #8BAAB8;
 }
 
 /* ══ GATE & AUTH SCREENS (GLASSMORPHISM PRO MAX) ═════════════ */
@@ -1445,7 +1451,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 20%, rgba(240, 232, 216, 0.6) 0%, rgba(250, 246, 238, 0.95) 100%);
+  background: radial-gradient(circle at 50% 20%, rgba(181, 210, 230, 0.15) 0%, #FFF1E7 100%);
   padding: var(--space-4);
   position: relative;
   overflow: hidden;
@@ -1454,15 +1460,15 @@
 .glass-auth-card {
   width: 100%;
   max-width: 400px;
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 248, 242, 0.85);
   backdrop-filter: blur(28px) saturate(160%);
   -webkit-backdrop-filter: blur(28px) saturate(160%);
   border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: var(--r-2xl);
   padding: clamp(28px, 6vw, 40px);
   box-shadow:
-    0 24px 70px -16px rgba(28, 43, 31, 0.12),
-    0 1px 3px rgba(28, 43, 31, 0.04),
+    0 24px 70px -16px rgba(50, 96, 128, 0.12),
+    0 1px 3px rgba(50, 96, 128, 0.04),
     inset 0 0 0 1px rgba(255, 255, 255, 0.8);
   display: flex;
   flex-direction: column;
@@ -1484,16 +1490,16 @@
   font-weight: 600;
   font-family: var(--font-mono);
   background: rgba(255, 255, 255, 0.85);
-  border: 1.5px solid rgba(28, 43, 31, 0.12);
+  border: 1.5px solid rgba(50, 96, 128, 0.12);
   border-radius: 16px;
-  color: var(--ink);
+  color: #326080;
   transition: all var(--dur-base) var(--ease);
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 .pin-digit-input:focus {
-  border-color: var(--ink);
+  border-color: #326080;
   background: var(--white);
-  box-shadow: 0 0 0 4px rgba(28, 43, 31, 0.08);
+  box-shadow: 0 0 0 4px rgba(181, 210, 230, 0.4);
   transform: translateY(-2px);
 }
 

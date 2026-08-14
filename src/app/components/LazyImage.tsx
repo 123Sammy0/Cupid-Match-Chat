@@ -103,7 +103,7 @@ const LazyImageComponent: React.FC<LazyImageProps> = ({
         loading="lazy"
         decoding="async"
         // @ts-ignore - fetchpriority is standard but sometimes missing in React types
-        fetchpriority={fetchPriority}
+        fetchPriority={fetchPriority}
         onLoad={() => setIsLoaded(true)}
         onError={() => {
           setHasError(true);

@@ -124,16 +124,16 @@ export default function SettingsPage() {
   };
 
   if (!isClient || !profile) {
-    return <div className="flex h-[100dvh] items-center justify-center bg-white text-black">Loading...</div>;
+    return <div className="flex h-[100dvh] items-center justify-center bg-base text-text-main">Loading...</div>;
   }
 
   return (
-    <div className="flex h-[100dvh] w-full items-center justify-center bg-white text-black sm:p-4">
-      <section className="bg-white shadow-[0_8px_40px_rgb(0,0,0,0.06)] relative w-full max-w-[450px] h-full sm:h-[90vh] sm:rounded-[40px] overflow-hidden flex flex-col border border-[#EEE7F7]/60">
+    <div className="flex h-[100dvh] w-full items-center justify-center bg-base text-text-main sm:p-4">
+      <section className="bg-surface shadow-[0_8px_40px_rgb(74,63,68,0.06)] relative w-full max-w-[450px] h-full sm:h-[90vh] sm:rounded-[40px] overflow-hidden flex flex-col border border-border-soft">
         
         {/* Top Bar */}
-        <header className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-md text-black z-10 border-b border-gray-100 sticky top-0">
-          <button onClick={() => router.push('/room')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition-all active:scale-90 active:bg-gray-200 select-none cursor-pointer" aria-label="Back">
+        <header className="flex items-center justify-between p-4 bg-surface/80 backdrop-blur-md text-text-main z-10 border-b border-border-soft sticky top-0">
+          <button onClick={() => router.push('/room')} className="p-2 -ml-2 rounded-full hover:bg-border-soft transition-all active:scale-90 active:bg-base select-none cursor-pointer" aria-label="Back">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="m15 18-6-6 6-6"/>
             </svg>
@@ -154,9 +154,9 @@ export default function SettingsPage() {
                 accept="image/*" 
                 className="hidden" 
               />
-              <div className="w-24 h-24 bg-gradient-to-br from-[#3A2034] to-[#5a3652] text-white rounded-[30px] flex items-center justify-center font-bold text-5xl shadow-md overflow-hidden relative">
+              <div className="w-24 h-24 bg-gradient-to-br from-accent to-accent-alt text-text-main rounded-[30px] flex items-center justify-center font-bold text-5xl shadow-md overflow-hidden relative border border-border-soft">
                 {isUploadingImage ? (
-                  <div className="w-6 h-6 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-6 h-6 border-4 border-text-main border-t-transparent rounded-full animate-spin"></div>
                 ) : avatarUrl && avatarUrl.startsWith('http') ? (
                   <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
@@ -164,14 +164,14 @@ export default function SettingsPage() {
                 )}
                 
                 {/* Upload Overlay */}
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                <div className="absolute inset-0 bg-text-main/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-surface)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
                 </div>
               </div>
             </div>
             <div>
-              <h2 className="text-xl font-bold">{profile.username}</h2>
-              <p className="text-sm text-gray-500">@{profile.username}</p>
+              <h2 className="text-xl font-bold text-text-main">{profile.username}</h2>
+              <p className="text-sm text-text-sub">@{profile.username}</p>
             </div>
           </div>
 
@@ -184,7 +184,7 @@ export default function SettingsPage() {
                   key={av}
                   onClick={() => setAvatarUrl(av)}
                   className={`flex-shrink-0 w-14 h-14 rounded-2xl text-2xl flex items-center justify-center transition-all snap-center shadow-sm active:scale-95 select-none cursor-pointer
-                    ${avatarUrl === av ? 'bg-[#3A2034] border-2 border-[#D97A89] scale-110' : 'bg-gray-100 hover:bg-gray-200 border-2 border-transparent'}`}
+                    ${avatarUrl === av ? 'bg-accent border-2 border-text-main scale-110' : 'bg-base hover:bg-border-soft border-2 border-transparent'}`}
                 >
                   {av}
                 </button>
@@ -196,21 +196,21 @@ export default function SettingsPage() {
           <div className="flex flex-col gap-6">
             
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-bold text-gray-800">Bio</label>
+              <label className="text-sm font-bold text-text-main">Bio</label>
               <textarea 
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="A little bit about yourself..."
-                className="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-black/10 resize-none h-24 text-sm"
+                className="w-full p-4 bg-base rounded-2xl border border-border-soft focus:ring-2 focus:ring-accent-alt/50 resize-none h-24 text-sm text-text-main placeholder-text-sub/50"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-bold text-gray-800">Privacy - Online Status</label>
+              <label className="text-sm font-bold text-text-main">Privacy - Online Status</label>
               <select 
                 value={privacy.online_status}
                 onChange={(e) => setPrivacy({...privacy, online_status: e.target.value})}
-                className="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-black/10 text-sm appearance-none"
+                className="w-full p-4 bg-base rounded-2xl border border-border-soft focus:ring-2 focus:ring-accent-alt/50 text-sm appearance-none text-text-main"
               >
                 <option value="everyone">Everyone</option>
                 <option value="contacts">Contacts Only</option>
@@ -227,22 +227,22 @@ export default function SettingsPage() {
             <button 
               onClick={handleSave}
               disabled={isSaving}
-              className="w-full py-3.5 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-transform active:scale-[0.98] select-none cursor-pointer"
+              className="w-full py-3.5 bg-accent text-text-main rounded-xl font-bold hover:bg-accent/80 transition-transform active:scale-[0.98] select-none cursor-pointer shadow-sm border border-border-soft"
             >
               {isSaving ? "Saving..." : "Save Changes"}
             </button>
           </div>
 
           {/* Danger Zone */}
-          <div className="mt-8 pt-8 border-t border-gray-100 flex flex-col gap-4">
+          <div className="mt-8 pt-8 border-t border-border-soft flex flex-col gap-4">
             <button 
               onClick={handleLogout}
-              className="w-full py-3.5 bg-gray-100 text-black rounded-xl font-bold hover:bg-gray-200 transition-all active:scale-[0.98] select-none cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-base text-text-main rounded-xl font-bold hover:bg-border-soft transition-all active:scale-[0.98] select-none cursor-pointer flex items-center justify-center gap-2 border border-border-soft"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
               Log out
             </button>
-            <button className="w-full py-3.5 text-red-500 font-bold hover:bg-red-50 rounded-xl transition-colors">
+            <button className="w-full py-3.5 text-text-main bg-accent-light/50 font-bold hover:bg-accent-light rounded-xl transition-colors border border-accent-light">
               Delete Account
             </button>
           </div>

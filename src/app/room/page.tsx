@@ -163,22 +163,21 @@ export default function ChatHome() {
   };
 
   return (
-    <div className="flex h-[100dvh] w-full items-center justify-center bg-white text-black font-sans selection:bg-black selection:text-white sm:p-4">
-      <section className="bg-white shadow-[0_8px_40px_rgb(0,0,0,0.06)] relative w-full max-w-[450px] h-full sm:h-[92vh] sm:rounded-[40px] overflow-hidden flex flex-col border border-gray-100">
+    <div className="flex h-[100dvh] w-full items-center justify-center bg-base text-text-main font-sans selection:bg-accent selection:text-text-main sm:p-4">
+      <section className="bg-surface shadow-[0_8px_40px_rgb(74,63,68,0.06)] relative w-full max-w-[450px] h-full sm:h-[92vh] sm:rounded-[40px] overflow-hidden flex flex-col border border-border-soft">
         
         {/* Top Bar */}
-        <header className="px-6 pt-10 pb-4 bg-white/90 backdrop-blur-xl sticky top-0 z-10 border-b border-gray-100">
+        <header className="px-6 pt-10 pb-4 bg-surface sticky top-0 z-10 border-b border-border-soft">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-black text-white rounded-xl flex items-center justify-center font-serif text-xl shadow-inner">
+              <div className="w-9 h-9 bg-surface text-text-main rounded-xl flex items-center justify-center font-serif text-xl shadow-inner border border-border-soft">
                 ✦
               </div>
-              <h1 className="text-2xl font-bold tracking-tight text-black">Messages</h1>
+              <h1 className="text-2xl font-bold tracking-tight text-text-main">Messages</h1>
             </div>
-            <button 
-              onClick={() => router.push('/settings')} 
-              className="p-2.5 -mr-2 text-gray-400 hover:text-black transition-all rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-black/20 active:scale-90 active:bg-slate-200 select-none cursor-pointer" 
-              aria-label="Settings"
+            <button className="w-10 h-10 rounded-full bg-surface hover:bg-border-soft text-text-sub hover:text-text-main flex items-center justify-center transition-colors focus:outline-none focus:ring-4 focus:ring-accent/30 active:scale-95 border border-border-soft shadow-sm"
+                    onClick={() => router.push('/settings')}
+                    aria-label="Settings"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -190,14 +189,14 @@ export default function ChatHome() {
             <input 
               type="text" 
               placeholder="Search conversations..." 
-              className="w-full bg-slate-100/60 text-black font-medium rounded-2xl py-3 pl-11 pr-4 focus:outline-none focus:ring-4 focus:ring-black/5 focus:bg-white border border-transparent focus:border-black/20 transition-all placeholder-gray-400"
+              className="w-full bg-base text-text-main font-medium rounded-2xl py-3 pl-11 pr-4 focus:outline-none focus:ring-4 focus:ring-accent/20 focus:bg-white border border-border-soft focus:border-accent-alt transition-all placeholder-text-sub/70 shadow-sm"
             />
-            <svg className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-black transition-colors" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <svg className="absolute left-4 top-3.5 text-text-sub group-focus-within:text-text-main transition-colors" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           </div>
         </header>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-4 pb-24 pt-2">
+        {/* Chat List */}
+        <div className="flex-1 overflow-y-auto px-4 pb-28 pt-4 scrollbar-hide bg-surface relative">
           
           {/* Pending Requests */}
           {pendingRequests.length > 0 && (
@@ -205,21 +204,21 @@ export default function ChatHome() {
               <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-2 mb-3">Requests ({pendingRequests.length})</h3>
               <div className="space-y-3">
                 {pendingRequests.map(req => (
-                  <div key={req.id} className="p-4 bg-white rounded-[24px] border border-gray-100 flex items-center justify-between shadow-sm">
+                  <div key={req.id} className="p-4 bg-surface rounded-[24px] border border-border-soft flex items-center justify-between shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center font-bold text-2xl shadow-sm overflow-hidden">
+                      <div className="w-12 h-12 bg-accent text-text-main rounded-2xl flex items-center justify-center font-bold text-2xl shadow-sm overflow-hidden border border-border-soft">
                         <AvatarImage url={req.profiles?.avatar_url} username={req.profiles?.username} />
                       </div>
                       <div>
-                        <p className="font-semibold text-[15px] text-black">{req.profiles?.username}</p>
-                        <p className="text-xs text-gray-500 font-medium">Wants to connect</p>
+                        <p className="font-bold text-[15px] leading-none mb-1 text-text-main">{req.profiles?.username}</p>
+                        <p className="text-[12px] text-text-sub font-medium">Wants to connect</p>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => handleRejectRequest(req.id)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white text-gray-400 hover:text-black hover:bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-gray-200">
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => handleRejectRequest(req.id)} className="w-10 h-10 flex items-center justify-center rounded-full bg-surface text-text-sub hover:text-text-main hover:bg-border-soft border border-border-soft transition-all focus:outline-none focus:ring-2 focus:ring-border-soft">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
                       </button>
-                      <button onClick={() => handleAcceptRequest(req.id)} className="w-10 h-10 flex items-center justify-center rounded-full bg-black text-white hover:bg-gray-900 shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-black/30 active:scale-95">
+                      <button onClick={() => handleAcceptRequest(req.id)} className="w-10 h-10 flex items-center justify-center rounded-full bg-accent text-text-main hover:bg-accent/80 shadow-md hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-accent/30 active:scale-95">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
                       </button>
                     </div>
@@ -230,8 +229,8 @@ export default function ChatHome() {
           )}
 
           {/* Conversation List */}
-          <div>
-            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-2 mb-2">Recent</h3>
+          <div className="mb-4 mt-2">
+            <h2 className="text-[11px] font-bold text-text-sub uppercase tracking-wider pl-2 mb-2">Recent</h2>
             
             {isLoading ? (
               <div className="px-2 py-8 text-center flex flex-col items-center justify-center gap-3 animate-pulse">
@@ -239,11 +238,13 @@ export default function ChatHome() {
                 <span className="text-sm text-gray-400 font-medium">Loading messages...</span>
               </div>
             ) : conversations.length === 0 ? (
-              <div className="px-2 py-12 text-center flex flex-col items-center justify-center animate-in fade-in duration-700">
-                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-5 shadow-inner">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-black opacity-70"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <div className="flex-1 flex flex-col items-center justify-center text-text-sub animate-in fade-in zoom-in duration-300 px-6 pt-12">
+                <div className="w-20 h-20 bg-base rounded-full flex items-center justify-center mb-6 shadow-inner border border-border-soft">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-sub/50">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                  </svg>
                 </div>
-                <p className="text-gray-800 font-semibold text-lg">No conversations yet</p>
+                <p className="font-bold text-[18px] text-text-main mb-2">No conversations yet</p>
                 <p className="text-gray-400 text-sm mt-1 max-w-[200px] leading-relaxed">Tap the new chat button below to start connecting.</p>
               </div>
             ) : (
@@ -270,36 +271,37 @@ export default function ChatHome() {
                     onTouchEnd={cancelLongPress}
                     onTouchMove={cancelLongPress}
                     onContextMenu={(e) => { e.preventDefault(); setLongPressId(conv.id); }}
-                    className={`flex items-center gap-4 p-3 rounded-2xl cursor-pointer select-none transition-all duration-150 group relative animate-in fade-in slide-in-from-bottom-2 active:scale-[0.97] active:bg-slate-200/90 ${tappedConvId === conv.id ? 'bg-slate-200/90 scale-[0.98] shadow-inner border border-black/10' : longPressId === conv.id ? 'bg-slate-100' : 'hover:bg-slate-100'}`}
+                    className={`flex items-center gap-4 p-3 rounded-2xl cursor-pointer select-none transition-all duration-150 group relative animate-in fade-in slide-in-from-bottom-2 active:scale-[0.97] active:bg-base ${tappedConvId === conv.id ? 'bg-base scale-[0.98] shadow-inner border border-border-soft' : longPressId === conv.id ? 'bg-base' : 'hover:bg-base'}`}
                   >
                     <div className="relative">
-                      <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-bold text-2xl shadow-sm relative overflow-hidden">
+                      <div className="w-12 h-12 bg-accent text-text-main rounded-full flex items-center justify-center font-bold text-2xl shadow-sm relative overflow-hidden border border-border-soft">
                         <AvatarImage url={conv.other_user?.avatar_url} username={conv.other_user?.username} />
                       </div>
                       {/* Online dot */}
                       {conv.other_user?.last_seen && (Date.now() - new Date(conv.other_user.last_seen).getTime() < 150000) && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full z-10"></div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-success border-2 border-surface rounded-full z-10"></div>
                       )}
                     </div>
                     
-                    <div className="flex-1 min-w-0 pr-2">
-                      <div className="flex justify-between items-center mb-0.5">
-                        <h4 className={`font-bold text-[16px] truncate ${conv.unread_count > 0 ? 'text-black' : 'text-gray-900'}`}>{conv.other_user?.username}</h4>
-                        <span className={`text-[11px] font-semibold whitespace-nowrap ${conv.unread_count > 0 ? 'text-black' : 'text-gray-400'}`}>
-                          {new Date(conv.last_message?.sent_at || conv.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <div className="flex-1 min-w-0 pr-1">
+                      <div className="flex justify-between items-baseline mb-0.5">
+                        <h3 className={`font-bold text-[16px] truncate ${conv.unread_count > 0 ? 'text-text-main' : 'text-text-main/90'}`}>
+                          {conv.other_user?.username || 'Unknown'}
+                        </h3>
+                        <span className={`text-[11px] font-medium whitespace-nowrap ml-2 ${conv.unread_count > 0 ? 'text-text-main font-bold' : 'text-text-sub'}`}>
+                          {conv.last_message?.sent_at ? new Date(conv.last_message.sent_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center">
-                        <p className={`text-[14px] truncate flex-1 mr-2 ${conv.unread_count > 0 ? 'text-black font-semibold' : 'text-gray-500 font-medium'}`}>
-                          {getLastMessagePreview(conv)}
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={`text-[14px] truncate leading-tight ${conv.unread_count > 0 ? 'text-text-main font-semibold' : 'text-text-sub'}`}>
+                          {conv.last_message ? getLastMessagePreview(conv) : 'Tap to open conversation...'}
                         </p>
                         {tappedConvId === conv.id ? (
-                          <span className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1 bg-black/5 text-black rounded-full text-xs font-bold animate-pulse">
-                            <span className="w-3 h-3 rounded-full border-2 border-black border-t-transparent animate-spin"></span>
+                          <span className="flex-shrink-0 min-w-[20px] h-[20px] px-1.5 bg-accent-alt text-text-main text-[11px] font-bold rounded-full flex items-center justify-center animate-pulse">
                             Opening...
                           </span>
                         ) : conv.unread_count > 0 && (
-                          <span className="flex-shrink-0 min-w-[20px] h-[20px] px-1.5 bg-black text-white text-[11px] font-bold rounded-full flex items-center justify-center">
+                          <span className="flex-shrink-0 min-w-[20px] h-[20px] px-1.5 bg-accent text-text-main text-[11px] font-bold rounded-full flex items-center justify-center">
                             {conv.unread_count > 99 ? '99+' : conv.unread_count}
                           </span>
                         )}
@@ -333,7 +335,7 @@ export default function ChatHome() {
         {/* Home Button */}
         <button 
           onClick={() => router.push('/')}
-          className="absolute bottom-8 left-6 w-14 h-14 bg-black text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:bg-gray-900 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-150 z-20 focus:outline-none focus:ring-4 focus:ring-black/30 select-none cursor-pointer"
+          className="absolute bottom-8 left-6 w-14 h-14 bg-accent text-text-main rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(74,63,68,0.15)] hover:bg-accent/80 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-150 z-20 focus:outline-none focus:ring-4 focus:ring-accent/30 select-none cursor-pointer border border-border-soft"
           aria-label="Home"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -342,7 +344,7 @@ export default function ChatHome() {
         {/* Floating Action Button */}
         <button 
           onClick={() => setShowNewChat(true)}
-          className="absolute bottom-8 right-6 w-14 h-14 bg-black text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:bg-gray-900 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-150 z-20 focus:outline-none focus:ring-4 focus:ring-black/30 select-none cursor-pointer"
+          className="absolute bottom-8 right-6 w-14 h-14 bg-accent text-text-main rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(74,63,68,0.15)] hover:bg-accent/80 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 transition-all duration-150 z-20 focus:outline-none focus:ring-4 focus:ring-accent/30 select-none cursor-pointer border border-border-soft"
           aria-label="New chat"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>

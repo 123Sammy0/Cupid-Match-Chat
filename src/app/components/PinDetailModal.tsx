@@ -264,7 +264,7 @@ export function PinDetailModal({
 
               {/* Like / Heart */}
               <button 
-                className={`pin-action-icon-btn ${isLiked ? 'liked text-[#E60023]' : ''}`} 
+                className={`pin-action-icon-btn ${isLiked ? 'liked text-[#805232]' : ''}`} 
                 onClick={() => {
                   setIsLiked(!isLiked);
                   onShowToast(!isLiked ? "Added to your likes" : "Removed like");

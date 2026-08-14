@@ -344,7 +344,7 @@ export default function Home() {
               <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
             </svg>
             {savedPinIds.size > 0 && (
-              <span className="absolute -top-1 -right-1 bg-[#E60023] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+              <span className="absolute -top-1 -right-1 bg-[#805232] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                 {savedPinIds.size}
               </span>
             )}
@@ -608,7 +608,7 @@ export default function Home() {
       {/* Toast Alert Feedback */}
       {toastMessage && (
         <div className="pinterest-toast" role="alert">
-          <span className="text-[#E60023]">✦</span>
+          <span className="text-[#805232]">✦</span>
           <span>{toastMessage}</span>
         </div>
       )}
