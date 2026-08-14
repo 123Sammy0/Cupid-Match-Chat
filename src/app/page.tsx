@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { fetchPexelsImages } from "@/app/actions/pexels";
 import { fetchPixabayImages } from "@/app/actions/pixabay";
 import { LazyImage } from "@/app/components/LazyImage";
@@ -57,6 +58,7 @@ const deduplicatePins = (pins: any[]) => {
 };
 
 export default function Home() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
   const [isDrawerOpen, setDrawerOpen] = useState(false);
@@ -163,10 +165,10 @@ export default function Home() {
   };
 
   const openPinDetail = (pin: PinItem) => {
-    const index = pins.findIndex(p => p.id === pin.id);
-    setSelectedPin(pin);
-    setSelectedPinIndex(index >= 0 ? index : 0);
-    setIsModalOpen(true);
+    try {
+      sessionStorage.setItem("current_view_pin", JSON.stringify(pin));
+    } catch {}
+    router.push(`/post/${pin.id}`);
   };
 
   const handlePrevPin = () => {
@@ -500,7 +502,7 @@ export default function Home() {
       />
 
       {/* Category chip bar */}
-      <div className="chip-bar" id="shelves" role="navigation" aria-label="Browse by category">
+      <div className={`chip-bar ${isHeaderVisible ? "" : "chip-bar-hidden"}`} id="shelves" role="navigation" aria-label="Browse by category">
         <div className="chip-bar-inner">
           <div className="chip-scroll">
             {CATEGORIES.map((cat) => (
@@ -711,20 +713,6 @@ export default function Home() {
         <p className="footer-copy">A curated private collection for two.</p>
       </footer>
 
-      {/* Pinterest Lightbox Detail Modal */}
-      <PinDetailModal 
-        isOpen={isModalOpen}
-        pin={selectedPin}
-        onClose={() => setIsModalOpen(false)}
-        onPrev={handlePrevPin}
-        onNext={handleNextPin}
-        hasPrev={selectedPinIndex > 0}
-        hasNext={selectedPinIndex < pins.length - 1}
-        isSaved={selectedPin ? savedPinIds.has(selectedPin.id) : false}
-        onToggleSave={toggleSavePin}
-        onTagClick={handleTagSearch}
-        onShowToast={showToast}
-      />
 
       {/* Toast Alert Feedback */}
       {toastMessage && (

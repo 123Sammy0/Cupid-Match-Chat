@@ -533,6 +533,13 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-faint);
+  transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(0);
+}
+
+.chip-bar-hidden {
+  transform: translateY(calc(-100% - var(--topbar-h)));
+  pointer-events: none;
 }
 
 .chip-bar-inner {
@@ -1618,10 +1625,38 @@
   }
 
   .topbar {
-    padding: 0 14px;
-    gap: var(--space-2);
+    padding: 0 10px;
+    gap: 8px;
+    grid-template-columns: auto 1fr auto;
   }
   .brand { font-size: 18px; }
+  
+  /* Make search pill minimal on mobile */
+  .search-wrap {
+    max-width: 100%;
+  }
+  .search-input {
+    padding: 0 14px 0 32px;
+  }
+  .search-actions-inside {
+    display: none; /* Hide camera/mic on mobile for space */
+  }
+  .search-icon {
+    left: 10px;
+  }
+  
+  /* Hide text in mobile feed (Pinterest Image-Only Grid) */
+  .pin-card-meta {
+    display: none !important;
+  }
+  
+  /* Shrink right actions */
+  .topbar-right {
+    gap: 4px;
+  }
+  .quiet-door-btn {
+    display: none; /* Hide secret door icon on mobile to save space */
+  }
 
   .hero {
     padding: var(--space-6) var(--gutter) var(--space-8);
