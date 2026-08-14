@@ -2151,7 +2151,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     lineHeight: '1.45',
                     paddingTop: 14,
                     paddingBottom: 14,
-                    paddingLeft: newMessage ? 14 : 2,
+                    paddingLeft: 14,
                     maxHeight: 130,
                     overflowY: 'auto',
                     border: 'none',
@@ -2165,7 +2165,6 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     color: '#000',
                     minWidth: 0,
                     margin: 0,
-                    transition: 'padding-left 220ms cubic-bezier(0.4,0,0.2,1)',
                   }}
                   className="placeholder-[#8E8E93] focus:ring-0 focus:outline-none focus:border-transparent focus:shadow-none !bg-transparent scrollbar-hide"
                 />
