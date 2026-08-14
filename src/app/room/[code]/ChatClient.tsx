@@ -577,7 +577,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     if (myTypingTimeoutRef.current) clearTimeout(myTypingTimeoutRef.current);
     if (channelRef.current) channelRef.current.send({ type: 'broadcast', event: 'typing', payload: { user_id: user.id, isTyping: false } });
 
-    const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const msgId = crypto.randomUUID();
 
     const payload = {
@@ -971,7 +971,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         duration: durationSeconds
       });
       const msgId = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
       setMessages(prev => [...prev, {
         id: msgId, sender_id: user.id, conversation_id: conversationId,
@@ -1040,7 +1040,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         const publicUrl = urlData.publicUrl;
         const msgContent = JSON.stringify({ type: 'image', url: publicUrl, name: file.name });
         const msgId = crypto.randomUUID();
-        const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
         setMessages(prev => [...prev, {
           id: msgId, sender_id: user.id, conversation_id: conversationId,
           content: msgContent, type: 'image', sent_at: new Date().toISOString(),
@@ -1081,7 +1081,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         ext: ext
       });
       const msgId = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
       setUploadProgress(90);
       setMessages(prev => [...prev, {
@@ -1137,7 +1137,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       // Send as message with type and url in content (JSON encoded)
       const msgContent = JSON.stringify({ type, url: publicUrl, name: file.name });
       const msgId = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
       setMessages(prev => [...prev, {
         id: msgId, sender_id: user.id, conversation_id: conversationId,
