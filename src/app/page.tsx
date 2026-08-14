@@ -1,36 +1,40 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import Head from "next/head";
 import { fetchPexelsImages } from "@/app/actions/pexels";
 import { fetchPixabayImages } from "@/app/actions/pixabay";
 import { LazyImage } from "@/app/components/LazyImage";
-
+import { PinDetailModal, PinItem } from "@/app/components/PinDetailModal";
 
 const AESTHETIC_KEYWORDS = [
-  "Aesthetic typography quotes", "Minimalist text quotes aesthetic", "Vintage typewriter quotes",
-  "Vintage books and coffee aesthetic", "Dark academia books and candles", "Old bookstore aesthetic",
-  "Dreamy golden hour sunset photography", "Cinematic sky dramatic clouds aesthetic", "Warm orange glow sky",
-  "Whimsical forest path aesthetic", "Sunlit leaves emerald green", "Mossy green cottage window",
-  "Pakistani suit aesthetic pastel embroidery", "Traditional Pakistani palazzo suits", "Chikankari white kurta",
-  "Indian traditional saree aesthetic minimal", "Modest fashion Eid outfit pastel",
-  "Islamic architecture aesthetic mosque", "Mughal architecture aesthetic patterns",
-  "Arabic calligraphy aesthetic minimal", "Islamic art aesthetic",
-  "Minimalist coffee shop aesthetic", "Cozy lifestyle workspace coffee",
-  "Aesthetic interior design minimal wabi sabi", "Soft pastel flowers aesthetic",
-  "Vintage travel aesthetic Europe", "Aesthetic food photography minimal"
+  "Aesthetic vintage books and coffee", "Quiet reading corner morning light",
+  "Warm poetry book pages typography", "Cozy library aesthetic books desk",
+  "Nature calm forest sunlight aesthetic", "Vintage journal handwritten aesthetic",
+  "Minimalist architecture stone arch", "Golden hour sunset gentle shadows",
+  "Warm tea cup open book aesthetic", "Antique bookstore shelf calm",
+  "Botanical leaves soft lighting", "Old paper handwritten notes minimal"
 ];
 
 const CATEGORY_MAPPINGS: Record<string, string[]> = {
-  "aesthetic quotes": ["Aesthetic typography quotes", "Minimalist aesthetic quotes text", "Handwritten journal quotes"],
-  "motivational": ["Motivational typography aesthetic", "Positive affirmations text", "Success quotes minimal"],
-  "study": ["Cozy reading corner aesthetic", "Dark academia books", "Study desk aesthetic coffee"],
-  "short quotes": ["Short meaningful quotes text", "Minimalist words aesthetic", "Typewriter short quotes"],
-  "life": ["Lifestyle coffee shop aesthetic", "Slow living aesthetic", "Peaceful nature aesthetic life"],
-  "inspirational": ["Inspiring architecture aesthetic", "Beautiful sunset golden hour", "Islamic calligraphy aesthetic"],
-  "meaningful": ["Poetry quotes aesthetic", "Deep meaningful art aesthetic", "Minimalist text quotes"]
+  "reading now": ["Vintage books reading aesthetic", "Reading corner coffee book", "Open book table warm"],
+  "quiet places": ["Quiet cozy cottage window", "Calm nature forest sunlight", "Peaceful library nook"],
+  "quotes": ["Aesthetic typography quotes journal", "Typewriter text quote minimal", "Poetry verses book aesthetic"],
+  "collections": ["Art gallery minimal sculpture", "Curated vintage stationery", "Aesthetic botanical collection"],
+  "notes": ["Handwritten journal notes aesthetic", "Fountain pen paper writing", "Warm coffee desk study"],
+  "classics": ["Classic leather books shelf", "Old library antique literature", "Vintage academia aesthetic"],
+  "weekend": ["Unhurried weekend coffee breakfast", "Lazy sunday reading light", "Gentle walk nature path"]
 };
 
+const CATEGORIES = [
+  { label: "All", value: "all" },
+  { label: "Reading now", value: "reading now" },
+  { label: "Quiet places", value: "quiet places" },
+  { label: "Quotes", value: "quotes" },
+  { label: "Collections", value: "collections" },
+  { label: "Notes", value: "notes" },
+  { label: "Classics", value: "classics" },
+  { label: "Weekend", value: "weekend" }
+];
 
 const shuffleArray = (array: any[]) => {
   const newArr = [...array];
@@ -44,7 +48,7 @@ const shuffleArray = (array: any[]) => {
 const deduplicatePins = (pins: any[]) => {
   const seen = new Set();
   return pins.filter(pin => {
-    const key = pin.src?.large2x || pin.src?.large || pin.src;
+    const key = pin.src?.large2x || pin.src?.large || pin.src || pin.id;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -56,18 +60,95 @@ export default function Home() {
   const [activeSearch, setActiveSearch] = useState("");
   const [isDrawerOpen, setDrawerOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("all");
-  const [pins, setPins] = useState<any[]>([]);
+  const [pins, setPins] = useState<PinItem[]>([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [numCols, setNumCols] = useState(5);
+  
+  // Pinterest Modal & Saved State
+  const [selectedPin, setSelectedPin] = useState<PinItem | null>(null);
+  const [selectedPinIndex, setSelectedPinIndex] = useState<number>(-1);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [savedPinIds, setSavedPinIds] = useState<Set<string | number>>(new Set());
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  // Load saved pin IDs from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("saved_pins");
+      if (stored) {
+        setSavedPinIds(new Set(JSON.parse(stored)));
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  const showToast = (msg: string) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage(msg);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 3000);
+  };
+
+  const toggleSavePin = (pin: PinItem) => {
+    setSavedPinIds(prev => {
+      const next = new Set(prev);
+      const pinId = pin.id;
+      if (next.has(pinId)) {
+        next.delete(pinId);
+        showToast("Removed from your saved collection");
+      } else {
+        next.add(pinId);
+        showToast("Saved to your collection board ✦");
+      }
+      try {
+        localStorage.setItem("saved_pins", JSON.stringify(Array.from(next)));
+      } catch {}
+      return next;
+    });
+  };
+
+  const openPinDetail = (pin: PinItem) => {
+    const index = pins.findIndex(p => p.id === pin.id);
+    setSelectedPin(pin);
+    setSelectedPinIndex(index >= 0 ? index : 0);
+    setIsModalOpen(true);
+  };
+
+  const handlePrevPin = () => {
+    if (selectedPinIndex > 0) {
+      const nextIndex = selectedPinIndex - 1;
+      setSelectedPinIndex(nextIndex);
+      setSelectedPin(pins[nextIndex]);
+    }
+  };
+
+  const handleNextPin = () => {
+    if (selectedPinIndex < pins.length - 1) {
+      const nextIndex = selectedPinIndex + 1;
+      setSelectedPinIndex(nextIndex);
+      setSelectedPin(pins[nextIndex]);
+    }
+  };
+
+  const handleTagSearch = (tag: string) => {
+    setActiveCategory('all');
+    setActiveSearch(tag);
+    setSearchQuery(tag);
+    document.getElementById('collection')?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
     const updateCols = () => {
       if (window.innerWidth < 640) setNumCols(2);
-      else if (window.innerWidth < 1000) setNumCols(3);
+      else if (window.innerWidth < 1024) setNumCols(3);
       else if (window.innerWidth < 1280) setNumCols(4);
       else setNumCols(5);
     };
@@ -76,6 +157,7 @@ export default function Home() {
     return () => window.removeEventListener("resize", updateCols);
   }, []);
 
+  // Keyboard shortcut to private gate (Shift + . or Shift + >)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.shiftKey && (e.key === '>' || e.key === '.')) {
@@ -86,19 +168,18 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Split pins into columns
-  const columnArrays = Array.from({ length: numCols }, () => [] as any[]);
+  // Split pins evenly into columns
+  const columnArrays = Array.from({ length: numCols }, () => [] as PinItem[]);
   pins.forEach((pin, i) => columnArrays[i % numCols].push(pin));
 
-  const toggleDrawer = () => setDrawerOpen(!isDrawerOpen);
+  const toggleDrawer = () => setDrawerOpen(prev => !prev);
 
-  // Initial load or category change
+  // Initial load or filter change
   useEffect(() => {
     let isMounted = true;
     const fetchInitial = async () => {
       setIsLoading(true);
       
-      let photos: any[] = [];
       const fetchMix = async (q1: string, q2: string, p1: number, p2: number) => {
         const [px, pb] = await Promise.all([
           fetchPexelsImages(q1, p1, 15),
@@ -107,22 +188,21 @@ export default function Home() {
         return shuffleArray([...(px.photos || []), ...(pb.photos || [])]);
       };
 
+      let photos: any[] = [];
       if (activeSearch) {
-        // Search overrides everything
-        const q = `${activeSearch} aesthetic (modest OR traditional)`;
-        photos = await fetchMix(q, activeSearch + ' aesthetic', 1, 1);
+        photos = await fetchMix(`${activeSearch} aesthetic books`, `${activeSearch} aesthetic`, 1, 1);
       } else if (activeCategory === 'all') {
         const shuffled = shuffleArray(AESTHETIC_KEYWORDS);
-        const r1 = Math.floor(Math.random() * 5) + 1;
-        const r2 = Math.floor(Math.random() * 5) + 1;
+        const r1 = Math.floor(Math.random() * 4) + 1;
+        const r2 = Math.floor(Math.random() * 4) + 1;
         photos = await fetchMix(shuffled[0], shuffled[1], r1, r2);
       } else {
-        const mapped = CATEGORY_MAPPINGS[activeCategory] || [`${activeCategory} aesthetic modest`];
+        const mapped = CATEGORY_MAPPINGS[activeCategory] || [`${activeCategory} aesthetic`];
         const shuffled = shuffleArray(mapped);
         const q1 = shuffled[0];
         const q2 = shuffled.length > 1 ? shuffled[1] : shuffled[0];
-        const r1 = Math.floor(Math.random() * 4) + 1;
-        const r2 = Math.floor(Math.random() * 4) + 1;
+        const r1 = Math.floor(Math.random() * 3) + 1;
+        const r2 = Math.floor(Math.random() * 3) + 1;
         photos = await fetchMix(q1, q2, r1, r2);
       }
 
@@ -139,11 +219,12 @@ export default function Home() {
         setIsLoading(false);
       }
     };
+
     fetchInitial();
     return () => { isMounted = false; };
-  }, [activeSearch, activeCategory, activeSearch]);
+  }, [activeSearch, activeCategory]);
 
-  // Infinite Scroll Intersection Observer
+  // Infinite scroll observer
   useEffect(() => {
     if (observerRef.current) observerRef.current.disconnect();
     
@@ -152,7 +233,6 @@ export default function Home() {
         const fetchMore = async () => {
           setIsLoading(true);
           
-          let newPhotos: any[] = [];
           const fetchMix = async (q1: string, q2: string, p1: number, p2: number) => {
             const [px, pb] = await Promise.all([
               fetchPexelsImages(q1, p1, 15),
@@ -161,14 +241,14 @@ export default function Home() {
             return shuffleArray([...(px.photos || []), ...(pb.photos || [])]);
           };
 
+          let newPhotos: any[] = [];
           if (activeSearch) {
-            const q = `${activeSearch} aesthetic (modest OR traditional)`;
-            newPhotos = await fetchMix(q, activeSearch + ' aesthetic', page, page);
+            newPhotos = await fetchMix(`${activeSearch} aesthetic books`, `${activeSearch} aesthetic`, page, page);
           } else if (activeCategory === 'all') {
             const shuffled = shuffleArray(AESTHETIC_KEYWORDS);
             newPhotos = await fetchMix(shuffled[0], shuffled[1], page, page);
           } else {
-            const mapped = CATEGORY_MAPPINGS[activeCategory] || [`${activeCategory} aesthetic modest`];
+            const mapped = CATEGORY_MAPPINGS[activeCategory] || [`${activeCategory} aesthetic`];
             const shuffled = shuffleArray(mapped);
             const q1 = shuffled[0];
             const q2 = shuffled.length > 1 ? shuffled[1] : shuffled[0];
@@ -176,9 +256,7 @@ export default function Home() {
           }
           
           if (newPhotos.length > 0) {
-            setPins(current => {
-              return deduplicatePins([...current, ...newPhotos]);
-            });
+            setPins(current => deduplicatePins([...current, ...newPhotos]));
             setPage(prev => prev + 1);
           } else {
             setHasMore(false);
@@ -187,7 +265,7 @@ export default function Home() {
         };
         fetchMore();
       }
-    }, { rootMargin: '1200px' });
+    }, { rootMargin: '1000px' });
     
     if (loadMoreRef.current) observerRef.current.observe(loadMoreRef.current);
     
@@ -195,162 +273,349 @@ export default function Home() {
   }, [hasMore, isLoading, page, activeSearch, activeCategory]);
 
   return (
-    <>
+    <main id="libraryView" className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+      {/* Top bar */}
       <header className="topbar" role="banner">
         <div className="topbar-left">
-          <button className="hamburger" id="mobileMenu" aria-label="Open navigation" aria-expanded={isDrawerOpen} onClick={toggleDrawer}>
+          <button 
+            className="hamburger" 
+            id="mobileMenu" 
+            aria-label="Open navigation" 
+            aria-expanded={isDrawerOpen} 
+            onClick={toggleDrawer}
+          >
             <span></span><span></span><span></span>
           </button>
           <a className="brand" href="#top" aria-label="Little Library home">
-            little library<span className="brand-dot" style={{color: "var(--red)"}}>.</span>
+            little library<span className="brand-dot">.</span>
           </a>
         </div>
-        <form className="search-wrap" role="search" onSubmit={(e) => { e.preventDefault(); setActiveCategory('all'); setActiveSearch(searchQuery); }}>
-          <span className="search-icon" aria-hidden="true" onClick={() => { setActiveCategory('all'); setActiveSearch(searchQuery); }} style={{cursor: 'pointer'}}>
+
+        {/* Search */}
+        <form 
+          className="search-wrap" 
+          role="search" 
+          onSubmit={(e) => { 
+            e.preventDefault(); 
+            setActiveCategory('all'); 
+            setActiveSearch(searchQuery); 
+          }}
+        >
+          <span 
+            className="search-icon" 
+            aria-hidden="true" 
+            onClick={() => { setActiveCategory('all'); setActiveSearch(searchQuery); }}
+          >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
             </svg>
           </span>
-          <label htmlFor="searchInput" className="sr-only">Search aesthetics</label>
+          <label htmlFor="searchInput" className="sr-only">Search books, quotes, notes</label>
           <input 
             type="search" 
             id="searchInput" 
-            placeholder="Search aesthetics, nature, fashion..." 
+            placeholder="Search books, quotes, notes…" 
             autoComplete="off"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </form>
+
+        {/* Right actions */}
         <div className="topbar-right">
           <nav className="topnav" aria-label="Primary navigation">
             <a href="#shelves" className="nav-link active">Browse</a>
             <a href="#collection" className="nav-link">Collections</a>
             <a href="#notes" className="nav-link">Notes</a>
           </nav>
-          <button className="icon-btn" aria-label="Saved items">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+
+          <button 
+            className="icon-btn relative" 
+            aria-label="Saved items"
+            onClick={() => {
+              if (savedPinIds.size > 0) {
+                showToast(`You have ${savedPinIds.size} saved pin${savedPinIds.size > 1 ? 's' : ''}`);
+              } else {
+                showToast("Click 'Save' on any pin to start your collection!");
+              }
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill={savedPinIds.size > 0 ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
             </svg>
+            {savedPinIds.size > 0 && (
+              <span className="absolute -top-1 -right-1 bg-[#E60023] text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                {savedPinIds.size}
+              </span>
+            )}
           </button>
-          <button className="icon-btn quiet-door-btn" id="quietDoor" aria-label="Private entry" title="Private room (Shift+.)" onClick={() => window.location.href = '/gate'}>
+
+          {/* Discreet private entrance */}
+          <button 
+            className="icon-btn quiet-door-btn" 
+            id="quietDoor" 
+            aria-label="Private entry" 
+            title="Private room (Shift+.)" 
+            onClick={() => window.location.href = '/gate'}
+          >
             <span className="quiet-star" aria-hidden="true">✦</span>
           </button>
         </div>
       </header>
 
+      {/* Mobile Drawer */}
       <div className="mobile-drawer" id="mobileDrawer" aria-hidden={!isDrawerOpen} aria-label="Mobile navigation">
         <nav>
-          <a href="#shelves">Browse</a>
-          <a href="#collection">Collections</a>
-          <a href="#notes">Notes</a>
+          <a href="#shelves" onClick={() => setDrawerOpen(false)}>Browse</a>
+          <a href="#collection" onClick={() => setDrawerOpen(false)}>Collections</a>
+          <a href="#notes" onClick={() => setDrawerOpen(false)}>Notes</a>
         </nav>
       </div>
-      <div className={`drawer-overlay ${isDrawerOpen ? 'visible' : ''}`} id="drawerOverlay" aria-hidden={!isDrawerOpen} onClick={toggleDrawer}></div>
+      <div 
+        className={`drawer-overlay ${isDrawerOpen ? 'visible' : ''}`} 
+        id="drawerOverlay" 
+        aria-hidden={!isDrawerOpen} 
+        onClick={toggleDrawer}
+      />
 
+      {/* Category chip bar */}
       <div className="chip-bar" id="shelves" role="navigation" aria-label="Browse by category">
         <div className="chip-bar-inner">
           <div className="chip-scroll">
-            {["All", "Aesthetic Quotes", "Motivational", "Study", "Short Quotes", "Life", "Inspirational", "Meaningful"].map((cat) => (
-              <button key={cat} className={`chip ${activeCategory === cat.toLowerCase() ? "active" : ""}`} onClick={() => setActiveCategory(cat.toLowerCase())}>
-                {cat}
+            {CATEGORIES.map((cat) => (
+              <button 
+                key={cat.value} 
+                className={`chip ${activeCategory === cat.value && !activeSearch ? "active" : ""}`} 
+                onClick={() => {
+                  setActiveSearch("");
+                  setSearchQuery("");
+                  setActiveCategory(cat.value);
+                }}
+              >
+                {cat.label}
               </button>
             ))}
           </div>
         </div>
       </div>
 
+      {/* Hero Section */}
       {activeCategory === 'all' && !activeSearch && (
-      <section className="hero" id="top" aria-label="Welcome">
-        <div className="hero-text">
-          <p className="eyebrow">A private collection of slow things</p>
-          <h1>Pages to keep,<br /><em>places to return&nbsp;to.</em></h1>
-          <p className="hero-sub">A small shelf of books, thoughts, and gentle visual notes for unhurried days.</p>
-          <div className="hero-actions">
-            <button 
-              className="btn btn-primary" 
-              style={{backgroundColor: "var(--red)"}}
-              onClick={() => document.getElementById('collection')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              Explore collection
-            </button>
+        <section className="hero" id="top" aria-label="Welcome">
+          <div className="hero-text">
+            <span className="eyebrow">A private collection of slow things</span>
+            <h1>
+              Pages to keep,<br />
+              <em>places to return&nbsp;to.</em>
+            </h1>
+            <p className="hero-sub">
+              A small shelf of books, thoughts, and gentle visual notes for unhurried days.
+            </p>
+            <div className="hero-actions">
+              <button 
+                className="btn btn-primary"
+                onClick={() => document.getElementById('collection')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                Explore collection
+              </button>
+              <button 
+                className="btn btn-ghost"
+                onClick={() => document.getElementById('shelves')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                View shelves
+              </button>
+            </div>
           </div>
-        </div>
-        <div className="hero-visual" aria-hidden="true">
-          <div className="hero-card hero-card-1"><img src="https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg?auto=compress&cs=tinysrgb&w=500" alt="Books" loading="eager" /></div>
-          <div className="hero-card hero-card-2"><img src="https://images.pexels.com/photos/762687/pexels-photo-762687.jpeg?auto=compress&cs=tinysrgb&w=500" alt="Coffee" loading="eager" /></div>
-          <div className="hero-card hero-card-3"><img src="https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=300" alt="Nook" loading="eager" /></div>
-        </div>
-      </section>
+
+          <div className="hero-visual" aria-hidden="true">
+            <div className="hero-card hero-card-1">
+              <img 
+                src="https://images.pexels.com/photos/159711/books-bookstore-book-reading-159711.jpeg?auto=compress&cs=tinysrgb&w=500" 
+                alt="Books on a shelf" 
+                loading="eager" 
+              />
+            </div>
+            <div className="hero-card hero-card-2">
+              <img 
+                src="https://images.pexels.com/photos/762687/pexels-photo-762687.jpeg?auto=compress&cs=tinysrgb&w=500" 
+                alt="Open book with coffee" 
+                loading="eager" 
+              />
+            </div>
+            <div className="hero-card hero-card-3">
+              <img 
+                src="https://images.pexels.com/photos/1029141/pexels-photo-1029141.jpeg?auto=compress&cs=tinysrgb&w=300" 
+                alt="Reading nook" 
+                loading="eager" 
+              />
+            </div>
+          </div>
+        </section>
       )}
 
+      {/* Pinterest Masonry Pin Stream */}
       <section className="pins-section" id="collection" aria-label="Books and inspiration">
-        <div className="flex justify-center w-full" style={{ gap: '14px', alignItems: 'flex-start' }} id="pinsGrid" role="list" aria-label="Pin collection">
+        <div className="flex justify-center w-full" style={{ gap: '16px', alignItems: 'flex-start' }} id="pinsGrid" role="list" aria-label="Pin collection">
           {columnArrays.map((colPins, colIndex) => (
-            <div key={colIndex} className="flex flex-col flex-1 min-w-0" style={{ gap: '14px' }}>
-              {colPins.map((pin) => (
-                <div key={pin.id} className="pin-card" style={{position: 'relative', margin: 0, breakInside: 'avoid'}}>
-                  <LazyImage 
-                    src={pin.src?.large2x || pin.src?.large || pin.src} 
-                    alt={pin.alt || "Aesthetic"} 
-                    className="w-full block rounded-[16px]"
-                    style={pin.width && pin.height ? { aspectRatio: `${pin.width} / ${pin.height}` } : { minHeight: '300px' }}
-                  />
+            <div key={colIndex} className="flex flex-col flex-1 min-w-0" style={{ gap: '16px' }}>
+              {colPins.map((pin) => {
+                const isSaved = savedPinIds.has(pin.id);
+                const title = pin.title || pin.alt || "Aesthetic Moment";
+                const photographer = pin.photographer || "Curated Artist";
+                const domain = pin.provider === "pixabay" ? "pixabay.com" : pin.provider === "pexels" ? "pexels.com" : "library.art";
+                const avatar = pin.photographer_avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(photographer)}&backgroundColor=e8d98a,c48a6e,4f8b6e`;
 
-                  <div className="pin-overlay" style={{
-                    position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', opacity: 0, 
-                    transition: 'opacity 0.2s', display: 'flex', flexDirection: 'column', 
-                    justifyContent: 'space-between', padding: '12px', borderRadius: '16px'
-                  }}>
-                    <button style={{
-                      alignSelf: 'flex-end', background: 'var(--red)', color: 'white', border: 'none', 
-                      borderRadius: '24px', padding: '10px 16px', fontWeight: 'bold', cursor: 'pointer'
-                    }}>Save</button>
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                      <a href={pin.url || "#"} target="_blank" rel="noopener noreferrer" style={{
-                        background: 'rgba(255,255,255,0.9)', color: 'black', padding: '8px 12px', 
-                        borderRadius: '20px', fontWeight: 'bold', fontSize: '12px', textDecoration: 'none'
-                      }}>Visit site</a>
-                      <button style={{width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.9)', border: 'none', cursor: 'pointer'}}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="black" style={{margin: 'auto'}}><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
-                      </button>
+                return (
+                  <div 
+                    key={pin.id} 
+                    className="pin-card-wrapper"
+                    onClick={() => openPinDetail(pin)}
+                  >
+                    {/* Visual Card Image Box */}
+                    <div className="pin-image-box">
+                      <LazyImage 
+                        src={pin.src?.large2x || pin.src?.large || (pin as any).src} 
+                        alt={title} 
+                        className="w-full block"
+                        style={pin.width && pin.height ? { aspectRatio: `${pin.width} / ${pin.height}` } : { minHeight: '260px' }}
+                      />
+
+                      {/* Pinterest Hover Actions Overlay */}
+                      <div className="pin-overlay">
+                        {/* Top Right Red Save Button */}
+                        <button 
+                          className={`pin-hover-save-btn ${isSaved ? "saved" : ""}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSavePin(pin);
+                          }}
+                        >
+                          {isSaved ? "Saved" : "Save"}
+                        </button>
+                        
+                        {/* Bottom Action Bar */}
+                        <div className="pin-hover-bottom-bar">
+                          <a 
+                            href={pin.url || "#"} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="pin-hover-source-pill"
+                            onClick={(e) => e.stopPropagation()}
+                            title={`Visit ${domain}`}
+                          >
+                            <span>{domain}</span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path d="M7 17L17 7M17 7H7M17 7V17"/>
+                            </svg>
+                          </a>
+
+                          <div className="flex items-center gap-1.5">
+                            {/* Share button */}
+                            <button 
+                              className="pin-hover-icon-btn"
+                              aria-label="Share pin"
+                              title="Share"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (navigator.clipboard) {
+                                  navigator.clipboard.writeText(pin.url || window.location.href);
+                                  showToast("Pin link copied to clipboard!");
+                                }
+                              }}
+                            >
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pinterest Meta: Title & Creator Underneath */}
+                    <div className="pin-card-meta">
+                      <h2 className="pin-card-title">{title}</h2>
+                      <div className="pin-card-author-row">
+                        <img 
+                          src={avatar} 
+                          alt={photographer} 
+                          className="pin-card-author-avatar" 
+                        />
+                        <span className="pin-card-author-name">{photographer}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ))}
         </div>
         
-        <div ref={loadMoreRef} className="load-more-wrap" style={{padding: '40px 0', textAlign: 'center', minHeight: '100px'}}>
+        {/* Infinite loader */}
+        <div ref={loadMoreRef} className="load-more-wrap" style={{ padding: '40px 0', textAlign: 'center', minHeight: '80px' }}>
           {isLoading && (
-            <button className="btn btn-ghost" disabled style={{ opacity: 0.7, cursor: 'default' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{animation: 'spin 1s linear infinite', marginRight: '8px', display: 'inline-block'}}>
+            <button className="btn btn-ghost" disabled style={{ opacity: 0.8, cursor: 'default' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 1s linear infinite', marginRight: '8px', display: 'inline-block' }}>
                 <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10" />
               </svg>
-              Loading more images...
+              Discovering more pages...
             </button>
           )}
-          {!hasMore && pins.length > 0 && <p style={{color: 'var(--text-muted)'}}>You've reached the end.</p>}
+          {!hasMore && pins.length > 0 && (
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px', fontStyle: 'italic' }}>
+              You have reached the end of the shelf.
+            </p>
+          )}
         </div>
       </section>
 
+      {/* Shelf note & footer door */}
       <section className="shelf-note" id="notes" aria-label="Library footer note">
         <p className="shelf-text">Saved slowly, read often, shared quietly.</p>
         <div className="shelf-divider" aria-hidden="true"></div>
-        <button className="shelf-door" id="quietDoor2" aria-label="Open private room" onClick={() => window.location.href = '/gate'}>
+        <button 
+          className="shelf-door" 
+          id="quietDoor2" 
+          aria-label="Open private room" 
+          onClick={() => window.location.href = '/gate'}
+        >
           <span aria-hidden="true">✦</span>
         </button>
       </section>
 
+      {/* Footer */}
       <footer className="site-footer" role="contentinfo">
-        <p className="footer-brand">little library<span style={{color: 'var(--red)'}}>.</span></p>
-        <p className="footer-copy">A curated private collection.</p>
+        <p className="footer-brand">little library<span style={{ color: 'var(--peach)' }}>.</span></p>
+        <p className="footer-copy">A curated private collection for two.</p>
       </footer>
+
+      {/* Pinterest Lightbox Detail Modal */}
+      <PinDetailModal 
+        isOpen={isModalOpen}
+        pin={selectedPin}
+        onClose={() => setIsModalOpen(false)}
+        onPrev={handlePrevPin}
+        onNext={handleNextPin}
+        hasPrev={selectedPinIndex > 0}
+        hasNext={selectedPinIndex < pins.length - 1}
+        isSaved={selectedPin ? savedPinIds.has(selectedPin.id) : false}
+        onToggleSave={toggleSavePin}
+        onTagClick={handleTagSearch}
+        onShowToast={showToast}
+      />
+
+      {/* Toast Alert Feedback */}
+      {toastMessage && (
+        <div className="pinterest-toast" role="alert">
+          <span className="text-[#E60023]">✦</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
       
       <style dangerouslySetInnerHTML={{__html: `
-        .pin:hover .pin-overlay { opacity: 1 !important; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
       `}} />
-    </>
+    </main>
   );
 }

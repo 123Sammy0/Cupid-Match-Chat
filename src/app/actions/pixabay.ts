@@ -21,19 +21,37 @@ export async function fetchPixabayImages(query: string, page: number = 1, perPag
     const data = await res.json();
     
     // Normalize and filter out low-res images (< 800px on either side)
-    const validPhotos = data.hits.filter((hit: any) => hit.imageWidth >= 800 && hit.imageHeight >= 800).map((hit: any) => ({
-      id: `pixabay-${hit.id}`,
-      src: {
-        large2x: hit.largeImageURL,
-        large: hit.largeImageURL,
-        medium: hit.webformatURL,
-      },
-      url: hit.pageURL,
-      alt: hit.tags,
-      width: hit.imageWidth,
-      height: hit.imageHeight,
-      provider: 'pixabay'
-    }));
+    const validPhotos = data.hits.filter((hit: any) => hit.imageWidth >= 800 && hit.imageHeight >= 800).map((hit: any) => {
+      const rawTags = hit.tags ? hit.tags.split(',').map((t: string) => t.trim()) : [];
+      const cleanTitle = rawTags.length > 0
+        ? rawTags.slice(0, 3).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' • ')
+        : "Aesthetic Inspiration";
+      
+      const description = `Curated visual captured by ${hit.user || 'Artist'}. Keywords: ${hit.tags || 'aesthetic'}.`;
+
+      return {
+        id: `pixabay-${hit.id}`,
+        src: {
+          large2x: hit.largeImageURL,
+          large: hit.largeImageURL,
+          medium: hit.webformatURL,
+        },
+        title: cleanTitle,
+        description: description,
+        url: hit.pageURL,
+        alt: hit.tags || cleanTitle,
+        width: hit.imageWidth,
+        height: hit.imageHeight,
+        provider: 'pixabay',
+        photographer: hit.user || "Featured Creator",
+        photographer_url: `https://pixabay.com/users/${encodeURIComponent(hit.user || '')}-${hit.user_id}/`,
+        photographer_avatar: hit.userImageURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(hit.user || 'Creator')}&backgroundColor=c48a6e,4f8b6e,a8924a`,
+        tags: rawTags.length > 0 ? rawTags : ["aesthetic", "photography", "mood"],
+        likes: hit.likes || 0,
+        views: hit.views || 0,
+        avg_color: "#F0E8D8"
+      };
+    });
 
     return { photos: validPhotos, error: null };
   } catch (error: any) {

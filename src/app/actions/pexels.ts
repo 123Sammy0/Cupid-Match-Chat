@@ -33,11 +33,34 @@ export async function fetchPexelsImages(query: string, page: number = 1, perPage
     // Normalize and filter out low-res images (< 800px)
     const validPhotos = data.photos
       .filter((photo: any) => photo.width >= 800 && photo.height >= 800)
-      .map((photo: any) => ({
-        ...photo,
-        provider: 'pexels',
-        alt: photo.alt || "Aesthetic"
-      }));
+      .map((photo: any) => {
+        const rawAlt = photo.alt ? photo.alt.trim() : "";
+        const cleanTitle = rawAlt 
+          ? rawAlt.length > 50 
+            ? rawAlt.substring(0, 48) + "…" 
+            : rawAlt
+          : "Aesthetic Moment";
+        
+        const description = rawAlt
+          ? `${rawAlt}. Captured by ${photo.photographer || "an artist"}.`
+          : `Curated visual captured with gentle lighting and rich aesthetic warmth by ${photo.photographer || "artist"}.`;
+
+        const queryTags = query.split(/\s+/).filter(t => t.length > 2);
+        const tags = Array.from(new Set(["aesthetic", ...queryTags, ...(photo.photographer ? [photo.photographer.toLowerCase()] : [])])).slice(0, 5);
+
+        return {
+          ...photo,
+          title: cleanTitle,
+          description: description,
+          provider: 'pexels',
+          alt: rawAlt || cleanTitle,
+          photographer: photo.photographer || "Curated Artist",
+          photographer_url: photo.photographer_url || photo.url,
+          photographer_avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(photo.photographer || 'Photographer')}&backgroundColor=e8d98a,c48a6e,4f8b6e`,
+          tags: tags,
+          avg_color: photo.avg_color || "#FAF6EE"
+        };
+      });
 
     return { photos: validPhotos, error: null };
   } catch (error: any) {
