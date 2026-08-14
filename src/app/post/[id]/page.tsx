@@ -194,12 +194,12 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
       </header>
 
       {/* Main Pinterest Layout */}
-      <div className="max-w-[1016px] mx-auto mt-6 sm:mt-10 px-4 sm:px-6">
-        <div className="pin-modal-card mx-auto" style={{ maxWidth: '100%', display: 'flex', flexDirection: 'column', height: 'auto', maxHeight: 'none', borderRadius: '32px', overflow: 'hidden', backgroundColor: 'var(--white)', boxShadow: '0 8px 30px rgba(50, 96, 128, 0.08)' }}>
+      <div className="max-w-[1016px] mx-auto sm:mt-10 sm:px-6">
+        <div className="pin-modal-card mx-auto shadow-sm sm:shadow-lg rounded-none sm:rounded-[32px]" style={{ maxWidth: '100%', display: 'flex', height: 'auto', maxHeight: 'none', overflow: 'hidden', backgroundColor: 'var(--white)' }}>
           <div className="flex flex-col lg:flex-row w-full">
             {/* Left Image Col */}
-            <div className="w-full lg:w-1/2 p-4 sm:p-5 flex items-center justify-center bg-[#F9F9F9]">
-              <div className="relative w-full rounded-2xl overflow-hidden shadow-sm" style={{ alignSelf: 'flex-start' }}>
+            <div className="w-full lg:w-1/2 p-0 sm:p-5 flex items-center justify-center sm:bg-[#F9F9F9]">
+              <div className="relative w-full sm:rounded-2xl overflow-hidden sm:shadow-sm" style={{ alignSelf: 'flex-start' }}>
                 <img 
                   src={imgSrc} 
                   alt={pinTitle} 
@@ -210,7 +210,7 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
             </div>
 
             {/* Right Meta Col */}
-            <div className="w-full lg:w-1/2 p-6 sm:p-8 flex flex-col">
+            <div className="w-full lg:w-1/2 p-4 sm:p-8 flex flex-col">
               {/* Header Actions */}
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">

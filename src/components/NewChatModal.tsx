@@ -39,8 +39,8 @@ export default function NewChatModal({ onClose, onChatCreated }: { onClose: () =
   };
 
   return (
-    <div className="fixed inset-0 bg-[#326080]/35 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[#FFF8F2] w-full max-w-md rounded-[32px] shadow-[0_8px_40px_rgb(50,96,128,0.12)] border border-[#326080]/8 overflow-hidden flex flex-col h-[500px] animate-in zoom-in-95 duration-200 text-[#326080]">
+    <div className="fixed inset-0 bg-[#326080]/35 backdrop-blur-sm z-50 flex items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-[#FFF8F2] w-full sm:max-w-md rounded-none sm:rounded-[32px] shadow-none sm:shadow-[0_8px_40px_rgb(50,96,128,0.12)] sm:border border-[#326080]/8 overflow-hidden flex flex-col h-full sm:h-[500px] animate-in zoom-in-95 duration-200 text-[#326080]">
         
         {/* Header */}
         <div className="p-4 flex items-center gap-3 border-b border-[#326080]/8 bg-[#FFF8F2]/90 backdrop-blur-xl">
