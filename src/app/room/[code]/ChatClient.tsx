@@ -1584,10 +1584,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 
                 {/* Tail SVG */}
                 {showTail && isMine && (
-                  <svg className="absolute -right-[6px] bottom-0 text-black w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M0 0v13h8C4 13 1 9 0 0z"/></svg>
+                  <svg className="absolute -right-[6px] bottom-0 text-text-main w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M0 0v13h8C4 13 1 9 0 0z"/></svg>
                 )}
                 {showTail && !isMine && (
-                  <svg className="absolute -left-[6px] bottom-0 text-slate-100 w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M8 0v13H0C4 13 7 9 8 0z"/></svg>
+                  <svg className="absolute -left-[6px] bottom-0 text-accent w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M8 0v13H0C4 13 7 9 8 0z"/></svg>
                 )}
 
                 <div className={`relative ${mediaData ? 'p-1' : docData ? 'p-1' : 'px-3 pt-2 pb-1.5'} z-10`}>
