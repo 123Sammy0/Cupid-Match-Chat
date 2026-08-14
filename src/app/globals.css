@@ -331,19 +331,93 @@
   background: rgba(50, 96, 128, 0.05);
   border: 1px solid transparent;
   border-radius: var(--r-full);
-  padding: 0 16px 0 40px;
+  padding: 0 76px 0 40px; /* Leave space on the right for camera & mic */
   font-family: var(--font-ui);
   font-size: 13.5px;
   color: var(--ink);
   transition: background var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
 }
-#searchInput:focus {
+.search-input:focus {
   background: var(--white);
   border-color: var(--ink-15);
 }
-#searchInput::placeholder {
+.search-input::placeholder {
   color: var(--text-faint);
   font-style: italic;
+}
+
+.search-actions-inside {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 2;
+}
+
+.search-inside-btn {
+  color: var(--ink);
+  opacity: 0.75;
+  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease-spring);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.search-inside-btn:hover {
+  opacity: 1;
+  background: rgba(50, 96, 128, 0.06);
+  transform: scale(1.05);
+}
+
+/* User profile avatar & chevron style */
+.profile-avatar-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #FDBB40;
+  color: #000000;
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(253, 187, 64, 0.25);
+  transition: transform var(--dur-fast) var(--ease-spring), filter var(--dur-fast) var(--ease);
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+.profile-avatar-btn:hover {
+  transform: scale(1.06);
+  filter: brightness(1.05);
+}
+
+.chevron-down-btn {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  cursor: pointer;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+.chevron-down-btn:hover {
+  background: rgba(50, 96, 128, 0.05);
+  color: var(--ink);
 }
 
 .topbar-right {
