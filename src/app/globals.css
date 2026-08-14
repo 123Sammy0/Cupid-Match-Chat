@@ -470,14 +470,23 @@
   background: var(--ink-04);
 }
 
+.quiet-door-btn {
+  background: transparent;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.quiet-door-btn:hover {
+  background: rgba(196, 138, 110, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(196, 138, 110, 0.15);
+}
 .quiet-door-btn .quiet-star {
   font-size: 15px;
   color: var(--text-faint);
-  transition: color var(--dur-base) var(--ease), transform var(--dur-fast) var(--ease-spring);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .quiet-door-btn:hover .quiet-star {
   color: var(--peach);
-  transform: scale(1.15) rotate(12deg);
+  transform: scale(1.2) rotate(180deg);
+  text-shadow: 0 0 12px rgba(196, 138, 110, 0.4);
 }
 
 /* Mobile Navigation Drawer */
@@ -1656,7 +1665,13 @@
     gap: 4px;
   }
   .quiet-door-btn {
-    display: none; /* Hide secret door icon on mobile to save space */
+    display: flex; /* Show secret door on mobile */
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(50, 96, 128, 0.04);
+    box-shadow: inset 0 0 0 1px rgba(50, 96, 128, 0.05);
+    margin-left: 2px;
   }
 
   .hero {
