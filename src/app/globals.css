@@ -124,6 +124,20 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    /* Suppress Android Chrome tap highlight (the blue overlay on tap) */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Remove focus outline on Android for non-keyboard interactions */
+  input, textarea, button, select, a, div {
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Restore visible focus ring only for keyboard nav (accessibility) */
+  input:focus-visible, textarea:focus-visible, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
   }
 
   html {

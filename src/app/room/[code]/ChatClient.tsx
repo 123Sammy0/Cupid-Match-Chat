@@ -1992,6 +1992,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               display: 'flex',
               alignItems: 'flex-end',
               transition: 'all 200ms ease',
+              WebkitTapHighlightColor: 'transparent',
+              outline: 'none',
             }}
           >
             {/* Recording State — full-width inside pill */}
