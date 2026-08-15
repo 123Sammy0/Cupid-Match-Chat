@@ -2266,7 +2266,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   ) : newMessage.trim() || isRecordingLocked ? (
                     /* Send button */
                     <button
-                      onPointerDown={(e) => e.preventDefault()}
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={isRecordingLocked ? stopAndSendVoiceRecording : (editingMessage ? handleEdit : handleSend)}
                       style={{
                         width: 42, height: 42, borderRadius: 21,
