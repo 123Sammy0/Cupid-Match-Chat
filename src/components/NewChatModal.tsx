@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { searchUsers, createDirectConversation } from "@/app/actions/chat";
 
@@ -10,6 +10,7 @@ export default function NewChatModal({ onClose, onChatCreated }: { onClose: () =
   const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [requestSentTo, setRequestSentTo] = useState<string | null>(null);
+  const tappedRef = useRef(false);
 
   useEffect(() => {
     const handler = setTimeout(async () => {
@@ -26,15 +27,23 @@ export default function NewChatModal({ onClose, onChatCreated }: { onClose: () =
     return () => clearTimeout(handler);
   }, [query]);
 
-  const handleSendRequest = async (userId: string) => {
-    setRequestSentTo(userId); // Show loading state on button
-    const res = await createDirectConversation(userId);
+  const handleSendRequest = async (user: any) => {
+    // Prevent double-fire from pointerdown + click
+    if (tappedRef.current) return;
+    tappedRef.current = true;
+    setTimeout(() => { tappedRef.current = false; }, 1000);
+
+    setRequestSentTo(user.id);
+    onChatCreated();
+
+    // Run server action in background, navigate instantly once we have the ID
+    const res = await createDirectConversation(user.id);
     if (res.success && res.conversationId) {
-      onChatCreated();
       router.push(`/room/${res.conversationId}`);
     } else {
       setRequestSentTo(null);
-      alert(res.message); // In a real app, use toast
+      tappedRef.current = false;
+      alert(res.message);
     }
   };
 
@@ -77,10 +86,14 @@ export default function NewChatModal({ onClose, onChatCreated }: { onClose: () =
           )}
 
           {!isSearching && results.map((user) => (
-            <div 
-              key={user.id} 
-              onClick={() => handleSendRequest(user.id)}
-              className="flex items-center justify-between p-3 hover:bg-[#B5D2E6]/10 rounded-2xl cursor-pointer transition-colors"
+            <div
+              key={user.id}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                handleSendRequest(user);
+              }}
+              style={{ touchAction: 'manipulation', cursor: 'pointer', userSelect: 'none' }}
+              className="flex items-center justify-between p-3 hover:bg-[#B5D2E6]/10 active:bg-[#B5D2E6]/20 rounded-2xl transition-colors"
             >
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-gradient-to-tr from-[#326080] to-[#4A7A98] text-white rounded-[20px] flex items-center justify-center font-bold text-lg shadow-sm">
@@ -91,17 +104,17 @@ export default function NewChatModal({ onClose, onChatCreated }: { onClose: () =
                   <p className="text-[13px] text-[#5A7A90] line-clamp-1 font-medium">{user.bio || 'No bio available'}</p>
                 </div>
               </div>
-              
+
               {requestSentTo === user.id ? (
-                <button disabled className="px-4 py-2 bg-white text-[#805232] rounded-xl text-[13px] font-bold border border-[#805232]/20 flex items-center gap-2">
+                <div className="px-4 py-2 bg-white text-[#805232] rounded-xl text-[13px] font-bold border border-[#805232]/20 flex items-center gap-2">
                   <div className="w-3 h-3 border-2 border-[#805232] border-t-transparent rounded-full animate-spin"></div>
                   Opening...
-                </button>
+                </div>
               ) : (
-                <button className="px-5 py-2 bg-[#805232] text-white rounded-xl text-[13px] font-bold hover:bg-[#6B4328] shadow-md hover:shadow-lg transition-all active:scale-95 flex items-center gap-1.5">
+                <div className="px-5 py-2 bg-[#805232] text-white rounded-xl text-[13px] font-bold shadow-md flex items-center gap-1.5">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
                   Message
-                </button>
+                </div>
               )}
             </div>
           ))}

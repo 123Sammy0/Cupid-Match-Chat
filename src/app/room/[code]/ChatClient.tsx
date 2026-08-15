@@ -2269,7 +2269,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   ) : newMessage.trim() || isRecordingLocked ? (
                     /* Send button */
                     <button
-                      onClick={isRecordingLocked ? stopAndSendVoiceRecording : (editingMessage ? handleEdit : handleSend)}
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        if (isRecordingLocked) stopAndSendVoiceRecording();
+                        else if (editingMessage) handleEdit(e as any);
+                        else handleSend();
+                      }}
                       style={{
                         width: 42, height: 42, borderRadius: 21,
                         background: 'var(--color-success)', color: 'var(--color-text-main)',
@@ -2278,6 +2283,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                         boxShadow: '0 1px 8px rgba(0,0,0,0.22)',
                         transition: 'transform 150ms cubic-bezier(0.34,1.56,0.64,1), background 200ms ease',
                         flexShrink: 0,
+                        touchAction: 'manipulation',
                       }}
                       className="active:scale-90"
                       aria-label={isRecordingLocked ? 'Send Audio' : (editingMessage ? 'Update' : 'Send')}
