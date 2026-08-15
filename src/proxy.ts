@@ -17,9 +17,9 @@ export async function proxy(request: NextRequest) {
   const isRoomRoute = request.nextUrl.pathname.startsWith('/room')
   const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
 
-  // If accessing auth, room, or admin but hasn't passed gate -> redirect to gate
+  // If accessing auth, room, or admin but hasn't passed gate -> redirect to homepage (stealth mode)
   if (!gatePassed && (isAuthRoute || isRoomRoute || isAdminRoute)) {
-    return NextResponse.redirect(new URL('/gate', request.url))
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   // 2. Refresh Supabase session
