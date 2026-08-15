@@ -460,7 +460,7 @@ export async function getMessages(conversationId: string) {
   const { createAdminClient } = await import("@/lib/supabase/server");
   const adminSupabase = createAdminClient();
 
-  // Security: verify the caller is a participant
+  // Security: verify the caller is a participant (using admin to avoid RLS cookie issues on mobile)
   const { data: participant } = await adminSupabase
     .from('conversation_participants')
     .select('profile_id')
@@ -469,16 +469,19 @@ export async function getMessages(conversationId: string) {
     .single();
 
   if (!participant) {
+    console.error('[getMessages] participant check failed for user', user.id, 'in conv', conversationId);
     return { success: false, messages: [], error: "Not a participant" };
   }
 
+  // Always use admin client to bypass RLS — same approach as getConversations
   const { data, error } = await adminSupabase
     .from('messages')
-    .select('*, profiles(username)')
+    .select('*, profiles(username, avatar_url)')
     .eq('conversation_id', conversationId)
     .order('sent_at', { ascending: true });
 
   if (error) {
+    console.error('[getMessages] DB error:', error);
     return { success: false, messages: [], error: error.message };
   }
 
@@ -496,12 +499,27 @@ export async function sendMessageServer(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Unauthorized" };
 
+  // Use admin client to bypass RLS for insert — same pattern as getConversations.
+  // This ensures mobile browsers (where cookie auth may be unreliable) can always send.
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createAdminClient();
+
+  // Security: verify the caller is actually a participant before inserting
+  const { data: participant } = await adminSupabase
+    .from('conversation_participants')
+    .select('profile_id')
+    .eq('conversation_id', conversationId)
+    .eq('profile_id', user.id)
+    .single();
+
+  if (!participant) {
+    return { success: false, error: "Not a participant" };
+  }
+
   const msgId = messageId || crypto.randomUUID();
   const expiry = expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
-  // Use the standard authenticated client to insert.
-  // This reduces network roundtrips from 3 to 1 and is exponentially faster.
-  const { error } = await supabase.from('messages').insert({
+  const { error } = await adminSupabase.from('messages').insert({
     id: msgId,
     sender_id: user.id,
     conversation_id: conversationId,
@@ -511,6 +529,7 @@ export async function sendMessageServer(
   });
 
   if (error) {
+    console.error('[sendMessageServer] insert error:', error);
     return { success: false, error: error.message };
   }
 
