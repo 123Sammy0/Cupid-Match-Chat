@@ -260,7 +260,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   useEffect(() => {
     if (!conversationId) return;
     if (user?.id === 'loading') return;
-    if (!otherUser?.id) return;
+    // NOTE: do NOT guard on !otherUser?.id here — that caused mobile to never fetch
+    // messages on first load since otherUser arrives slightly after user in page.tsx
 
     try {
       const cached = sessionStorage.getItem(`cupid_messages_${conversationId}`);
