@@ -177,6 +177,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [newMessage, setNewMessage] = useState("");
   const [otherUserOnline, setOtherUserOnline] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+  
+  const appendDebug = (msg: string) => {
+    setDebugLog(prev => [msg, ...prev].slice(0, 5));
+  };
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [emojiCategory, setEmojiCategory] = useState(0);
@@ -427,6 +433,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           }
         })
         .on('broadcast', { event: 'typing' }, (payload: any) => {
+          appendDebug(`Typing recv: ${payload.payload?.isTyping} from ${payload.payload?.user_id}`);
           if (payload.payload?.user_id === otherUser?.id) {
             setOtherUserTyping(payload.payload.isTyping);
             if (payload.payload.isTyping) {
@@ -439,6 +446,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         })
         .subscribe((status: string, err?: Error) => {
           console.log('[REALTIME] roomChannel status:', status, err ?? '');
+          appendDebug(`roomChannel: ${status}`);
         });
 
       // ─── CHANNEL 3: Postgres changes (DB events) ────────────────────────────
@@ -502,10 +510,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           table: 'profiles',
           filter: `id=eq.${otherUser?.id ?? '00000000-0000-0000-0000-000000000000'}`
         }, (payload: any) => {
+          appendDebug(`DB recv: UPDATE profiles for ${payload.new.id}`);
           if (payload.new.last_seen) setOtherUserLastSeen(payload.new.last_seen);
         })
         .subscribe((status: string, err?: Error) => {
           console.log('[REALTIME] dbChannel status:', status, err ?? '');
+          appendDebug(`dbChannel: ${status}`);
         });
 
       realtimeSetupDone = true;
@@ -1476,6 +1486,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
             </svg>
           </button>
+          <button onClick={() => setShowDebug(!showDebug)} className="p-2 rounded-full hover:bg-slate-100 text-red-500 font-bold transition-colors" aria-label="Debug">
+            🛠️
+          </button>
           <button onClick={() => setShowHeaderMenu(!showHeaderMenu)} className="p-2 rounded-full hover:bg-slate-100 text-gray-400 hover:text-black transition-colors" aria-label="More">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>
@@ -1504,6 +1517,23 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           </>
         )}
       </header>
+
+      {/* DEBUG OVERLAY */}
+      {showDebug && (
+        <div className="absolute top-16 left-0 right-0 z-[100] bg-black/80 text-green-400 p-4 text-xs font-mono break-all max-h-64 overflow-y-auto">
+          <div className="flex justify-between items-center border-b border-green-800 pb-2 mb-2">
+            <strong>REALTIME DEBUG</strong>
+            <button onClick={() => setShowDebug(false)} className="text-white hover:text-red-400 p-1">Close</button>
+          </div>
+          <div><strong>Me:</strong> {user?.id}</div>
+          <div><strong>Partner:</strong> {otherUser?.id}</div>
+          <div><strong>Online:</strong> {otherUserOnline ? 'YES' : 'NO'}</div>
+          <div><strong>Typing:</strong> {otherUserTyping ? 'YES' : 'NO'}</div>
+          <div><strong>LastSeen:</strong> {otherUserLastSeen || 'null'}</div>
+          <div className="mt-2 text-white border-b border-green-800 pb-1 mb-1">Recent Events:</div>
+          {debugLog.map((log, i) => <div key={i}>&gt; {log}</div>)}
+        </div>
+      )}
 
       {/* Messages */}
       <div onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-2 flex flex-col gap-[3px] bg-white" onClick={() => { setShowEmojiPicker(false); setShowGifPicker(false); setShowAttachMenu(false); setMessageMenu(null); setShowHeaderMenu(false); if (selectedMessage) setSelectedMessage(null); }}>
