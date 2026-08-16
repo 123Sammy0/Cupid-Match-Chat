@@ -5,10 +5,12 @@ import { PLAYER_SPEED, JUMP_FORCE } from '../engine/Physics';
 import { sfx } from '../engine/Audio';
 
 export type PlayerState = 'idle' | 'walking' | 'jumping' | 'falling' | 'victory';
+export type CharacterType = 'male' | 'female';
 
 export interface Player {
   id: string;
   name: string;
+  character: CharacterType;
   color: string;
   colorDark: string;
   blush: string;
@@ -24,16 +26,18 @@ export interface Player {
 export function createPlayer(
   id: string,
   name: string,
-  isPlayer1: boolean,
+  character: CharacterType,
+  isPlayer1: boolean, // still used for starting position if needed, though they spawn at same place
   startX: number,
   startY: number
 ): Player {
   return {
     id,
     name: name.slice(0, 12),
-    color: isPlayer1 ? '#fff59d' : '#f8bbd0',        // Yellow / Pink
-    colorDark: isPlayer1 ? '#f9a825' : '#e91e63',
-    blush: isPlayer1 ? '#ffcc80' : '#f48fb1',
+    character,
+    color: character === 'female' ? '#f8bbd0' : '#bbdefb',        // Pink / Blue
+    colorDark: character === 'female' ? '#e91e63' : '#1976d2',
+    blush: character === 'female' ? '#f48fb1' : '#90caf9',
     body: {
       x: startX,
       y: startY,

@@ -1505,22 +1505,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         )}
       </header>
 
-      {/* DEBUG OVERLAY */}
-      {showDebug && (
-        <div className="absolute top-16 left-0 right-0 z-[100] bg-black/80 text-green-400 p-4 text-xs font-mono break-all max-h-64 overflow-y-auto">
-          <div className="flex justify-between items-center border-b border-green-800 pb-2 mb-2">
-            <strong>REALTIME DEBUG</strong>
-            <button onClick={() => setShowDebug(false)} className="text-white hover:text-red-400 p-1">Close</button>
-          </div>
-          <div><strong>Me:</strong> {user?.id}</div>
-          <div><strong>Partner:</strong> {otherUser?.id}</div>
-          <div><strong>Online:</strong> {otherUserOnline ? 'YES' : 'NO'}</div>
-          <div><strong>Typing:</strong> {otherUserTyping ? 'YES' : 'NO'}</div>
-          <div><strong>LastSeen:</strong> {otherUserLastSeen || 'null'}</div>
-          <div className="mt-2 text-white border-b border-green-800 pb-1 mb-1">Recent Events:</div>
-          {debugLog.map((log, i) => <div key={i}>&gt; {log}</div>)}
-        </div>
-      )}
+
 
       {/* Messages */}
       <div onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-2 flex flex-col gap-[3px] bg-white" onClick={() => { setShowEmojiPicker(false); setShowGifPicker(false); setShowAttachMenu(false); setMessageMenu(null); setShowHeaderMenu(false); if (selectedMessage) setSelectedMessage(null); }}>
