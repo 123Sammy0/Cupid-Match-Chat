@@ -570,24 +570,6 @@
   max-width: var(--max-w);
   margin: 0 auto;
 }
-.chip-bar-inner::before,
-.chip-bar-inner::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 32px;
-  z-index: 1;
-  pointer-events: none;
-}
-.chip-bar-inner::before {
-  left: 0;
-  background: linear-gradient(to right, #FFF1E7 0%, transparent 100%);
-}
-.chip-bar-inner::after {
-  right: 0;
-  background: linear-gradient(to left, #FFF1E7 0%, transparent 100%);
-}
 
 .chip-scroll {
   display: flex;
