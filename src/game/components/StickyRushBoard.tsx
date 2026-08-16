@@ -10,6 +10,7 @@ import { updateMovingPlatform } from '../entities/Interactables';
 import { createStickyRushLevel, type LevelData } from '../levels/StickyRushLevel';
 import { SyncManager, type PlayerSyncPayload, type GameEventPayload } from '../multiplayer/SyncManager';
 import { createGame, joinGame, startGame, finishGame } from '@/app/actions/game';
+import { sendMessageServer } from '@/app/actions/chat';
 
 type GamePhase = 'menu' | 'lobby' | 'countdown' | 'playing' | 'finished';
 
@@ -96,20 +97,12 @@ export default function StickyRushBoard({
     isPlayer1Ref.current = true;
     setPhase('lobby');
 
-    // Send game invite via chat broadcast
-    channelRef.current?.send({
-      type: 'broadcast',
-      event: 'new_message',
-      payload: {
-        id: crypto.randomUUID(),
-        sender_id: userId,
-        conversation_id: conversationId,
-        content: JSON.stringify({ type: 'game_invite', gameId: result.gameId, gameName: 'Sticky Rush' }),
-        type: 'image', // Use 'image' to bypass DB constraint
-        sent_at: new Date().toISOString(),
-        profiles: { username: userName },
-      },
-    });
+    // Send game invite via chat database so it persists and is delivered
+    await sendMessageServer(
+      conversationId,
+      JSON.stringify({ type: 'game_invite', gameId: result.gameId, gameName: 'Sticky Rush' }),
+      'image'
+    );
 
     // Listen for partner join
     setupSyncListeners();
