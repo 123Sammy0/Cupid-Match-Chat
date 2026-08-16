@@ -19,16 +19,19 @@ export interface PlayerSyncPayload {
 
 export interface GameEventPayload {
   type: 'game_start' | 'game_countdown' | 'checkpoint' | 'interactable' | 'finish' | 'character_ready';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
 }
 
 export class SyncManager {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private channel: any;
   private sendInterval: ReturnType<typeof setInterval> | null = null;
   private localPlayer: Player | null = null;
   private onRemoteSync: ((payload: PlayerSyncPayload) => void) | null = null;
   private onGameEvent: ((payload: GameEventPayload) => void) | null = null;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   constructor(channel: any) {
     this.channel = channel;
   }
@@ -41,12 +44,14 @@ export class SyncManager {
     this.onRemoteSync = onRemoteSync;
     this.onGameEvent = onGameEvent;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.channel.on('broadcast', { event: 'game_sync' }, (msg: any) => {
       if (this.onRemoteSync && msg.payload) {
         this.onRemoteSync(msg.payload);
       }
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.channel.on('broadcast', { event: 'game_event' }, (msg: any) => {
       if (this.onGameEvent && msg.payload) {
         this.onGameEvent(msg.payload);

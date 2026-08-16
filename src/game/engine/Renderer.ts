@@ -4,9 +4,6 @@
 import type { Player } from '../entities/Player';
 import type { Platform, Interactable, Checkpoint, FinishLine } from '../entities/Interactables';
 
-const BG_COLOR = '#f5efe6';
-const GRID_COLOR = 'rgba(200, 185, 170, 0.2)';
-
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private width: number;

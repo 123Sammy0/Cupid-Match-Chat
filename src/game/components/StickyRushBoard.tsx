@@ -48,6 +48,10 @@ export default function StickyRushBoard({
   const isPlayer1Ref = useRef(true);
   const isMobileRef = useRef(false);
 
+  // States for render
+  const [gameId, setGameId] = useState<string | null>(initialGameId || null);
+  const [isPlayer1, setIsPlayer1] = useState(true);
+
   const [phase, setPhase] = useState<GamePhase>('menu');
   const [countdown, setCountdown] = useState(3);
   const [localCharacter, setLocalCharacter] = useState<'male' | 'female'>('male');
@@ -101,7 +105,9 @@ export default function StickyRushBoard({
     const result = await createGame(conversationId);
     if (!result.success || !result.gameId) return;
     gameIdRef.current = result.gameId;
+    setGameId(result.gameId);
     isPlayer1Ref.current = true;
+    setIsPlayer1(true);
     setPhase('lobby');
 
     // Send game invite via chat database so it persists and is delivered
@@ -122,7 +128,9 @@ export default function StickyRushBoard({
     const result = await joinGame(gameId);
     if (!result.success) return;
     gameIdRef.current = gameId;
+    setGameId(gameId);
     isPlayer1Ref.current = false;
+    setIsPlayer1(false);
     setPhase('character_select');
     setupSyncListeners();
 
@@ -555,9 +563,9 @@ export default function StickyRushBoard({
           </button>
 
           {/* Show join option if an invite was received */}
-          {gameIdRef.current && (
+          {gameId && (
             <button
-              onClick={() => handleJoinGame(gameIdRef.current!)}
+              onClick={() => handleJoinGame(gameId!)}
               className="px-8 py-3 bg-[#f8bbd0] text-black font-bold rounded-full text-base hover:scale-105 active:scale-95 transition-transform"
             >
               Join Game
@@ -584,7 +592,7 @@ export default function StickyRushBoard({
                 😊
               </div>
               <span className="text-white text-xs font-medium">
-                {isPlayer1Ref.current ? userName : partnerName}
+                {isPlayer1 ? userName : partnerName}
               </span>
               <span className="text-green-400 text-xs">✓ Ready</span>
             </div>
@@ -597,13 +605,13 @@ export default function StickyRushBoard({
                 😊
               </div>
               <span className="text-white/40 text-xs font-medium">
-                {isPlayer1Ref.current ? partnerName : userName}
+                {isPlayer1 ? partnerName : userName}
               </span>
               <span className="text-white/40 text-xs">Waiting...</span>
             </div>
           </div>
           <p className="text-white/40 text-sm mt-4 animate-pulse">
-            Waiting for {isPlayer1Ref.current ? partnerName : userName} to join...
+            Waiting for {isPlayer1 ? partnerName : userName} to join...
           </p>
         </div>
       )}

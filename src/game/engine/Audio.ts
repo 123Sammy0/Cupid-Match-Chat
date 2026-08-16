@@ -9,6 +9,7 @@ class AudioEngine {
   init() {
     if (this.ctx) return;
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.value = 0.3; // 30% volume
