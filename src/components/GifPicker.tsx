@@ -71,7 +71,7 @@ export default function GifPicker({ onSelect }: { onSelect: (gif: any, type: 'gi
           noLink={true}
           onGifClick={(gif, e) => {
             e.preventDefault();
-            onSelect(gif, tab);
+            onSelect(gif, tab === 'gifs' ? 'gif' : 'sticker');
           }}
         />
       </div>
