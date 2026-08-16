@@ -44,9 +44,9 @@ export default function GifPicker({ onSelect, onClose }: GifPickerProps) {
     (offset: number) => {
       const type = tab === 'gifs' ? 'gifs' : 'stickers';
       if (debouncedSearch) {
-        return gf.search(debouncedSearch, { offset, limit: 18, type });
+        return gf.search(debouncedSearch, { offset, limit: 18, type }).catch(() => gf.search('smile', { offset, limit: 18, type }));
       }
-      return gf.trending({ offset, limit: 18, type });
+      return gf.trending({ offset, limit: 18, type }).catch(() => gf.search('trending', { offset, limit: 18, type }));
     },
     [tab, debouncedSearch]
   );
@@ -60,7 +60,7 @@ export default function GifPicker({ onSelect, onClose }: GifPickerProps) {
       {/* Header row: tabs + close */}
       <div className="flex items-center border-b border-gray-100 px-2 flex-shrink-0">
         <button
-          onClick={() => { setTab('gifs'); setSearchTerm(''); }}
+          onClick={() => { setTab('gifs'); setSearchTerm(''); setDebouncedSearch(''); }}
           className={`flex-1 px-3 py-2.5 text-sm font-semibold transition-all border-b-2 -mb-px ${
             tab === 'gifs' ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-600'
           }`}
@@ -68,7 +68,7 @@ export default function GifPicker({ onSelect, onClose }: GifPickerProps) {
           GIFs
         </button>
         <button
-          onClick={() => { setTab('stickers'); setSearchTerm(''); }}
+          onClick={() => { setTab('stickers'); setSearchTerm(''); setDebouncedSearch(''); }}
           className={`flex-1 px-3 py-2.5 text-sm font-semibold transition-all border-b-2 -mb-px ${
             tab === 'stickers' ? 'border-black text-black' : 'border-transparent text-gray-400 hover:text-gray-600'
           }`}

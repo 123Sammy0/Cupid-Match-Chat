@@ -1339,6 +1339,20 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
             {/* Right: actions */}
             <div className="flex items-center gap-0.5">
+              {/* Copy */}
+              <button
+                onClick={() => {
+                  try {
+                    const textToCopy = selectedMessage.content?.startsWith('{') ? JSON.parse(selectedMessage.content).text : selectedMessage.content;
+                    if (textToCopy) navigator.clipboard.writeText(textToCopy);
+                  } catch (e) {}
+                  setSelectedMessage(null);
+                }}
+                className="p-2 rounded-full hover:bg-slate-100 text-black transition-all active:scale-90"
+                aria-label="Copy"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              </button>
               {/* Reply */}
               <button
                 onClick={() => { setReplyTo(selectedMessage); setSelectedMessage(null); inputRef.current?.focus(); }}
@@ -1592,7 +1606,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 } ${
                   showTail && isMine ? 'rounded-[20px] rounded-br-none' : showTail && !isMine ? 'rounded-[20px] rounded-bl-none' : 'rounded-[20px]'
                 } ${
-                  selectedMessage?.id === m.id ? (isMine ? 'ring-2 ring-white/40' : 'ring-2 ring-black/15') : ''
+                  selectedMessage?.id === m.id ? (isMine ? 'ring-2 ring-white/40 select-text' : 'ring-2 ring-black/15 select-text') : 'select-none'
                 }`}
                 onTouchStart={(e) => handleTouchStart(e, m)}
                 onTouchMove={handleTouchMove}
