@@ -2187,7 +2187,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                       if (editingMessage) { handleEdit(e); } else { handleSend(e); }
                     }
                   }}
-                  onFocus={() => { setTimeout(() => scrollToBottom(true), 300); }}
+                  onFocus={() => { 
+                    setShowEmojiPicker(false);
+                    setShowGifPicker(false);
+                    setShowAttachMenu(false);
+                    setTimeout(() => scrollToBottom(true), 300); 
+                  }}
                   placeholder="Message…"
                   style={{
                     flex: 1,
