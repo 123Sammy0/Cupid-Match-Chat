@@ -1320,7 +1320,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       )}
 
       {/* Header */}
-      <header className="flex items-center justify-between px-2 py-2 bg-surface/90 backdrop-blur-xl text-text-main z-10 border-b border-border-soft sticky top-0 relative">
+      <header className="flex items-center justify-between px-2 py-2 bg-surface/90 backdrop-blur-xl text-text-main z-40 border-b border-border-soft sticky top-0 relative">
         
         {/* Selection Mode Toolbar */}
         {selectedMessage ? (
