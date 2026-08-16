@@ -84,12 +84,6 @@ export default function CameraModal({ onClose, onSend }: CameraModalProps) {
       // Apply beautiful filter to the saved photo to match the live preview
       ctx.filter = 'contrast(1.08) brightness(1.08) saturate(1.15)';
       
-      // If using front camera, we should flip the canvas horizontally to match the mirrored preview
-      if (facingMode === 'user') {
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
-      }
-      
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
       setCapturedPhoto(dataUrl);
