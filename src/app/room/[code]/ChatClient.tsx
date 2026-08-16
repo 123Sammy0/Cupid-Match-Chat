@@ -1201,15 +1201,6 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         wrapper.style.setProperty('height', `${vh}px`, 'important');
         wrapper.style.setProperty('transform', `translateY(${offsetTop}px)`, 'important');
       }
-      // Close all pickers when keyboard opens (viewport shrinks)
-      const prevH = (window as any).__prevVH || window.innerHeight;
-      if (vh < prevH - 50) {
-        // keyboard opened — close any open pickers to prevent layout fight
-        setShowEmojiPicker(false);
-        setShowGifPicker(false);
-        setShowAttachMenu(false);
-      }
-      (window as any).__prevVH = vh;
     };
     
     viewport.addEventListener('resize', handleResize);
