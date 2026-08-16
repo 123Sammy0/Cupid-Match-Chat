@@ -572,14 +572,15 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
     const payload = {
       id: msgId, sender_id: user.id, conversation_id: conversationId,
-      content: finalContent, type: type, sent_at: new Date().toISOString(),
+      content: finalContent, type: 'image', sent_at: new Date().toISOString(),
       expires_at: expiresAt, profiles: { username: profile?.username }
     };
 
     setLocalMessages((prev) => [...prev, { ...payload, localStatus: 'sending' }]);
     channelRef.current?.send({ type: 'broadcast', event: 'new_message', payload });
 
-    const insertResult = await sendMessageServer(conversationId, finalContent, type, msgId, expiresAt);
+    // Send as 'image' to DB to bypass constraint, since content JSON has type: type.
+    const insertResult = await sendMessageServer(conversationId, finalContent, 'image', msgId, expiresAt);
 
     if (!insertResult.success) {
       setLocalMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, localStatus: 'failed' } : m));
@@ -1199,10 +1200,17 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       const vh = viewport?.height;
       const offsetTop = viewport?.offsetTop || 0;
       if (!vh) return;
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
       const wrapper = document.getElementById('chat-viewport-wrapper');
       if (wrapper) {
-        wrapper.style.setProperty('height', `${vh}px`, 'important');
-        wrapper.style.setProperty('transform', `translateY(${offsetTop}px)`, 'important');
+        if (isMobile) {
+          wrapper.style.setProperty('height', `${vh}px`, 'important');
+          wrapper.style.setProperty('transform', `translateY(${offsetTop}px)`, 'important');
+        } else {
+          wrapper.style.removeProperty('height');
+          wrapper.style.removeProperty('transform');
+        }
       }
     };
     
