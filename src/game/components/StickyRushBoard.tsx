@@ -47,6 +47,7 @@ export default function StickyRushBoard({
   const gameIdRef = useRef<string | null>(initialGameId || null);
   const isPlayer1Ref = useRef(true);
   const isMobileRef = useRef(false);
+  const localReadyRef = useRef(false);
 
   // States for render
   const [gameId, setGameId] = useState<string | null>(initialGameId || null);
@@ -163,7 +164,7 @@ export default function StickyRushBoard({
           case 'character_ready':
             setRemoteCharacter(event.data.character);
             setRemoteReady(true);
-            if (isPlayer1Ref.current && localReady) {
+            if (isPlayer1Ref.current && localReadyRef.current) {
               startCountdown();
             }
             break;
@@ -208,8 +209,9 @@ export default function StickyRushBoard({
   const handleCharacterSelectReady = () => {
     sfx.playClick();
     setLocalReady(true);
+    localReadyRef.current = true;
     syncRef.current?.sendGameEvent({ type: 'character_ready', data: { character: localCharacter } });
-    if (isPlayer1Ref.current && remoteReady) {
+    if (isPlayer1 && remoteReady) {
       startCountdown();
     }
   };
@@ -536,6 +538,7 @@ export default function StickyRushBoard({
         if (content.type === 'game_invite' && msg.payload?.sender_id !== userId) {
           // Auto-show join prompt
           gameIdRef.current = content.gameId;
+          setGameId(content.gameId);
         }
       } catch {}
     };
