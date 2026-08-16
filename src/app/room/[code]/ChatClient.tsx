@@ -10,6 +10,7 @@ import { CustomAudioPlayer } from "./CustomAudioPlayer";
 import AvatarImage from "@/app/components/AvatarImage";
 import { LazyImage } from "@/app/components/LazyImage";
 import dynamic from 'next/dynamic';
+import GifPicker from "@/components/GifPicker";
 
 const CameraModal = dynamic(() => import('./CameraModal'), { ssr: false });
 
@@ -176,6 +177,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [otherUserOnline, setOtherUserOnline] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const [emojiCategory, setEmojiCategory] = useState(0);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
@@ -547,6 +549,44 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       isTypingRef.current = false;
       if (channelRef.current) channelRef.current.send({ type: 'broadcast', event: 'typing', payload: { user_id: user.id, isTyping: false } });
     }, 1500);
+  };
+
+  const handleGifSelect = async (gif: any, type: 'gif' | 'sticker') => {
+    setShowGifPicker(false);
+    shouldForceScrollRef.current = true;
+    
+    const mediaUrl = gif.images.fixed_height.url || gif.images.original.url;
+    
+    const finalContent = JSON.stringify({
+      url: mediaUrl,
+      type: type,
+      width: gif.images.fixed_height.width,
+      height: gif.images.fixed_height.height
+    });
+
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const msgId = crypto.randomUUID();
+
+    const payload = {
+      id: msgId, sender_id: user.id, conversation_id: conversationId,
+      content: finalContent, type: type, sent_at: new Date().toISOString(),
+      expires_at: expiresAt, profiles: { username: profile?.username }
+    };
+
+    setLocalMessages((prev) => [...prev, { ...payload, localStatus: 'sending' }]);
+    channelRef.current?.send({ type: 'broadcast', event: 'new_message', payload });
+
+    const insertResult = await sendMessageServer(conversationId, finalContent, type, msgId, expiresAt);
+
+    if (!insertResult.success) {
+      setLocalMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, localStatus: 'failed' } : m));
+    } else {
+      setMessages(prev => {
+        if (prev.some(m => m.id === msgId)) return prev;
+        return [...prev, payload];
+      });
+      setLocalMessages((prev) => prev.filter(m => m.id !== msgId));
+    }
   };
 
   const handleSend = async (e?: React.FormEvent) => {
@@ -1412,7 +1452,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       </header>
 
       {/* Messages */}
-      <div onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 bg-white" onClick={() => { setShowEmojiPicker(false); setShowAttachMenu(false); setMessageMenu(null); setShowHeaderMenu(false); if (selectedMessage) setSelectedMessage(null); }}>
+      <div onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 bg-white" onClick={() => { setShowEmojiPicker(false); setShowGifPicker(false); setShowAttachMenu(false); setMessageMenu(null); setShowHeaderMenu(false); if (selectedMessage) setSelectedMessage(null); }}>
         {user?.id === 'loading' ? (
           <div className="flex flex-col gap-4 w-full opacity-50 pointer-events-none mt-2">
              <div className="w-2/3 h-12 bg-slate-100 rounded-2xl rounded-bl-none animate-pulse self-start"></div>
@@ -1462,7 +1502,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             if (m.content.startsWith('{')) parsedData = JSON.parse(m.content); 
           } catch {}
 
-          const mediaData = (m.type === 'image' || m.type === 'video' || m.type === 'audio') ? parsedData : null;
+          const mediaData = (m.type === 'image' || m.type === 'video' || m.type === 'audio' || m.type === 'gif' || m.type === 'sticker') ? parsedData : null;
           const docData = (m.type === 'document' && parsedData?.type === 'document') ? parsedData : null;
           const replyData = (!mediaData && !docData && parsedData && parsedData.replyTo) ? parsedData : null;
           const textContent = replyData ? replyData.text : (!mediaData && !docData ? m.content : null);
@@ -1620,6 +1660,14 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                           alt="image" 
                           className="w-52 sm:w-64 h-40 sm:h-48 object-cover rounded-[16px] cursor-pointer hover:opacity-90 transition-opacity" 
                           onClick={() => setActivePreviewImage(mediaData.url)}
+                          loading="lazy"
+                        />
+                      )}
+                      {(mediaData?.type === 'gif' || mediaData?.type === 'sticker') && (
+                        <img 
+                          src={mediaData.url} 
+                          alt={mediaData.type} 
+                          className={`max-w-[200px] sm:max-w-[240px] rounded-[16px] ${mediaData.type === 'sticker' ? 'bg-transparent' : 'object-cover'}`}
                           loading="lazy"
                         />
                       )}
@@ -1796,6 +1844,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             ))}
           </div>
         </div>
+      )}
+
+      {/* GIF Picker */}
+      {showGifPicker && (
+        <GifPicker onSelect={handleGifSelect} />
       )}
 
       
@@ -2250,6 +2303,35 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                       <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
                       <circle cx="12" cy="13" r="3"/>
                     </svg>
+                  </button>
+                </div>
+
+                {/* GIF Picker Button — collapses when typing */}
+                <div
+                  style={{
+                    maxWidth: newMessage ? 0 : 38,
+                    opacity: newMessage ? 0 : 1,
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'max-width 220ms cubic-bezier(0.4,0,0.2,1), opacity 150ms ease',
+                  }}
+                >
+                  <button
+                    type="button"
+                    tabIndex={newMessage ? -1 : 0}
+                    onClick={() => { setShowGifPicker(v => !v); setShowEmojiPicker(false); setShowAttachMenu(false); }}
+                    style={{
+                      width: 38, minHeight: 52,
+                      color: showGifPicker ? '#000' : '#8E8E93',
+                      flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                    }}
+                    aria-label="GIFs & Stickers"
+                  >
+                    <div className="font-black text-[11px] px-1.5 py-0.5 border-2 rounded-md tracking-widest border-current">GIF</div>
                   </button>
                 </div>
 
