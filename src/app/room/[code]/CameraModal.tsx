@@ -81,6 +81,9 @@ export default function CameraModal({ onClose, onSend }: CameraModalProps) {
     const ctx = canvas.getContext('2d');
     
     if (ctx) {
+      // Apply beautiful filter to the saved photo to match the live preview
+      ctx.filter = 'contrast(1.08) brightness(1.08) saturate(1.15)';
+      
       // If using front camera, we should flip the canvas horizontally to match the mirrored preview
       if (facingMode === 'user') {
         ctx.translate(canvas.width, 0);
@@ -145,7 +148,13 @@ export default function CameraModal({ onClose, onSend }: CameraModalProps) {
               className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white active:scale-95 transition-transform"
               aria-label="Switch camera"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16v-1a5 5 0 0 0-5-5H4"/><path d="M7 14l-3-3 3-3"/><path d="M3 8v1a5 5 0 0 0 5 5h12"/><path d="M17 10l3 3-3 3"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <path d="M12 9a4 4 0 0 1 4 4v1"/>
+                <polyline points="18 12 16 14 14 12"/>
+                <path d="M12 17a4 4 0 0 1-4-4v-1"/>
+                <polyline points="6 14 8 12 10 14"/>
+              </svg>
             </button>
           )}
         </div>
@@ -182,14 +191,17 @@ export default function CameraModal({ onClose, onSend }: CameraModalProps) {
             </div>
           )}
 
-          {/* Video feed */}
+          {/* Video feed with Beautify Filter */}
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
             className={`w-full h-full object-cover transition-opacity duration-300 ${permissionState === 'granted' && !capturedPhoto ? 'opacity-100' : 'opacity-0 absolute'}`}
-            style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
+            style={{ 
+              transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
+              filter: 'contrast(1.08) brightness(1.08) saturate(1.15)'
+            }}
           />
           
           {/* Flash effect overlay */}
