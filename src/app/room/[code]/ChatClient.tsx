@@ -711,7 +711,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     const now = new Date();
     const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
     
-    if (diff < 60) return `Last seen just now`;
+    if (diff < 60) return `Online`;
     if (diff < 3600) return `Last seen ${Math.floor(diff / 60)} minutes ago`;
     
     const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
@@ -1219,6 +1219,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       viewport.removeEventListener('scroll', handleResize);
     };
   }, []);
+  const isPracticallyOnline = otherUserOnline || (otherUserLastSeen ? (new Date().getTime() - new Date(otherUserLastSeen).getTime()) < 60000 : false);
 
   return (
     <div id="chat-viewport-wrapper" className="w-full h-full flex flex-col relative overflow-hidden bg-base">
@@ -1401,12 +1402,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-bold text-2xl shadow-sm overflow-hidden">
                       <AvatarImage url={otherUser?.avatar_url} username={otherUser?.username} />
                 </div>
-              {otherUserOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"/>}
+              {isPracticallyOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"/>}
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-[15px] text-black leading-tight">{otherUser?.username || 'Unknown'}</span>
               <span className="text-[11px] text-gray-400 font-semibold" suppressHydrationWarning>
-                {otherUserTyping ? '✍️ typing...' : otherUserOnline ? 'Online' : formatLastSeen(otherUserLastSeen)}
+                {otherUserTyping ? '✍️ typing...' : isPracticallyOnline ? 'Online' : formatLastSeen(otherUserLastSeen)}
               </span>
             </div>
           </div>
