@@ -2,6 +2,7 @@
 
 import type { PhysicsBody } from '../engine/Physics';
 import { PLAYER_SPEED, JUMP_FORCE } from '../engine/Physics';
+import { sfx } from '../engine/Audio';
 
 export type PlayerState = 'idle' | 'walking' | 'jumping' | 'falling' | 'victory';
 
@@ -66,6 +67,7 @@ export function applyInput(player: Player, input: InputState) {
   if (input.jump && b.onGround) {
     b.vy = JUMP_FORCE;
     b.onGround = false;
+    sfx.playJump();
   }
 
   // Update animation state

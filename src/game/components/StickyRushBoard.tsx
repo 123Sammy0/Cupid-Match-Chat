@@ -11,6 +11,7 @@ import { createStickyRushLevel, type LevelData } from '../levels/StickyRushLevel
 import { SyncManager, type PlayerSyncPayload, type GameEventPayload } from '../multiplayer/SyncManager';
 import { createGame, joinGame, startGame, finishGame } from '@/app/actions/game';
 import { sendMessageServer } from '@/app/actions/chat';
+import { sfx } from '../engine/Audio';
 
 type GamePhase = 'menu' | 'lobby' | 'countdown' | 'playing' | 'finished';
 
@@ -91,6 +92,8 @@ export default function StickyRushBoard({
 
   // ─── Create game (host) ───
   const handleCreateGame = async () => {
+    sfx.init();
+    sfx.playClick();
     const result = await createGame(conversationId);
     if (!result.success || !result.gameId) return;
     gameIdRef.current = result.gameId;
@@ -110,6 +113,8 @@ export default function StickyRushBoard({
 
   // ─── Join game (partner) ───
   const handleJoinGame = async (gameId: string) => {
+    sfx.init();
+    sfx.playClick();
     const result = await joinGame(gameId);
     if (!result.success) return;
     gameIdRef.current = gameId;
@@ -278,6 +283,7 @@ export default function StickyRushBoard({
             const wasActivated = item.activated;
             item.activated = aabbOverlap(lp.body, item);
             if (item.activated !== wasActivated) {
+              if (item.activated) sfx.playClick();
               // Toggle linked door
               const linked = lvl.interactables.find(i => i.id === item.linkedId);
               if (linked) linked.activated = item.activated;
@@ -292,6 +298,7 @@ export default function StickyRushBoard({
             if (aabbOverlap(lp.body, item)) {
               item.activated = true;
               lp.hasKey = true;
+              sfx.playPickup();
               // Open linked door
               const linked = lvl.interactables.find(i => i.id === item.linkedId);
               if (linked) linked.activated = true;
@@ -305,6 +312,7 @@ export default function StickyRushBoard({
           if (item.type === 'lever' && !item.activated) {
             if (aabbOverlap(lp.body, item)) {
               item.activated = true;
+              sfx.playClick();
               const linked = lvl.interactables.find(i => i.id === item.linkedId);
               if (linked) linked.activated = true;
               syncRef.current?.sendGameEvent({
@@ -329,15 +337,17 @@ export default function StickyRushBoard({
         }
 
         // Finish line
-        if (aabbOverlap(lp.body, lvl.finishLine)) {
+        if (aabbOverlap(lp.body, lvl.finishLine) && !lp.finished) {
           lp.finished = true;
           lp.finishTime = elapsedRef.current;
           lp.state = 'victory';
+          sfx.playWin();
           handleLocalFinish();
         }
 
         // Death (fall off)
         if (lp.body.y > lvl.deathY) {
+          sfx.playDeath();
           respawnAtCheckpoint(lp);
         }
       },

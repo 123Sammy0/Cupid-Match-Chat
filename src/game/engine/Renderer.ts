@@ -25,28 +25,46 @@ export class Renderer {
 
   clear() {
     const ctx = this.ctx;
-    ctx.fillStyle = BG_COLOR;
+    // Gradient sky
+    const grad = ctx.createLinearGradient(0, 0, 0, this.height);
+    grad.addColorStop(0, '#e0f7fa'); // Light blue top
+    grad.addColorStop(1, '#fffde7'); // Pale yellow bottom
+    ctx.fillStyle = grad;
     ctx.fillRect(0, 0, this.width, this.height);
   }
 
   drawBackground(cameraX: number) {
     const ctx = this.ctx;
-    // Subtle grid pattern (notebook paper feel)
-    ctx.strokeStyle = GRID_COLOR;
+    // Parallax mountains (distant)
+    ctx.fillStyle = '#b0bec5';
+    for (let i = 0; i < 5; i++) {
+      const mx = ((i * 400 - cameraX * 0.2) % 2000 + 2000) % 2000 - 400;
+      ctx.beginPath();
+      ctx.moveTo(mx, this.height);
+      ctx.lineTo(mx + 200, this.height - 250 + (i % 3) * 50);
+      ctx.lineTo(mx + 400, this.height);
+      ctx.fill();
+    }
+    
+    // Parallax hills (closer)
+    ctx.fillStyle = '#cfd8dc';
+    for (let i = 0; i < 8; i++) {
+      const hx = ((i * 300 - cameraX * 0.4) % 2400 + 2400) % 2400 - 300;
+      ctx.beginPath();
+      ctx.arc(hx + 150, this.height + 50, 200, Math.PI, 0);
+      ctx.fill();
+    }
+
+    // Grid pattern over it
+    ctx.strokeStyle = 'rgba(0,0,0,0.03)';
     ctx.lineWidth = 1;
     const gridSize = 40;
     const offsetX = -(cameraX % gridSize);
     for (let x = offsetX; x < this.width; x += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, this.height);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, this.height); ctx.stroke();
     }
     for (let y = 0; y < this.height; y += gridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(this.width, y);
-      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(this.width, y); ctx.stroke();
     }
   }
 
@@ -56,9 +74,9 @@ export class Renderer {
     const sy = p.y - cameraY;
 
     // Solid platform with a slight shadow
-    ctx.fillStyle = p.color || '#c9b99a';
-    ctx.strokeStyle = '#a89070';
-    ctx.lineWidth = 2;
+    ctx.fillStyle = p.color || '#a1887f';
+    ctx.strokeStyle = '#5d4037';
+    ctx.lineWidth = 3;
 
     // Rounded rectangle
     const r = 6;
@@ -74,6 +92,20 @@ export class Renderer {
     ctx.quadraticCurveTo(sx, sy, sx + r, sy);
     ctx.closePath();
     ctx.fill();
+
+    // Grass top
+    ctx.fillStyle = '#81c784';
+    ctx.beginPath();
+    ctx.moveTo(sx + r, sy);
+    ctx.lineTo(sx + p.width - r, sy);
+    ctx.quadraticCurveTo(sx + p.width, sy, sx + p.width, sy + r);
+    ctx.lineTo(sx + p.width, sy + 8);
+    ctx.lineTo(sx, sy + 8);
+    ctx.lineTo(sx, sy + r);
+    ctx.quadraticCurveTo(sx, sy, sx + r, sy);
+    ctx.closePath();
+    ctx.fill();
+
     ctx.stroke();
   }
 
