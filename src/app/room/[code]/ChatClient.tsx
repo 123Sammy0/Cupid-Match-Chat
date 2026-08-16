@@ -248,6 +248,31 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     return () => console.log('[LIFECYCLE] ChatClient UNMOUNTED');
   }, []);
 
+  // --- Modal History Management ---
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (activePreviewImage) {
+        // Stop the default back navigation and just close the preview
+        setActivePreviewImage(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activePreviewImage]);
+
+  const openImagePreview = (url: string) => {
+    setActivePreviewImage(url);
+    window.history.pushState({ imagePreview: true }, '');
+  };
+
+  const closeImagePreview = () => {
+    setActivePreviewImage(null);
+    // If we pushed the state when opening, pop it now so history stays clean
+    if (window.history.state?.imagePreview) {
+      window.history.back();
+    }
+  };
+
 
 
   // Cache messages to sessionStorage for instant re-render on navigation
@@ -1685,7 +1710,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                           src={mediaData.url} 
                           alt="image" 
                           className="w-52 sm:w-64 h-40 sm:h-48 object-cover rounded-[16px] cursor-pointer hover:opacity-90 transition-opacity" 
-                          onClick={() => setActivePreviewImage(mediaData.url)}
+                          onClick={() => openImagePreview(mediaData.url)}
                           loading="lazy"
                         />
                       )}
@@ -1883,12 +1908,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       {activePreviewImage && (
         <div 
           className="absolute inset-0 z-40 bg-black/95 flex flex-col items-center justify-between p-4 rounded-[inherit] animate-in fade-in duration-200"
-          onClick={() => setActivePreviewImage(null)}
+          onClick={closeImagePreview}
         >
           {/* Header */}
           <div className="w-full max-w-[450px] flex items-center justify-between py-2 text-white z-10">
             <button 
-              onClick={() => setActivePreviewImage(null)} 
+              onClick={closeImagePreview} 
               className="p-2 rounded-full hover:bg-white/10 transition-colors"
               aria-label="Close"
             >
