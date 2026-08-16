@@ -274,7 +274,7 @@ export class Renderer {
         } else {
           imgToDraw = fSprites['sprite5'] || imgToDraw; // Falling / Land
         }
-      } else if (Math.abs(b.vx) > 10) {
+      } else if (Math.abs(b.vx) > 15) {
         // Run animation
         const runFrames = [fSprites['sprite3'], fSprites['sprite7']];
         const validFrames = runFrames.filter(img => img && img.complete);
@@ -282,8 +282,9 @@ export class Renderer {
           const frameIndex = Math.floor(Date.now() / 100) % validFrames.length;
           imgToDraw = validFrames[frameIndex];
         }
-      } else if (Math.abs(b.vx) > 0 && Math.abs(b.vx) <= 10) {
-        imgToDraw = fSprites['sprite6'] || imgToDraw; // Slide/Stop
+      } else {
+        // Idle (Standing)
+        imgToDraw = fSprites['sprite1'] || imgToDraw;
       }
 
       if (imgToDraw && imgToDraw.complete) {
@@ -294,8 +295,8 @@ export class Renderer {
         const faceDir = b.facingRight ? 1 : -1;
         ctx.scale(faceDir, 1);
 
-        const drawSize = 120; // Size of the sprite
-        // Align the bottom of the sprite (drawSize/2) to the bottom of the hitbox (h/2 = 16)
+        const drawSize = 90; // Size of the sprite (Reduced from 120 to 90 for a smaller character)
+        // Align the bottom of the sprite (drawSize/2) to the bottom of the hitbox (h/2 = 20)
         const yOffset = -((drawSize / 2) - (h / 2)); 
         
         ctx.drawImage(imgToDraw, -drawSize / 2, -drawSize / 2 + yOffset, drawSize, drawSize);
