@@ -44,16 +44,16 @@ export default function GifPicker({ onSelect, onClose }: GifPickerProps) {
     (offset: number) => {
       const type = tab === 'gifs' ? 'gifs' : 'stickers';
       if (debouncedSearch) {
-        return gf.search(debouncedSearch, { offset, limit: 18, type }).catch(() => gf.search('smile', { offset, limit: 18, type }));
+        return gf.search(debouncedSearch, { offset, limit: 18, type }).catch(() => gf.search(debouncedSearch, { offset, limit: 18, type: 'gifs' }));
       }
-      return gf.trending({ offset, limit: 18, type }).catch(() => gf.search('trending', { offset, limit: 18, type }));
+      return gf.trending({ offset, limit: 18, type }).catch(() => gf.search(tab === 'stickers' ? 'sticker' : 'trending', { offset, limit: 18, type: 'gifs' }));
     },
     [tab, debouncedSearch]
   );
 
   return (
     <div
-      className="flex flex-col w-full bg-white"
+      className="flex flex-col w-full bg-white select-none"
       style={{ height: 320 }}
       ref={containerRef}
     >
