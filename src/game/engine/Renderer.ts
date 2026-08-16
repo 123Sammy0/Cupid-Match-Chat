@@ -262,7 +262,7 @@ export class Renderer {
     const h = b.height;
 
     // ─── Female Sprite Rendering ───
-    if (player.characterType === 'female') {
+    if (player.character === 'female') {
       const fSprites = this.femaleSprites;
       let imgToDraw = fSprites['sprite1']; // Idle default
 

@@ -148,7 +148,8 @@ export default function StickyRushBoard({
     sync.listen(
       // Remote player position update
       (payload: PlayerSyncPayload) => {
-        if (payload.id === userId) return; // ignore own echoes
+        const localId = isPlayer1Ref.current ? 'player1' : 'player2';
+        if (payload.id === localId) return; // ignore own echoes
         const remote = remotePlayerRef.current;
         if (remote) {
           SyncManager.interpolateRemote(remote, payload);
@@ -247,10 +248,13 @@ export default function StickyRushBoard({
     const level = createStickyRushLevel();
     levelRef.current = level;
 
-    const local = createPlayer(userId, userName, localCharacter, isPlayer1Ref.current, level.spawnX, level.spawnY);
+    const localId = isPlayer1Ref.current ? 'player1' : 'player2';
+    const remoteId = !isPlayer1Ref.current ? 'player1' : 'player2';
+
+    const local = createPlayer(localId, userName, localCharacter, isPlayer1Ref.current, level.spawnX, level.spawnY);
     localPlayerRef.current = local;
 
-    const remote = createPlayer('remote', partnerName, remoteCharacter, !isPlayer1Ref.current, level.spawnX, level.spawnY);
+    const remote = createPlayer(remoteId, partnerName, remoteCharacter, !isPlayer1Ref.current, level.spawnX, level.spawnY);
     remotePlayerRef.current = remote;
 
     // Canvas sizing
