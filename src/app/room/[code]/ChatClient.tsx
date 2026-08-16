@@ -2042,7 +2042,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             style={{
               background: 'var(--color-surface)',
               borderRadius: 28,
-              border: '1px solid var(--border)',
+              border: 'none',
               boxShadow: '0 4px 20px rgba(50, 96, 128, 0.08)',
               overflow: 'hidden',
               minHeight: 52,
@@ -2340,7 +2340,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                       }}
                       style={{
                         width: 42, height: 42, borderRadius: 21,
-                        background: 'var(--color-success)', color: 'var(--color-text-main)',
+                        background: 'var(--color-success)', color: '#ffffff',
                         border: 'none', cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         boxShadow: '0 1px 8px rgba(0,0,0,0.22)',
@@ -2354,7 +2354,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                       {editingMessage && !isRecordingLocked ? (
                         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                       ) : (
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 2 }}>
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'translateX(-1px)' }}>
                           <path d="m22 2-7 20-4-9-9-4 20-7z"/><path d="M22 2 11 13"/>
                         </svg>
                       )}
