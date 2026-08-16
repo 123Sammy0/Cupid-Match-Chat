@@ -1470,7 +1470,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       </header>
 
       {/* Messages */}
-      <div onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2 bg-white" onClick={() => { setShowEmojiPicker(false); setShowGifPicker(false); setShowAttachMenu(false); setMessageMenu(null); setShowHeaderMenu(false); if (selectedMessage) setSelectedMessage(null); }}>
+      <div onScroll={handleScroll} className="flex-1 overflow-y-auto px-4 py-2 flex flex-col gap-[3px] bg-white" onClick={() => { setShowEmojiPicker(false); setShowGifPicker(false); setShowAttachMenu(false); setMessageMenu(null); setShowHeaderMenu(false); if (selectedMessage) setSelectedMessage(null); }}>
         {user?.id === 'loading' ? (
           <div className="flex flex-col gap-4 w-full opacity-50 pointer-events-none mt-2">
              <div className="w-2/3 h-12 bg-slate-100 rounded-2xl rounded-bl-none animate-pulse self-start"></div>
@@ -1535,9 +1535,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           }
 
           return (
-            <div key={m.id} className="flex flex-col w-full">
+            <div key={m.id} className={`flex flex-col w-full ${idx === 0 ? 'mt-auto' : ''}`}>
               {showDateSeparator && (
-                <div className="flex justify-center w-full my-4">
+                <div className="flex justify-center w-full my-3">
                   <div className="bg-slate-100 text-slate-500 text-xs font-semibold px-3 py-1 rounded-full shadow-sm" suppressHydrationWarning>
                     {formatMessageDate(m.sent_at)}
                   </div>
@@ -1545,7 +1545,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
               )}
               <div 
                 className={`flex flex-col w-full ${isMine ? 'items-end pr-[6px]' : 'items-start pl-[6px]'} relative ${
-                  m.reactions && m.reactions.length > 0 && !m.localStatus ? 'mb-5' : 'mb-2'
+                  m.reactions && m.reactions.length > 0 && !m.localStatus ? 'mb-4' : ''
                 }`}
             >
               {/* Floating Reaction Bar — absolutely positioned above selected message to prevent layout shift */}
@@ -1649,7 +1649,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   <svg className="absolute -left-[6px] bottom-0 text-accent w-[16px] h-[16px]" viewBox="0 0 8 13" fill="currentColor"><path d="M8 0v13H0C4 13 7 9 8 0z"/></svg>
                 )}
 
-                <div className={`relative ${mediaData ? 'p-1' : docData ? 'p-1' : 'px-3 pt-2 pb-1.5'} z-10`}>
+                <div className={`relative ${mediaData ? 'p-1' : docData ? 'p-1' : 'px-3 py-1.5'} z-10`}>
                   
                   {/* Replied Message Preview */}
                   {replyData && (
@@ -1830,7 +1830,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} className="h-4 w-full flex-shrink-0" />
+        <div ref={messagesEndRef} className="h-1 w-full flex-shrink-0" />
       </div>
 
       {/* Emoji Picker */}
