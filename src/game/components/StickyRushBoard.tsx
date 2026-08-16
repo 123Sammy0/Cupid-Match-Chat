@@ -19,6 +19,7 @@ interface StickyRushBoardProps {
   userName: string;
   partnerName: string;
   channelRef: React.MutableRefObject<any>;
+  initialGameId?: string;
   onClose: () => void;
 }
 
@@ -28,6 +29,7 @@ export default function StickyRushBoard({
   userName,
   partnerName,
   channelRef,
+  initialGameId,
   onClose,
 }: StickyRushBoardProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -40,7 +42,7 @@ export default function StickyRushBoard({
   const rendererRef = useRef<Renderer | null>(null);
   const elapsedRef = useRef(0);
   const gameTimeRef = useRef(0);
-  const gameIdRef = useRef<string | null>(null);
+  const gameIdRef = useRef<string | null>(initialGameId || null);
   const isPlayer1Ref = useRef(true);
   const isMobileRef = useRef(false);
 

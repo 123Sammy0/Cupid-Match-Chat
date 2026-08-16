@@ -183,6 +183,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [showGame, setShowGame] = useState(false);
+  const gameIdRef = useRef<string | null>(null);
   const [lastUsedAttachment, setLastUsedAttachment] = useState<'image' | 'video' | 'audio' | 'document' | 'camera'>('image');
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const wasLongPressRef = useRef<boolean>(false);
@@ -1794,6 +1795,29 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                           </div>
                         );
                       })()}
+                      {mediaData?.type === 'game_invite' && (
+                        <div className="flex flex-col items-center gap-3 p-4 bg-white/10 rounded-[16px] min-w-[200px]">
+                          <div className="text-4xl">🎮</div>
+                          <p className={`font-bold text-[15px] ${isMine ? 'text-white' : 'text-black'}`}>
+                            {mediaData.gameName}
+                          </p>
+                          <p className={`text-xs ${isMine ? 'text-white/70' : 'text-black/60'} text-center`}>
+                            {isMine ? 'Waiting for partner...' : 'Invited you to play!'}
+                          </p>
+                          {!isMine && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                gameIdRef.current = mediaData.gameId;
+                                setShowGame(true);
+                              }}
+                              className="w-full mt-2 py-2 bg-black text-white dark:bg-white dark:text-black rounded-full text-sm font-bold shadow-md hover:scale-105 active:scale-95 transition-transform"
+                            >
+                              Accept & Play
+                            </button>
+                          )}
+                        </div>
+                      )}
                       {!mediaData && !docData && (
                         <span className="break-words whitespace-pre-wrap">{textContent}<span className="inline-block w-[75px]" /></span>
                       )}
@@ -2514,7 +2538,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           userName={profile?.username || 'Player'}
           partnerName={otherUser?.username || 'Partner'}
           channelRef={channelRef}
-          onClose={() => setShowGame(false)}
+          initialGameId={gameIdRef.current || undefined}
+          onClose={() => {
+            setShowGame(false);
+            gameIdRef.current = null;
+          }}
         />
       )}
     </div>
