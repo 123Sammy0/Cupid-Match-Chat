@@ -84,6 +84,12 @@ export default function CameraModal({ onClose, onSend }: CameraModalProps) {
       // Apply beautiful filter to the saved photo to match the live preview
       ctx.filter = 'contrast(1.08) brightness(1.08) saturate(1.15)';
       
+      // If using front camera, we should flip the canvas horizontally to match the mirrored preview (Snapchat style)
+      if (facingMode === 'user') {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
       setCapturedPhoto(dataUrl);
@@ -191,10 +197,9 @@ export default function CameraModal({ onClose, onSend }: CameraModalProps) {
             autoPlay
             playsInline
             muted
-            className={`w-full h-full object-cover transition-opacity duration-300 ${permissionState === 'granted' && !capturedPhoto ? 'opacity-100' : 'opacity-0 absolute'}`}
+            className={`w-full h-full object-cover transition-opacity duration-300 contrast-[1.08] brightness-[1.08] saturate-[1.15] ${permissionState === 'granted' && !capturedPhoto ? 'opacity-100' : 'opacity-0 absolute'}`}
             style={{ 
-              transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
-              filter: 'contrast(1.08) brightness(1.08) saturate(1.15)'
+              transform: facingMode === 'user' ? 'scaleX(-1)' : 'none'
             }}
           />
           
@@ -207,7 +212,6 @@ export default function CameraModal({ onClose, onSend }: CameraModalProps) {
               src={capturedPhoto} 
               alt="Captured preview" 
               className="w-full h-full object-cover absolute inset-0 z-10 animate-in fade-in duration-200" 
-              style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
             />
           )}
           
