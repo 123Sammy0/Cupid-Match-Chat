@@ -8,11 +8,21 @@ export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private width: number;
   private height: number;
+  private femaleSprites: Record<string, HTMLImageElement> = {};
 
   constructor(ctx: CanvasRenderingContext2D, width: number, height: number) {
     this.ctx = ctx;
     this.width = width;
     this.height = height;
+
+    if (typeof window !== 'undefined') {
+      const spriteNames = ['sprite1', 'sprite2', 'sprite3', 'sprite4', 'sprite5', 'sprite6', 'sprite7'];
+      spriteNames.forEach(name => {
+        const img = new Image();
+        img.src = `/assets/characters/female/${name}.png`;
+        this.femaleSprites[name] = img;
+      });
+    }
   }
 
   resize(w: number, h: number) {
@@ -250,6 +260,50 @@ export class Renderer {
     const sy = b.y - cameraY;
     const w = b.width;
     const h = b.height;
+
+    // ─── Female Sprite Rendering ───
+    if (player.characterType === 'female') {
+      const fSprites = this.femaleSprites;
+      let imgToDraw = fSprites['sprite1']; // Idle default
+
+      if (!b.onGround) {
+        imgToDraw = fSprites['sprite5'] || imgToDraw; // Jump
+      } else if (Math.abs(b.vx) > 10) {
+        // Run animation
+        const runFrames = [fSprites['sprite2'], fSprites['sprite3'], fSprites['sprite4'], fSprites['sprite7']];
+        const validFrames = runFrames.filter(img => img && img.complete);
+        if (validFrames.length > 0) {
+          const frameIndex = Math.floor(Date.now() / 100) % validFrames.length;
+          imgToDraw = validFrames[frameIndex];
+        }
+      } else if (Math.abs(b.vx) > 0 && Math.abs(b.vx) <= 10) {
+        imgToDraw = fSprites['sprite6'] || imgToDraw; // Slide/Stop
+      }
+
+      if (imgToDraw && imgToDraw.complete) {
+        ctx.save();
+        ctx.translate(sx + w / 2, sy + h / 2);
+        
+        // Flip based on facing direction
+        const faceDir = b.facingRight ? 1 : -1;
+        ctx.scale(faceDir, 1);
+
+        const drawSize = 120; // Size of the sprite
+        // Align the bottom of the sprite (drawSize/2) to the bottom of the hitbox (h/2 = 16)
+        const yOffset = -((drawSize / 2) - (h / 2)); 
+        
+        ctx.drawImage(imgToDraw, -drawSize / 2, -drawSize / 2 + yOffset, drawSize, drawSize);
+        ctx.restore();
+
+        // Draw name
+        ctx.fillStyle = isLocal ? '#4ade80' : '#f87171';
+        ctx.font = 'bold 12px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(player.name, sx + w / 2, sy - 36 + yOffset);
+        ctx.textAlign = 'start';
+      }
+      return; // Skip geometric rendering
+    }
 
     // Squash/stretch based on velocity
     let scaleX = 1;
