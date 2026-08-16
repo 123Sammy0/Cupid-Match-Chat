@@ -2007,11 +2007,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                   </button>
                   <button 
-                    onClick={() => handleAttach('camera')} 
+                    onClick={() => { setShowAttachMenu(false); setShowGifPicker(v => !v); }} 
                     className="w-[44px] h-[44px] rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all text-black dark:text-white" 
-                    aria-label="Camera"
+                    aria-label="GIF"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                    <div className="font-black text-[11px] px-1.5 py-0.5 border-2 rounded-md tracking-widest border-current" style={{ lineHeight: 1.2 }}>GIF</div>
                   </button>
                   <button 
                     onClick={() => handleAttach('audio')} 
@@ -2280,7 +2280,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   </button>
                 </div>
 
-                {/* GIF Button — replaces camera, collapses when typing */}
+                {/* Camera — collapses when typing */}
                 <div
                   style={{
                     maxWidth: newMessage ? 0 : 38,
@@ -2296,20 +2296,19 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   <button
                     type="button"
                     tabIndex={newMessage ? -1 : 0}
-                    onClick={() => { setShowGifPicker(v => !v); setShowEmojiPicker(false); setShowAttachMenu(false); }}
+                    onClick={() => handleAttach('camera')}
                     style={{
                       width: 38, minHeight: 52,
-                      color: showGifPicker ? '#000' : '#8E8E93',
+                      color: '#8E8E93',
                       flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: 'none', border: 'none', cursor: 'pointer',
-                      transition: 'color 150ms ease',
                     }}
-                    aria-label="GIFs & Stickers"
+                    aria-label="Camera"
                   >
-                    <div
-                      className="font-black text-[11px] px-1.5 py-0.5 border-2 rounded-md tracking-widest border-current"
-                      style={{ lineHeight: 1.2 }}
-                    >GIF</div>
+                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                      <circle cx="12" cy="13" r="3"/>
+                    </svg>
                   </button>
                 </div>
 
