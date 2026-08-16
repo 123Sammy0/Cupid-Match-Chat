@@ -356,7 +356,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       console.log('[REALTIME-DEBUG] session exists?', !!session, '| error:', sessionError,
         '| token preview:', session?.access_token?.substring(0, 20) ?? 'NONE');
 
-      if (!isMounted) return;
+      if (!isMounted) {
+        console.log('[REALTIME-DEBUG] isMounted=false after getSession, aborting channel setup');
+        return;
+      }
 
       if (session?.access_token) {
         await supabaseClient.realtime.setAuth(session.access_token);
@@ -497,7 +500,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       channelRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, user?.id, otherUser?.id, profile?.username, otherUser?.username]);
+  }, [conversationId, user?.id, otherUser?.id]);
 
   const scrollToBottom = (force = false) => {
     if (messagesEndRef.current?.parentElement) {
