@@ -368,6 +368,43 @@ export class Renderer {
     ctx.lineTo(w / 2 + 8, 2 - armWave * 0.3);
     ctx.stroke();
 
+    // ─── Gender indicator ───
+    if (player.character === 'male') {
+      // Bow tie
+      ctx.fillStyle = player.colorDark;
+      ctx.beginPath();
+      ctx.moveTo(-4, h / 2 - 4);
+      ctx.lineTo(-10, h / 2 - 8);
+      ctx.lineTo(-10, h / 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(4, h / 2 - 4);
+      ctx.lineTo(10, h / 2 - 8);
+      ctx.lineTo(10, h / 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(0, h / 2 - 4, 3, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      // Hair bow
+      ctx.fillStyle = player.colorDark;
+      const bowY = -h / 2;
+      const bowX = -w / 2 + 6;
+      ctx.beginPath();
+      ctx.moveTo(bowX, bowY);
+      ctx.lineTo(bowX - 6, bowY - 6);
+      ctx.lineTo(bowX - 6, bowY + 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(bowX, bowY);
+      ctx.lineTo(bowX + 6, bowY - 6);
+      ctx.lineTo(bowX + 6, bowY + 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(bowX, bowY - 2, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.lineCap = 'butt';
     ctx.restore();
 

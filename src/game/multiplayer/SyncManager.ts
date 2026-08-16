@@ -18,7 +18,7 @@ export interface PlayerSyncPayload {
 }
 
 export interface GameEventPayload {
-  type: 'game_start' | 'game_countdown' | 'checkpoint' | 'interactable' | 'finish';
+  type: 'game_start' | 'game_countdown' | 'checkpoint' | 'interactable' | 'finish' | 'character_ready';
   data: any;
 }
 

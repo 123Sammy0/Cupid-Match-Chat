@@ -13,7 +13,7 @@ import { createGame, joinGame, startGame, finishGame } from '@/app/actions/game'
 import { sendMessageServer } from '@/app/actions/chat';
 import { sfx } from '../engine/Audio';
 
-type GamePhase = 'menu' | 'lobby' | 'countdown' | 'playing' | 'finished';
+type GamePhase = 'menu' | 'lobby' | 'character_select' | 'countdown' | 'playing' | 'finished';
 
 interface StickyRushBoardProps {
   conversationId: string;
@@ -50,6 +50,10 @@ export default function StickyRushBoard({
 
   const [phase, setPhase] = useState<GamePhase>('menu');
   const [countdown, setCountdown] = useState(3);
+  const [localCharacter, setLocalCharacter] = useState<'male' | 'female'>('male');
+  const [remoteCharacter, setRemoteCharacter] = useState<'male' | 'female'>('female');
+  const [localReady, setLocalReady] = useState(false);
+  const [remoteReady, setRemoteReady] = useState(false);
   const [winner, setWinner] = useState<{ name: string; isLocal: boolean; time: number } | null>(null);
   const [partnerTime, setPartnerTime] = useState<number | null>(null);
 
@@ -119,7 +123,7 @@ export default function StickyRushBoard({
     if (!result.success) return;
     gameIdRef.current = gameId;
     isPlayer1Ref.current = false;
-    setPhase('lobby');
+    setPhase('character_select');
     setupSyncListeners();
 
     // Notify host that we joined
@@ -145,8 +149,15 @@ export default function StickyRushBoard({
       (event: GameEventPayload) => {
         switch (event.type) {
           case 'game_start':
-            // Partner joined — start countdown
-            startCountdown();
+            // Partner joined — go to character select
+            setPhase('character_select');
+            break;
+          case 'character_ready':
+            setRemoteCharacter(event.data.character);
+            setRemoteReady(true);
+            if (isPlayer1Ref.current && localReady) {
+              startCountdown();
+            }
             break;
           case 'game_countdown':
             setPhase('countdown');
@@ -185,6 +196,16 @@ export default function StickyRushBoard({
     );
   };
 
+  // ─── Character Select ───
+  const handleCharacterSelectReady = () => {
+    sfx.playClick();
+    setLocalReady(true);
+    syncRef.current?.sendGameEvent({ type: 'character_ready', data: { character: localCharacter } });
+    if (isPlayer1Ref.current && remoteReady) {
+      startCountdown();
+    }
+  };
+
   // ─── Countdown ───
   const startCountdown = async () => {
     if (gameIdRef.current) {
@@ -216,10 +237,10 @@ export default function StickyRushBoard({
     const level = createStickyRushLevel();
     levelRef.current = level;
 
-    const local = createPlayer(userId, userName, isPlayer1Ref.current, level.spawnX, level.spawnY);
+    const local = createPlayer(userId, userName, localCharacter, isPlayer1Ref.current, level.spawnX, level.spawnY);
     localPlayerRef.current = local;
 
-    const remote = createPlayer('remote', partnerName, !isPlayer1Ref.current, level.spawnX, level.spawnY);
+    const remote = createPlayer('remote', partnerName, remoteCharacter, !isPlayer1Ref.current, level.spawnX, level.spawnY);
     remotePlayerRef.current = remote;
 
     // Canvas sizing
@@ -578,12 +599,58 @@ export default function StickyRushBoard({
               <span className="text-white/40 text-xs font-medium">
                 {isPlayer1Ref.current ? partnerName : userName}
               </span>
-              <span className="text-yellow-300/60 text-xs animate-pulse">
-                Waiting...
-              </span>
+              <span className="text-white/40 text-xs">Waiting...</span>
             </div>
           </div>
-          <p className="text-white/40 text-xs">Game invite sent in chat</p>
+          <p className="text-white/40 text-sm mt-4 animate-pulse">
+            Waiting for {isPlayer1Ref.current ? partnerName : userName} to join...
+          </p>
+        </div>
+      )}
+
+      {/* ─── Character Select ─── */}
+      {phase === 'character_select' && (
+        <div className="flex flex-col items-center gap-6 text-center px-6 animate-in fade-in duration-300">
+          <h2 className="text-white text-xl font-bold tracking-tight">CHOOSE CHARACTER</h2>
+          
+          <div className="flex gap-4">
+            <button
+              onClick={() => { if (!localReady) setLocalCharacter('male'); sfx.playClick(); }}
+              className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${localCharacter === 'male' ? 'border-blue-400 bg-blue-500/20 scale-105' : 'border-white/10 bg-black/20 opacity-60'} ${localReady ? 'pointer-events-none opacity-50' : ''}`}
+            >
+              <div className="w-16 h-16 bg-[#bbdefb] rounded-sm shadow-lg flex items-center justify-center text-2xl">
+                👦
+              </div>
+              <span className="text-white text-xs font-bold">Boy</span>
+            </button>
+
+            <button
+              onClick={() => { if (!localReady) setLocalCharacter('female'); sfx.playClick(); }}
+              className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${localCharacter === 'female' ? 'border-pink-400 bg-pink-500/20 scale-105' : 'border-white/10 bg-black/20 opacity-60'} ${localReady ? 'pointer-events-none opacity-50' : ''}`}
+            >
+              <div className="w-16 h-16 bg-[#f8bbd0] rounded-sm shadow-lg flex items-center justify-center text-2xl">
+                👧
+              </div>
+              <span className="text-white text-xs font-bold">Girl</span>
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-col items-center gap-2">
+            {!localReady ? (
+              <button
+                onClick={handleCharacterSelectReady}
+                className="px-8 py-3 bg-white text-black font-bold rounded-full text-base hover:scale-105 active:scale-95 transition-transform"
+              >
+                Ready
+              </button>
+            ) : (
+              <div className="text-green-400 font-bold px-8 py-3">✓ You are Ready</div>
+            )}
+            
+            <div className="text-white/50 text-sm h-6">
+              {remoteReady ? `✓ ${partnerName} is Ready` : `Waiting for ${partnerName}...`}
+            </div>
+          </div>
         </div>
       )}
 
