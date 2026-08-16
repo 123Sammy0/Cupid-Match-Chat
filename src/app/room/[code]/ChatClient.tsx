@@ -262,10 +262,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   useEffect(() => {
     if (!conversationId) return;
     if (user?.id === 'loading') return;
-    // Wait for otherUser to be available — on desktop the page.tsx passes null on first render
-    // then re-renders with real data. Running channels with otherUser.id=null means typing/presence
-    // events never match the real user, so we skip the first call and wait for the real ID.
-    if (!otherUser?.id) return;
+    // NOTE: do NOT guard on !otherUser?.id here — that caused mobile to never fetch
+    // messages on first load since otherUser arrives slightly after user in page.tsx
 
     try {
       const cached = sessionStorage.getItem(`cupid_messages_${conversationId}`);
@@ -358,10 +356,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       console.log('[REALTIME-DEBUG] session exists?', !!session, '| error:', sessionError,
         '| token preview:', session?.access_token?.substring(0, 20) ?? 'NONE');
 
-      if (!isMounted) {
-        console.log('[REALTIME-DEBUG] isMounted=false after getSession, aborting channel setup');
-        return;
-      }
+      if (!isMounted) return;
 
       if (session?.access_token) {
         await supabaseClient.realtime.setAuth(session.access_token);
@@ -502,7 +497,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       channelRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conversationId, user?.id, otherUser?.id]);
+  }, [conversationId, user?.id, otherUser?.id, profile?.username, otherUser?.username]);
 
   const scrollToBottom = (force = false) => {
     if (messagesEndRef.current?.parentElement) {
