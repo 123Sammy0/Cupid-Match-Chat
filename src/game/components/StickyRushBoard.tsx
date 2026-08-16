@@ -144,7 +144,14 @@ export default function StickyRushBoard({
             startCountdown();
             break;
           case 'game_countdown':
+            setPhase('countdown');
             setCountdown(event.data.count);
+            if (event.data.count <= 0) {
+              setPhase('playing');
+              setTimeout(() => {
+                if (!gameLoopRef.current) initGameWorld();
+              }, 50);
+            }
             break;
           case 'interactable':
             // Update interactable state
@@ -188,7 +195,10 @@ export default function StickyRushBoard({
       syncRef.current?.sendGameEvent({ type: 'game_countdown', data: { count } });
       if (count <= 0) {
         clearInterval(interval);
-        initGameWorld();
+        setPhase('playing');
+        setTimeout(() => {
+          if (!gameLoopRef.current) initGameWorld();
+        }, 50);
       }
     }, 1000);
   };
