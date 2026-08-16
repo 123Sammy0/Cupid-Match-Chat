@@ -1201,6 +1201,15 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         wrapper.style.setProperty('height', `${vh}px`, 'important');
         wrapper.style.setProperty('transform', `translateY(${offsetTop}px)`, 'important');
       }
+      // Close all pickers when keyboard opens (viewport shrinks)
+      const prevH = (window as any).__prevVH || window.innerHeight;
+      if (vh < prevH - 50) {
+        // keyboard opened — close any open pickers to prevent layout fight
+        setShowEmojiPicker(false);
+        setShowGifPicker(false);
+        setShowAttachMenu(false);
+      }
+      (window as any).__prevVH = vh;
     };
     
     viewport.addEventListener('resize', handleResize);
@@ -1848,7 +1857,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
       {/* GIF Picker */}
       {showGifPicker && (
-        <GifPicker onSelect={handleGifSelect} />
+        <GifPicker onSelect={handleGifSelect} onClose={() => setShowGifPicker(false)} />
       )}
 
       
@@ -2242,6 +2251,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                       }
                       setShowAttachMenu(v => !v); 
                       setShowEmojiPicker(false);
+                      setShowGifPicker(false);
                     }}
                     onPointerDown={(e) => {
                       if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -2279,39 +2289,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   </button>
                 </div>
 
-                {/* Camera — collapses when typing */}
-                <div
-                  style={{
-                    maxWidth: newMessage ? 0 : 38,
-                    opacity: newMessage ? 0 : 1,
-                    overflow: 'hidden',
-                    flexShrink: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'max-width 220ms cubic-bezier(0.4,0,0.2,1), opacity 150ms ease',
-                  }}
-                >
-                  <button
-                    type="button"
-                    tabIndex={newMessage ? -1 : 0}
-                    onClick={() => handleAttach('camera')}
-                    style={{
-                      width: 38, minHeight: 52,
-                      color: '#8E8E93',
-                      flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: 'none', border: 'none', cursor: 'pointer',
-                    }}
-                    aria-label="Camera"
-                  >
-                    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-                      <circle cx="12" cy="13" r="3"/>
-                    </svg>
-                  </button>
-                </div>
-
-                {/* GIF Picker Button — collapses when typing */}
+                {/* GIF Button — replaces camera, collapses when typing */}
                 <div
                   style={{
                     maxWidth: newMessage ? 0 : 38,
@@ -2333,10 +2311,14 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                       color: showGifPicker ? '#000' : '#8E8E93',
                       flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: 'none', border: 'none', cursor: 'pointer',
+                      transition: 'color 150ms ease',
                     }}
                     aria-label="GIFs & Stickers"
                   >
-                    <div className="font-black text-[11px] px-1.5 py-0.5 border-2 rounded-md tracking-widest border-current">GIF</div>
+                    <div
+                      className="font-black text-[11px] px-1.5 py-0.5 border-2 rounded-md tracking-widest border-current"
+                      style={{ lineHeight: 1.2 }}
+                    >GIF</div>
                   </button>
                 </div>
 
