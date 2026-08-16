@@ -13,6 +13,7 @@ import dynamic from 'next/dynamic';
 import GifPicker from "@/components/GifPicker";
 
 const CameraModal = dynamic(() => import('./CameraModal'), { ssr: false });
+const StickyRushBoard = dynamic(() => import('@/game/components/StickyRushBoard'), { ssr: false });
 
 const MessageContextMenu = ({ m, isMine, onReply, onEdit, onDeleteMe, onDeleteEveryone, onReact }: any) => {
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -181,6 +182,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [emojiCategory, setEmojiCategory] = useState(0);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
+  const [showGame, setShowGame] = useState(false);
   const [lastUsedAttachment, setLastUsedAttachment] = useState<'image' | 'video' | 'audio' | 'document' | 'camera'>('image');
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const wasLongPressRef = useRef<boolean>(false);
@@ -2078,6 +2080,13 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
                   </button>
+                  <button 
+                    onClick={() => { setShowAttachMenu(false); setShowGame(true); }} 
+                    className="w-[44px] h-[44px] rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 active:scale-95 transition-all text-black dark:text-white" 
+                    aria-label="Play Game"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><path d="M6 12h4"/><path d="M8 10v4"/><circle cx="17" cy="10" r="1"/><circle cx="15" cy="13" r="1"/></svg>
+                  </button>
                 </div>
               </div>
             </>
@@ -2495,6 +2504,17 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             setShowCameraModal(false);
             handleFileSelected({ target: { files: [file] } } as any);
           }}
+        />
+      )}
+
+      {showGame && (
+        <StickyRushBoard
+          conversationId={conversationId}
+          userId={user.id}
+          userName={profile?.username || 'Player'}
+          partnerName={otherUser?.username || 'Partner'}
+          channelRef={channelRef}
+          onClose={() => setShowGame(false)}
         />
       )}
     </div>
