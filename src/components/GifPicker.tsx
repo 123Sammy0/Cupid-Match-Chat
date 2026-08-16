@@ -4,7 +4,7 @@ import { GiphyFetch } from '@giphy/js-fetch-api';
 import { Grid } from '@giphy/react-components';
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-const gf = new GiphyFetch(process.env.NEXT_PUBLIC_GIPHY_API_KEY || '');
+const gf = new GiphyFetch(process.env.NEXT_PUBLIC_GIPHY_API_KEY || 'WQCa5OQJAPLydhc7g9BgZ1j3hTSwiT4t');
 
 interface GifPickerProps {
   onSelect: (gif: any, type: 'gif' | 'sticker') => void;
