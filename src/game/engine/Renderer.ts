@@ -267,10 +267,16 @@ export class Renderer {
       let imgToDraw = fSprites['sprite1']; // Idle default
 
       if (!b.onGround) {
-        imgToDraw = fSprites['sprite5'] || imgToDraw; // Jump
+        if (b.vy < -50) {
+          imgToDraw = fSprites['sprite2'] || imgToDraw; // Jump up
+        } else if (b.vy >= -50 && b.vy < 150) {
+          imgToDraw = fSprites['sprite4'] || imgToDraw; // Mid air
+        } else {
+          imgToDraw = fSprites['sprite5'] || imgToDraw; // Falling / Land
+        }
       } else if (Math.abs(b.vx) > 10) {
         // Run animation
-        const runFrames = [fSprites['sprite2'], fSprites['sprite3'], fSprites['sprite4'], fSprites['sprite7']];
+        const runFrames = [fSprites['sprite3'], fSprites['sprite7']];
         const validFrames = runFrames.filter(img => img && img.complete);
         if (validFrames.length > 0) {
           const frameIndex = Math.floor(Date.now() / 100) % validFrames.length;
