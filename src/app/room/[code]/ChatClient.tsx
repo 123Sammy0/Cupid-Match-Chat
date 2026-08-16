@@ -177,12 +177,6 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   const [newMessage, setNewMessage] = useState("");
   const [otherUserOnline, setOtherUserOnline] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
-  const [debugLog, setDebugLog] = useState<string[]>([]);
-  
-  const appendDebug = (msg: string) => {
-    setDebugLog(prev => [msg, ...prev].slice(0, 5));
-  };
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [emojiCategory, setEmojiCategory] = useState(0);
@@ -433,7 +427,6 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           }
         })
         .on('broadcast', { event: 'typing' }, (payload: any) => {
-          appendDebug(`Typing recv: ${payload.payload?.isTyping} from ${payload.payload?.user_id}`);
           if (payload.payload?.user_id === otherUser?.id) {
             setOtherUserTyping(payload.payload.isTyping);
             if (payload.payload.isTyping) {
@@ -446,7 +439,6 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         })
         .subscribe((status: string, err?: Error) => {
           console.log('[REALTIME] roomChannel status:', status, err ?? '');
-          appendDebug(`roomChannel: ${status}`);
         });
 
       // ─── CHANNEL 3: Postgres changes (DB events) ────────────────────────────
@@ -510,12 +502,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           table: 'profiles',
           filter: `id=eq.${otherUser?.id ?? '00000000-0000-0000-0000-000000000000'}`
         }, (payload: any) => {
-          appendDebug(`DB recv: UPDATE profiles for ${payload.new.id}`);
           if (payload.new.last_seen) setOtherUserLastSeen(payload.new.last_seen);
         })
         .subscribe((status: string, err?: Error) => {
           console.log('[REALTIME] dbChannel status:', status, err ?? '');
-          appendDebug(`dbChannel: ${status}`);
         });
 
       realtimeSetupDone = true;
@@ -1485,9 +1475,6 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
             </svg>
-          </button>
-          <button onClick={() => setShowDebug(!showDebug)} className="p-2 rounded-full hover:bg-slate-100 text-red-500 font-bold transition-colors" aria-label="Debug">
-            🛠️
           </button>
           <button onClick={() => setShowHeaderMenu(!showHeaderMenu)} className="p-2 rounded-full hover:bg-slate-100 text-gray-400 hover:text-black transition-colors" aria-label="More">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
