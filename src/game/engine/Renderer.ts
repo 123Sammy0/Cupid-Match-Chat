@@ -9,6 +9,7 @@ export class Renderer {
   private width: number;
   private height: number;
   private femaleSprites: Record<string, HTMLImageElement> = {};
+  private maleSprites: Record<string, HTMLImageElement> = {};
 
   constructor(ctx: CanvasRenderingContext2D, width: number, height: number) {
     this.ctx = ctx;
@@ -18,9 +19,16 @@ export class Renderer {
     if (typeof window !== 'undefined') {
       const spriteNames = ['sprite1', 'sprite2', 'sprite3', 'sprite4', 'sprite5', 'sprite6', 'sprite7'];
       spriteNames.forEach(name => {
-        const img = new Image();
-        img.src = `/assets/characters/female/${name}.png`;
-        this.femaleSprites[name] = img;
+        const fImg = new Image();
+        fImg.src = `/assets/characters/female/${name}.png`;
+        this.femaleSprites[name] = fImg;
+      });
+
+      const maleSpriteNames = ['sprite1', 'sprite2', 'sprite3', 'sprite4', 'sprite5'];
+      maleSpriteNames.forEach(name => {
+        const mImg = new Image();
+        mImg.src = `/assets/characters/male/${name}.png`;
+        this.maleSprites[name] = mImg;
       });
     }
   }
@@ -261,35 +269,38 @@ export class Renderer {
     const w = b.width;
     const h = b.height;
 
-    // ─── Female Sprite Rendering ───
-    if (player.character === 'female') {
-      const fSprites = this.femaleSprites;
-      let imgToDraw = fSprites['sprite1']; // Idle default
+    // ─── Sprite Rendering (Male and Female) ───
+    if (player.character === 'female' || player.character === 'male') {
+      const sprites = player.character === 'female' ? this.femaleSprites : this.maleSprites;
+      let imgToDraw = sprites['sprite1']; // Idle default
 
       // Use player.state (synced for remote players) instead of raw physics values
       // which are only accurate for the local player
       const st = player.state;
 
       if (st === 'jumping') {
-        imgToDraw = fSprites['sprite2'] || imgToDraw; // Jump up
+        imgToDraw = sprites['sprite2'] || imgToDraw; // Jump up
       } else if (st === 'falling') {
         // Distinguish mid-air vs landing based on velocity
         if (b.vy < 150) {
-          imgToDraw = fSprites['sprite4'] || imgToDraw; // Mid air
+          imgToDraw = sprites['sprite4'] || imgToDraw; // Mid air
         } else {
-          imgToDraw = fSprites['sprite5'] || imgToDraw; // Falling fast / Land
+          imgToDraw = sprites['sprite5'] || imgToDraw; // Falling fast / Land
         }
       } else if (st === 'walking') {
         // Run animation
-        const runFrames = [fSprites['sprite3'], fSprites['sprite7']];
+        // For male, we might only have sprite3 and sprite4 for running, or just sprite3. Let's use 3 and 4 for run if 7 doesn't exist.
+        const runFrames = player.character === 'female' 
+          ? [sprites['sprite3'], sprites['sprite7']] 
+          : [sprites['sprite3'], sprites['sprite4']];
         const validFrames = runFrames.filter(img => img && img.complete);
         if (validFrames.length > 0) {
-          const frameIndex = Math.floor(Date.now() / 100) % validFrames.length;
+          const frameIndex = Math.floor(Date.now() / 150) % validFrames.length;
           imgToDraw = validFrames[frameIndex];
         }
       } else {
         // Idle (Standing) — default
-        imgToDraw = fSprites['sprite1'] || imgToDraw;
+        imgToDraw = sprites['sprite1'] || imgToDraw;
       }
 
       if (imgToDraw && imgToDraw.complete) {
