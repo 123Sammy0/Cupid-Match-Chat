@@ -24,7 +24,7 @@ export class Renderer {
         this.femaleSprites[name] = fImg;
       });
 
-      const maleSpriteNames = ['sprite1', 'sprite2', 'sprite3', 'sprite4', 'sprite5'];
+      const maleSpriteNames = ['sprite1', 'sprite2', 'sprite3', 'sprite4', 'sprite5', 'sprite7'];
       maleSpriteNames.forEach(name => {
         const mImg = new Image();
         mImg.src = `/assets/characters/male/${name}.png`;
@@ -289,10 +289,7 @@ export class Renderer {
         }
       } else if (st === 'walking') {
         // Run animation
-        // For male, we might only have sprite3 and sprite4 for running, or just sprite3. Let's use 3 and 4 for run if 7 doesn't exist.
-        const runFrames = player.character === 'female' 
-          ? [sprites['sprite3'], sprites['sprite7']] 
-          : [sprites['sprite3'], sprites['sprite4']];
+        const runFrames = [sprites['sprite3'], sprites['sprite7']];
         const validFrames = runFrames.filter(img => img && img.complete);
         if (validFrames.length > 0) {
           const frameIndex = Math.floor(Date.now() / 150) % validFrames.length;
