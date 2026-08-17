@@ -254,7 +254,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   // --- Modal History Management ---
   useEffect(() => {
     const handlePopState = (e: PopStateEvent) => {
-      if (activePreviewImage) {
+      if (activePreviewImage && window.location.hash !== '#preview') {
         // Stop the default back navigation and just close the preview
         setActivePreviewImage(null);
       }
@@ -265,13 +265,13 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
 
   const openImagePreview = (url: string) => {
     setActivePreviewImage(url);
-    window.history.pushState({ imagePreview: true }, '');
+    window.history.pushState({ imagePreview: true }, '', window.location.pathname + window.location.search + '#preview');
   };
 
   const closeImagePreview = () => {
     setActivePreviewImage(null);
     // If we pushed the state when opening, pop it now so history stays clean
-    if (window.history.state?.imagePreview) {
+    if (window.location.hash === '#preview' || window.history.state?.imagePreview) {
       window.history.back();
     }
   };
@@ -396,6 +396,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         console.warn('[REALTIME-DEBUG] NO SESSION — setAuth was NOT called. RLS-gated events will not arrive.');
       }
 
+      if (!isMounted) return;
+
       // Step 2: Keep token fresh on every refresh
       const { data: { subscription } } = supabaseClient.auth.onAuthStateChange((_event: string, newSession: Session | null) => {
         if (newSession?.access_token) {
@@ -459,7 +461,15 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           setMessages(prev => {
             const index = prev.findIndex((m: any) => m.id === payload.new.id);
             if (index > -1) {
-              return prev.map((m: any) => m.id === payload.new.id ? { ...payload.new, profiles: { username } } : m);
+              // Merge only necessary fields to prevent optimistic UI flicker
+              return prev.map((m: any) => m.id === payload.new.id ? { 
+                ...m, 
+                is_read: payload.new.is_read, 
+                is_delivered: payload.new.is_delivered, 
+                is_edited: payload.new.is_edited,
+                is_deleted: payload.new.is_deleted,
+                reactions: payload.new.reactions || m.reactions 
+              } : m);
             }
             return [...prev, { ...payload.new, profiles: { username } }];
           });
@@ -1645,6 +1655,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   showTail && isMine ? 'rounded-[20px] rounded-br-none' : showTail && !isMine ? 'rounded-[20px] rounded-bl-none' : 'rounded-[20px]'
                 } ${
                   selectedMessage?.id === m.id ? (isMine ? 'ring-2 ring-white/40 select-text' : 'ring-2 ring-black/15 select-text') : 'select-none'
+                } ${
+                  m.metadata?.is_admin_reply ? 'border-2 border-red-500' : ''
                 }`}
                 onTouchStart={(e) => handleTouchStart(e, m)}
                 onTouchMove={handleTouchMove}
@@ -1670,6 +1682,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                   transition: swipingId === m.id ? 'none' : 'transform 0.15s ease-out' 
                 }}
               >
+                {m.metadata?.is_admin_reply && (
+                  <div className="absolute -top-3 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow z-10">
+                    ADMIN
+                  </div>
+                )}
                 {/* Selection-mode subtle highlight on the bubble itself */}
                 {selectedMessage?.id === m.id && (
                   <div className={`absolute inset-0 pointer-events-none z-10 animate-in fade-in duration-150 bg-black/10 ${

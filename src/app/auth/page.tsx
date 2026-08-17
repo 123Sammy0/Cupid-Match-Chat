@@ -129,25 +129,6 @@ export default function AuthPage() {
             </div>
           </div>
 
-          {/* Email (Signup only) */}
-          {view === "signup" && (
-            <div className="flex flex-col gap-1 text-left">
-              <label className="text-[11.5px] font-semibold text-[#326080]">Email (Optional)</label>
-              <div className="relative">
-                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 6l10 7 10-7"/></svg>
-                </div>
-                <input 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com" 
-                  className="w-full h-[46px] pl-[38px] pr-4 bg-white/70 border border-[#326080]/10 focus:border-[#326080] focus:bg-white rounded-[14px] outline-none transition-all text-[14px] text-[#326080] placeholder:text-gray-400 font-medium"
-                />
-              </div>
-            </div>
-          )}
-
           {/* Password */}
           <div className="flex flex-col gap-1 text-left">
             <label className="text-[11.5px] font-semibold text-[#326080]">Password</label>

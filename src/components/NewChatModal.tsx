@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { searchUsers, createDirectConversation } from "@/app/actions/chat";
+import AvatarImage from "@/app/components/AvatarImage";
 
 export default function NewChatModal({ onClose, onChatCreated }: { onClose: () => void, onChatCreated: () => void }) {
   const router = useRouter();
@@ -74,6 +75,17 @@ export default function NewChatModal({ onClose, onChatCreated }: { onClose: () =
             <div className="p-4 text-center text-sm text-gray-400 font-medium animate-pulse">Searching...</div>
           )}
           
+          {!isSearching && query.length < 2 && (
+            <div className="p-8 text-center flex flex-col items-center justify-center h-full opacity-60">
+              <div className="w-16 h-16 bg-[#B5D2E6]/30 rounded-full flex items-center justify-center mb-4 text-[#326080]">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+              </div>
+              <p className="text-[#326080] font-semibold">Start typing to search users</p>
+            </div>
+          )}
+
           {!isSearching && query.length >= 2 && results.length === 0 && (
             <div className="p-8 text-center flex flex-col items-center justify-center h-full opacity-60">
               <div className="w-16 h-16 bg-[#B5D2E6]/30 rounded-full flex items-center justify-center mb-4 text-[#326080]">
@@ -96,9 +108,7 @@ export default function NewChatModal({ onClose, onChatCreated }: { onClose: () =
               className="flex items-center justify-between p-3 hover:bg-[#B5D2E6]/10 active:bg-[#B5D2E6]/20 rounded-2xl transition-colors"
             >
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-tr from-[#326080] to-[#4A7A98] text-white rounded-[20px] flex items-center justify-center font-bold text-lg shadow-sm">
-                  {user.username.charAt(0).toUpperCase()}
-                </div>
+                <AvatarImage url={user.avatar_url} username={user.username} size={48} />
                 <div>
                   <p className="font-bold text-[15px] text-[#326080]">{user.username}</p>
                   <p className="text-[13px] text-[#5A7A90] line-clamp-1 font-medium">{user.bio || 'No bio available'}</p>

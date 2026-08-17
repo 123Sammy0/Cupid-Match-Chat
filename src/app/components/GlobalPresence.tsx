@@ -17,6 +17,18 @@ export default function GlobalPresence() {
         markAllConversationsDelivered().catch(console.error);
       }
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: Session | null) => {
+      if (session?.user) {
+        setUserId(session.user.id);
+      } else {
+        setUserId(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -128,10 +140,20 @@ export default function GlobalPresence() {
       };
     };
 
+    let isMounted = true;
     let cleanupFn: (() => void) | undefined;
-    setup().then(fn => { cleanupFn = fn; });
+    
+    setup().then(fn => { 
+      if (isMounted) {
+        cleanupFn = fn; 
+      } else {
+        // Component unmounted before setup finished. Clean up immediately.
+        fn();
+      }
+    });
 
     return () => {
+      isMounted = false;
       cleanupFn?.();
     };
   }, [userId]);

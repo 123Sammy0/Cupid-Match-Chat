@@ -46,14 +46,16 @@ export default function SettingsPage() {
     const loadProfile = async () => {
       const data: any = await getProfile();
       if (data) {
-        setProfile(data);
-        if (!profile) { // Only update state if it was null initially
-          setBio(data.bio || "");
-          setAvatarUrl(data.avatar_url || "");
-          if (data.privacy_settings) {
-            setPrivacy(data.privacy_settings);
+        setProfile((prev: any) => {
+          // If the user hasn't modified the bio/avatar from the cached version, update them
+          if (!prev || prev.bio === bio) setBio(data.bio || "");
+          if (!prev || prev.avatar_url === avatarUrl) setAvatarUrl(data.avatar_url || "");
+          // Privacy is complex to compare, just update if it's initial load or unchanged
+          if (!prev || JSON.stringify(prev.privacy_settings) === JSON.stringify(privacy)) {
+            if (data.privacy_settings) setPrivacy(data.privacy_settings);
           }
-        }
+          return data;
+        });
         try {
           sessionStorage.setItem("cupid_cache_profile", JSON.stringify(data));
         } catch (e) {}
@@ -142,7 +144,7 @@ export default function SettingsPage() {
           <div className="w-10"></div> {/* Spacer for centering */}
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8">
+        <div className="flex-1 overflow-y-auto p-6 pb-24 flex flex-col gap-8 scrollbar-hide">
           
           {/* Profile Section */}
           <div className="flex flex-col items-center gap-4 text-center">
@@ -178,7 +180,7 @@ export default function SettingsPage() {
           {/* Avatar Selector */}
           <div className="flex flex-col gap-3">
             <label className="text-sm font-bold text-gray-800 px-1">Choose Avatar</label>
-            <div className="flex items-center gap-3 overflow-x-auto pb-4 px-1 snap-x">
+            <div className="flex items-center gap-3 overflow-x-auto pb-4 px-1 snap-x scrollbar-hide">
               {AVATARS.map((av) => (
                 <button
                   key={av}

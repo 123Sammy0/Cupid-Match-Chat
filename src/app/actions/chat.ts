@@ -434,11 +434,21 @@ export async function deleteMessage(messageId: string, forEveryone: boolean) {
     // We fetch the current deleted_by array and append user.id
     const { data: msg } = await adminSupabase
       .from('messages')
-      .select('deleted_by')
+      .select('conversation_id, deleted_by')
       .eq('id', messageId)
       .single();
       
     if (msg) {
+      // Verify user is a participant in this conversation
+      const { data: participant } = await adminSupabase
+        .from('conversation_participants')
+        .select('profile_id')
+        .eq('conversation_id', msg.conversation_id)
+        .eq('profile_id', user.id)
+        .single();
+        
+      if (!participant) return { success: false, message: "Unauthorized" };
+
       const current = Array.isArray(msg.deleted_by) ? msg.deleted_by : [];
       if (!current.includes(user.id)) {
         await adminSupabase

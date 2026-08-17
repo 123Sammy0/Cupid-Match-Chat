@@ -68,22 +68,38 @@ export default function ChatHome() {
     loadData(hasCachedData);
     
     const supabase = createClient();
-    const existingChannel = supabase.getChannels().find((c: any) => c.topic === 'realtime:home_realtime');
-    if (existingChannel) supabase.removeChannel(existingChannel);
+    let channel: any;
+    let isMounted = true;
 
-    const channel = supabase
-      .channel('home_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
-        loadData(true);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_participants' }, () => {
-        loadData(true);
-      });
-    
-    channel.subscribe();
+    const setupRealtime = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!isMounted) return;
+
+      if (session?.access_token) {
+        await supabase.realtime.setAuth(session.access_token);
+      }
+      if (!isMounted) return;
+
+      const existingChannel = supabase.getChannels().find((c: any) => c.topic === 'realtime:home_realtime');
+      if (existingChannel) supabase.removeChannel(existingChannel);
+
+      channel = supabase
+        .channel('home_realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => {
+          if (isMounted) loadData(true);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'conversation_participants' }, () => {
+          if (isMounted) loadData(true);
+        });
+      
+      channel.subscribe();
+    };
+
+    setupRealtime();
 
     return () => {
-      supabase.removeChannel(channel);
+      isMounted = false;
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 
@@ -241,7 +257,7 @@ export default function ChatHome() {
             
             {isLoading ? (
               <div className="px-2 py-8 text-center flex flex-col items-center justify-center gap-3 animate-pulse">
-                <div className="w-8 h-8 rounded-full border-2 border-gray-200 border-t-black animate-spin"></div>
+                <div className="w-8 h-8 rounded-full border-2 border-[#326080]/20 border-t-[#326080] animate-spin"></div>
                 <span className="text-sm text-gray-400 font-medium">Loading messages...</span>
               </div>
             ) : conversations.length === 0 ? (

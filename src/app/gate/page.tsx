@@ -24,14 +24,15 @@ export default function Gate() {
     
     const newPins = [...pins];
 
-    // Handle pasting multiple digits (e.g. 1234)
     if (value.length > 1) {
-      const pasted = value.slice(0, 4).split('');
-      for (let i = 0; i < pasted.length; i++) {
-        if (index + i < 4) newPins[index + i] = pasted[i];
+      // Autocomplete or paste fallback
+      const cleanValue = value.replace(/\D/g, '');
+      const chars = cleanValue.split('');
+      for (let i = 0; i < chars.length; i++) {
+        if (index + i < 4) newPins[index + i] = chars[i];
       }
       setPins(newPins);
-      const nextIndex = Math.min(index + pasted.length, 3);
+      const nextIndex = Math.min(index + chars.length, 3);
       inputRefs[nextIndex].current?.focus();
     } else {
       newPins[index] = value;
@@ -43,9 +44,30 @@ export default function Gate() {
     setError("");
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 4);
+    if (!pastedData) return;
+    
+    const newPins = [...pins];
+    for (let i = 0; i < pastedData.length; i++) {
+      newPins[i] = pastedData[i];
+    }
+    setPins(newPins);
+    const nextIndex = Math.min(pastedData.length, 3);
+    inputRefs[nextIndex === 4 ? 3 : nextIndex].current?.focus();
+    setError("");
+  };
+
   const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !pins[index] && index > 0) {
-      inputRefs[index - 1].current?.focus();
+    if (e.key === "Backspace") {
+      if (!pins[index] && index > 0) {
+        // If current is empty, focus previous and clear it
+        const newPins = [...pins];
+        newPins[index - 1] = "";
+        setPins(newPins);
+        inputRefs[index - 1].current?.focus();
+      }
     } else if (e.key === "Enter") {
       e.preventDefault();
       handleSubmit();
@@ -131,6 +153,7 @@ export default function Gate() {
                 value={p}
                 onChange={(e) => handlePinChange(i, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(i, e)}
+                onPaste={handlePaste}
                 className="pin-digit-input"
                 autoFocus={i === 0}
                 autoComplete="one-time-code"

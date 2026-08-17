@@ -90,6 +90,17 @@ export async function startGame(gameId: string) {
   const { createAdminClient } = await import("@/lib/supabase/server");
   const adminSupabase = createAdminClient();
 
+  // Verify the caller is in the game
+  const { data: game } = await adminSupabase
+    .from('couple_games')
+    .select('player_1, player_2')
+    .eq('id', gameId)
+    .single();
+    
+  if (!game || (game.player_1 !== user.id && game.player_2 !== user.id)) {
+    return { success: false, error: "Unauthorized" };
+  }
+
   const { error } = await adminSupabase
     .from('couple_games')
     .update({ status: 'playing' })
@@ -118,6 +129,11 @@ export async function finishGame(gameId: string, winnerId: string, winnerTime: n
     .single();
 
   if (!game) return { success: false, error: "Game already finished or winner already set" };
+
+  // Validate the caller is actually in the game!
+  if (user.id !== game.player_1 && user.id !== game.player_2) {
+    return { success: false, error: "Unauthorized" };
+  }
 
   // Validate winner is a participant
   if (winnerId !== game.player_1 && winnerId !== game.player_2) {
