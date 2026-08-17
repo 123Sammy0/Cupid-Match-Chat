@@ -312,7 +312,13 @@ export class Renderer {
         // We want a 1024px tall image to be 90px on screen.
         const TARGET_STAND_HEIGHT = 90;
         const BASE_IMG_HEIGHT = 1024;
-        const scale = TARGET_STAND_HEIGHT / BASE_IMG_HEIGHT;
+        let scale = TARGET_STAND_HEIGHT / BASE_IMG_HEIGHT;
+        
+        // Male character has more transparent padding in the original images, so we boost its scale
+        // to visually match the female character's size
+        if (player.character === 'male') {
+          scale *= 1.35; // 35% size boost
+        }
         
         const drawWidth = imgToDraw.width * scale;
         const drawHeight = imgToDraw.height * scale;
