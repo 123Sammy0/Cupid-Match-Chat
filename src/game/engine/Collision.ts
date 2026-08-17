@@ -28,7 +28,18 @@ export function pointInRect(px: number, py: number, r: Rect): boolean {
  * Returns true if a collision was resolved.
  */
 export function resolveStaticCollision(body: PhysicsBody, platform: Rect): boolean {
-  if (!aabbOverlap(body, platform)) return false;
+  let isOverlapping = aabbOverlap(body, platform);
+
+  // Sticky platform logic: if falling, check a slightly extended hitbox downwards
+  // This prevents the player from detaching and repeatedly entering "falling" animation on downward moving platforms.
+  if (!isOverlapping && body.vy >= 0) {
+    const extendedBody = { ...body, height: body.height + 6 };
+    if (aabbOverlap(extendedBody, platform)) {
+      isOverlapping = true;
+    }
+  }
+
+  if (!isOverlapping) return false;
 
   // Calculate overlap on each axis
   const overlapLeft = (body.x + body.width) - platform.x;
