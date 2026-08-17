@@ -69,6 +69,15 @@ export default function StickyRushBoard({
     isMobileRef.current = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
   }, []);
 
+  // ─── Keep character refs in sync with state ───
+  useEffect(() => {
+    localCharacterRef.current = localCharacter;
+  }, [localCharacter]);
+
+  useEffect(() => {
+    remoteCharacterRef.current = remoteCharacter;
+  }, [remoteCharacter]);
+
   // ─── Keyboard input ───
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -387,6 +396,10 @@ export default function StickyRushBoard({
         // Death (fall off)
         if (lp.body.y > lvl.deathY) {
           sfx.playDeath();
+          // Clear input to prevent auto-slide death loop (especially on mobile touch)
+          inputRef.current.left = false;
+          inputRef.current.right = false;
+          inputRef.current.jump = false;
           respawnAtCheckpoint(lp);
         }
       },
@@ -634,7 +647,7 @@ export default function StickyRushBoard({
           
           <div className="flex gap-4">
             <button
-              onClick={() => { if (!localReady) setLocalCharacter('male'); sfx.playClick(); }}
+              onClick={() => { if (!localReady) { setLocalCharacter('male'); localCharacterRef.current = 'male'; } sfx.playClick(); }}
               className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${localCharacter === 'male' ? 'border-blue-400 bg-blue-500/20 scale-105' : 'border-white/10 bg-black/20 opacity-60'} ${localReady ? 'pointer-events-none opacity-50' : ''}`}
             >
               <div className="w-16 h-16 bg-[#bbdefb] rounded-sm shadow-lg flex items-center justify-center text-2xl">
@@ -644,7 +657,7 @@ export default function StickyRushBoard({
             </button>
 
             <button
-              onClick={() => { if (!localReady) setLocalCharacter('female'); sfx.playClick(); }}
+              onClick={() => { if (!localReady) { setLocalCharacter('female'); localCharacterRef.current = 'female'; } sfx.playClick(); }}
               className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${localCharacter === 'female' ? 'border-pink-400 bg-pink-500/20 scale-105' : 'border-white/10 bg-black/20 opacity-60'} ${localReady ? 'pointer-events-none opacity-50' : ''}`}
             >
               <div className="w-16 h-16 bg-[#f8bbd0] rounded-sm shadow-lg flex items-center justify-center text-2xl">

@@ -91,6 +91,8 @@ export function respawnAtCheckpoint(player: Player) {
   player.body.y = player.lastCheckpointY;
   player.body.vx = 0;
   player.body.vy = 0;
+  player.body.onGround = true; // Prevent falling through before collision resolves
+  player.state = 'idle';
 }
 
 export interface InputState {
