@@ -47,10 +47,13 @@ export interface FinishLine {
 export function updateMovingPlatform(p: Platform, time: number) {
   if (!p.moving) return;
   const offset = Math.sin(time * p.moving.speed) * p.moving.range;
+  const dx = p.moving.axis === 'x' ? (offset - (p._offset || 0)) : 0;
+  
   if (p.moving.axis === 'x') {
     p.x = p.moving.startPos + offset;
   } else {
     p.y = p.moving.startPos + offset;
   }
   p._offset = offset;
+  (p as any)._dx = dx;
 }

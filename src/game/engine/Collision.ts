@@ -62,6 +62,9 @@ export function resolveStaticCollision(body: PhysicsBody, platform: Rect): boole
       // Landed on top
       body.vy = 0;
       body.onGround = true;
+      if ((platform as any)._dx) {
+        body.x += (platform as any)._dx;
+      }
     } else {
       // Hit ceiling
       body.vy = 0;
