@@ -12,6 +12,7 @@ export interface PlayerSyncPayload {
   vy: number;
   facingRight: boolean;
   state: PlayerState;
+  character: 'male' | 'female';
   hasKey: boolean;
   finished: boolean;
   finishTime: number;
@@ -75,6 +76,7 @@ export class SyncManager {
         vy: Math.round(b.vy),
         facingRight: b.facingRight,
         state: this.localPlayer.state,
+        character: this.localPlayer.character,
         hasKey: this.localPlayer.hasKey,
         finished: this.localPlayer.finished,
         finishTime: this.localPlayer.finishTime,
@@ -118,6 +120,7 @@ export class SyncManager {
     b.vy = payload.vy;
     b.facingRight = payload.facingRight;
     remote.state = payload.state;
+    remote.character = payload.character || remote.character;
     remote.hasKey = payload.hasKey;
     remote.finished = payload.finished;
     remote.finishTime = payload.finishTime;

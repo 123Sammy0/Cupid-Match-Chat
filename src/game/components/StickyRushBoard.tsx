@@ -57,6 +57,8 @@ export default function StickyRushBoard({
   const [countdown, setCountdown] = useState(3);
   const [localCharacter, setLocalCharacter] = useState<'male' | 'female'>('male');
   const [remoteCharacter, setRemoteCharacter] = useState<'male' | 'female'>('female');
+  const localCharacterRef = useRef<'male' | 'female'>('male');
+  const remoteCharacterRef = useRef<'male' | 'female'>('female');
   const [localReady, setLocalReady] = useState(false);
   const [remoteReady, setRemoteReady] = useState(false);
   const [winner, setWinner] = useState<{ name: string; isLocal: boolean; time: number } | null>(null);
@@ -163,6 +165,7 @@ export default function StickyRushBoard({
             setPhase('character_select');
             break;
           case 'character_ready':
+            remoteCharacterRef.current = event.data.character;
             setRemoteCharacter(event.data.character);
             setRemoteReady(true);
             if (isPlayer1Ref.current && localReadyRef.current) {
@@ -211,6 +214,7 @@ export default function StickyRushBoard({
     sfx.playClick();
     setLocalReady(true);
     localReadyRef.current = true;
+    localCharacterRef.current = localCharacter;
     syncRef.current?.sendGameEvent({ type: 'character_ready', data: { character: localCharacter } });
     if (isPlayer1 && remoteReady) {
       startCountdown();
@@ -251,10 +255,10 @@ export default function StickyRushBoard({
     const localId = isPlayer1Ref.current ? 'player1' : 'player2';
     const remoteId = !isPlayer1Ref.current ? 'player1' : 'player2';
 
-    const local = createPlayer(localId, userName, localCharacter, isPlayer1Ref.current, level.spawnX, level.spawnY);
+    const local = createPlayer(localId, userName, localCharacterRef.current, isPlayer1Ref.current, level.spawnX, level.spawnY);
     localPlayerRef.current = local;
 
-    const remote = createPlayer(remoteId, partnerName, remoteCharacter, !isPlayer1Ref.current, level.spawnX, level.spawnY);
+    const remote = createPlayer(remoteId, partnerName, remoteCharacterRef.current, !isPlayer1Ref.current, level.spawnX, level.spawnY);
     remotePlayerRef.current = remote;
 
     // Canvas sizing
