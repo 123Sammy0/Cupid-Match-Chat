@@ -266,15 +266,20 @@ export class Renderer {
       const fSprites = this.femaleSprites;
       let imgToDraw = fSprites['sprite1']; // Idle default
 
-      if (!b.onGround) {
-        if (b.vy < -50) {
-          imgToDraw = fSprites['sprite2'] || imgToDraw; // Jump up
-        } else if (b.vy >= -50 && b.vy < 150) {
+      // Use player.state (synced for remote players) instead of raw physics values
+      // which are only accurate for the local player
+      const st = player.state;
+
+      if (st === 'jumping') {
+        imgToDraw = fSprites['sprite2'] || imgToDraw; // Jump up
+      } else if (st === 'falling') {
+        // Distinguish mid-air vs landing based on velocity
+        if (b.vy < 150) {
           imgToDraw = fSprites['sprite4'] || imgToDraw; // Mid air
         } else {
-          imgToDraw = fSprites['sprite5'] || imgToDraw; // Falling / Land
+          imgToDraw = fSprites['sprite5'] || imgToDraw; // Falling fast / Land
         }
-      } else if (Math.abs(b.vx) > 15) {
+      } else if (st === 'walking') {
         // Run animation
         const runFrames = [fSprites['sprite3'], fSprites['sprite7']];
         const validFrames = runFrames.filter(img => img && img.complete);
@@ -283,7 +288,7 @@ export class Renderer {
           imgToDraw = validFrames[frameIndex];
         }
       } else {
-        // Idle (Standing)
+        // Idle (Standing) — default
         imgToDraw = fSprites['sprite1'] || imgToDraw;
       }
 
