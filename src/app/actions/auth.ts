@@ -9,7 +9,8 @@ export async function loginAction(username: string, password: string) {
     const authClient = await createClient();
     
     // 2. Login via Supabase Auth
-    const email = `${username.toLowerCase()}@cupid.com`;
+    const cleanUsername = username.toLowerCase().replace(/\s+/g, '');
+    const email = `${cleanUsername}@cupid.com`;
     const { data, error } = await authClient.auth.signInWithPassword({ email, password });
     
     if (error || !data.user) {

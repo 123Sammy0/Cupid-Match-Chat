@@ -14,18 +14,27 @@ export default function NewChatModal({ onClose, onChatCreated }: { onClose: () =
   const tappedRef = useRef(false);
 
   useEffect(() => {
+    let isCancelled = false;
     const handler = setTimeout(async () => {
       if (query.length >= 2) {
         setIsSearching(true);
         const users = await searchUsers(query);
-        setResults(users);
-        setIsSearching(false);
+        if (!isCancelled) {
+          setResults(users);
+          setIsSearching(false);
+        }
       } else {
-        setResults([]);
+        if (!isCancelled) {
+          setResults([]);
+          setIsSearching(false);
+        }
       }
     }, 300);
 
-    return () => clearTimeout(handler);
+    return () => {
+      isCancelled = true;
+      clearTimeout(handler);
+    };
   }, [query]);
 
   const handleSendRequest = async (user: any) => {

@@ -88,7 +88,8 @@ export const getAdminUsers = async () => {
       id, username, avatar_url, role, is_suspended, deleted_at, created_at,
       messages (count)
     `)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(200);
 
   if (error) throw error;
   
@@ -226,7 +227,8 @@ export const getConversationsForModeration = async () => {
         profiles (id, username, avatar_url)
       )
     `)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(200);
 
   if (error) throw error;
   return data;
@@ -240,10 +242,12 @@ export const getConversationMessages = async (conversationId: string) => {
     .from("messages")
     .select("*, profiles!messages_sender_id_fkey(username, avatar_url)")
     .eq("conversation_id", conversationId)
-    .order("sent_at", { ascending: true });
+    .order("sent_at", { ascending: false })
+    .limit(1000);
 
   if (error) throw error;
-  return data;
+  // Reverse the messages in JS so they render in correct chronological order (oldest first)
+  return data.reverse();
 };
 
 export const getActiveTakeover = async (conversationId: string) => {

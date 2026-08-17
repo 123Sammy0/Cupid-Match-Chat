@@ -220,7 +220,8 @@ export async function getConversations() {
   const { data: myParts } = await adminSupabase
     .from('conversation_participants')
     .select('conversation_id, is_pinned, is_archived, last_read_at, conversations(id, updated_at, is_group)')
-    .eq('profile_id', user.id);
+    .eq('profile_id', user.id)
+    .limit(50);
 
   if (!myParts || myParts.length === 0) return [];
 
@@ -245,32 +246,45 @@ export async function getConversations() {
     otherParts = otherData || [];
   }
 
-  // Fetch latest message per conversation
-  const { data: allMessages } = await adminSupabase
-    .from('messages')
-    .select('id, conversation_id, sender_id, content, type, sent_at')
-    .in('conversation_id', convIds)
-    .order('sent_at', { ascending: false });
+  // Fetch latest message and unread count efficiently per conversation
+  const convStats = await Promise.all(convIds.map(async (convId: any) => {
+    // 1. Get last message
+    const { data: lastMsgData } = await adminSupabase
+      .from('messages')
+      .select('id, conversation_id, sender_id, content, type, sent_at')
+      .eq('conversation_id', convId)
+      .order('sent_at', { ascending: false })
+      .limit(1);
+    
+    // 2. Get unread count
+    const p = myParts.find((part: any) => part.conversation_id === convId);
+    let unreadCount = 0;
+    
+    let unreadQuery = adminSupabase
+      .from('messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('conversation_id', convId)
+      .neq('sender_id', user.id);
+      
+    if (p && p.last_read_at) {
+      unreadQuery = unreadQuery.gt('sent_at', p.last_read_at);
+    }
+    
+    const { count } = await unreadQuery;
+    unreadCount = count || 0;
+
+    return {
+      conversation_id: convId,
+      lastMsg: lastMsgData && lastMsgData.length > 0 ? lastMsgData[0] : null,
+      unreadCount
+    };
+  }));
 
   // Combine data
   return myParts.map((p: any) => {
     const other = otherParts?.find((o: any) => o.conversation_id === p.conversation_id);
+    const stats = convStats.find((s: any) => s.conversation_id === p.conversation_id);
     
-    // Get latest message for this conversation
-    const convMessages = (allMessages || []).filter((m: any) => m.conversation_id === p.conversation_id);
-    const lastMsg = convMessages.length > 0 ? convMessages[0] : null;
-    
-    // Count unread: messages from OTHER user sent AFTER my last_read_at
-    let unreadCount = 0;
-    if (p.last_read_at) {
-      unreadCount = convMessages.filter((m: any) => 
-        m.sender_id !== user.id && new Date(m.sent_at) > new Date(p.last_read_at)
-      ).length;
-    } else {
-      // Never read = all messages from other user are unread
-      unreadCount = convMessages.filter((m: any) => m.sender_id !== user.id).length;
-    }
-
     return {
       id: p.conversation_id,
       updated_at: (p.conversations as any).updated_at,
@@ -279,13 +293,13 @@ export async function getConversations() {
       last_read_at: p.last_read_at,
       other_user: other?.profiles,
       other_user_id: other?.profile_id,
-      last_message: lastMsg ? {
-        content: lastMsg.content,
-        type: lastMsg.type,
-        sender_id: lastMsg.sender_id,
-        sent_at: lastMsg.sent_at
+      last_message: stats?.lastMsg ? {
+        content: stats.lastMsg.content,
+        type: stats.lastMsg.type,
+        sender_id: stats.lastMsg.sender_id,
+        sent_at: stats.lastMsg.sent_at
       } : null,
-      unread_count: unreadCount
+      unread_count: stats?.unreadCount || 0
     };
   }).sort((a: any, b: any) => {
     const aTime = a.last_message?.sent_at || a.updated_at;
@@ -488,14 +502,15 @@ export async function getMessages(conversationId: string) {
     .from('messages')
     .select('*, profiles(username, avatar_url)')
     .eq('conversation_id', conversationId)
-    .order('sent_at', { ascending: true });
+    .order('sent_at', { ascending: false })
+    .limit(200);
 
   if (error) {
     console.error('[getMessages] DB error:', error);
     return { success: false, messages: [], error: error.message };
   }
 
-  return { success: true, messages: data || [] };
+  return { success: true, messages: data ? data.reverse() : [] };
 }
 
 export async function sendMessageServer(
