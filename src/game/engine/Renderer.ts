@@ -295,11 +295,13 @@ export class Renderer {
         const faceDir = b.facingRight ? 1 : -1;
         ctx.scale(faceDir, 1);
 
-        const drawSize = 90; // Size of the sprite (Reduced from 120 to 90 for a smaller character)
-        // Align the bottom of the sprite (drawSize/2) to the bottom of the hitbox (h/2 = 20)
-        const yOffset = -((drawSize / 2) - (h / 2)); 
+        const drawHeight = 90;
+        const drawWidth = imgToDraw.width && imgToDraw.height ? drawHeight * (imgToDraw.width / imgToDraw.height) : 90;
         
-        ctx.drawImage(imgToDraw, -drawSize / 2, -drawSize / 2 + yOffset, drawSize, drawSize);
+        // Align the bottom of the sprite (drawHeight/2) to the bottom of the hitbox (h/2 = 20)
+        const yOffset = (h / 2) - (drawHeight / 2);
+        
+        ctx.drawImage(imgToDraw, -drawWidth / 2, -drawHeight / 2 + yOffset, drawWidth, drawHeight);
         ctx.restore();
 
         // Draw name
