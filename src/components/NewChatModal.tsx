@@ -108,7 +108,9 @@ export default function NewChatModal({ onClose, onChatCreated }: { onClose: () =
               className="flex items-center justify-between p-3 hover:bg-[#B5D2E6]/10 active:bg-[#B5D2E6]/20 rounded-2xl transition-colors"
             >
               <div className="flex items-center gap-3">
-                <AvatarImage url={user.avatar_url} username={user.username} size={48} />
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-[#B5D2E6]/30 flex items-center justify-center text-[#5A7A90] font-bold text-lg shrink-0">
+                  <AvatarImage url={user.avatar_url} username={user.username} />
+                </div>
                 <div>
                   <p className="font-bold text-[15px] text-[#326080]">{user.username}</p>
                   <p className="text-[13px] text-[#5A7A90] line-clamp-1 font-medium">{user.bio || 'No bio available'}</p>

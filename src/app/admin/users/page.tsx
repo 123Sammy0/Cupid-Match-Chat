@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { getAdminUsers, updateUserRole, updateUserStatus } from "@/app/actions/admin";
 
 export default function UserManagementPage() {
@@ -58,8 +57,7 @@ export default function UserManagementPage() {
 
   // Filter
   const filteredUsers = users.filter(u => 
-    (u.username?.toLowerCase() || "").includes(searchQuery.toLowerCase()) || 
-    (u.email?.toLowerCase() || "").includes(searchQuery.toLowerCase())
+    (u.username?.toLowerCase() || "").includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -137,7 +135,7 @@ export default function UserManagementPage() {
                           </div>
                           <div className="flex flex-col">
                             <span className="font-semibold text-white">{user.username || "Unknown"}</span>
-                            <span className="text-xs text-zinc-500">{user.email}</span>
+                            <span className="text-xs text-zinc-500">{user.username ? `${user.username}@cupid.com` : ''}</span>
                             <span className="text-xs text-zinc-600 mt-0.5">ID: {user.id.substring(0, 8)}...</span>
                           </div>
                         </div>

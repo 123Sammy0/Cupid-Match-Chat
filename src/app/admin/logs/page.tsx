@@ -72,7 +72,6 @@ export default function AuditLogsPage() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="font-semibold text-white">{log.profiles?.username || "Unknown"}</span>
-                        <span className="text-xs text-zinc-500">{log.profiles?.email || "Unknown"}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">

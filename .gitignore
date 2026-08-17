@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# debug/test artifacts
+*.log
+*.backup
+test*.js
+reproduce*.js
+fix-*.js
+setup-*.js
+set-*.js
+update*.js
+*_dump*.html
+page*.html
+vercel*.html
+test_*.html
+vercel.css

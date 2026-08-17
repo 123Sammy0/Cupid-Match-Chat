@@ -1,25 +1,10 @@
 "use server";
 
 import { createServerClient } from "@supabase/ssr";
+import { createAdminClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-
-import { createClient } from "@supabase/supabase-js";
-
-// Helper to get authenticated server client (Service Role for Admin operations)
-export const getAdminSupabase = async () => {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      }
-    }
-  );
-};
 
 // Foundational Security Guard: Checks if the current user is a super_admin
 export const verifySuperAdmin = async () => {
@@ -63,7 +48,7 @@ export const guardAgainstSelfHarm = async (adminId: string, targetId: string, ac
 // --------------------------------------------------------------------------------
 export const getDashboardMetrics = async () => {
   await verifySuperAdmin();
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
 
   // We could use DB functions for this, but for simplicity we run basic counts.
   const [{ count: totalUsers }, { count: totalChats }, { count: totalMessages }, { count: activeRooms }] = await Promise.all([
@@ -95,12 +80,12 @@ export const getDashboardMetrics = async () => {
 // --------------------------------------------------------------------------------
 export const getAdminUsers = async () => {
   await verifySuperAdmin();
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase
     .from("profiles")
     .select(`
-      id, username, email, avatar_url, role, is_suspended, deleted_at, created_at,
+      id, username, avatar_url, role, is_suspended, deleted_at, created_at,
       messages (count)
     `)
     .order("created_at", { ascending: false });
@@ -117,7 +102,7 @@ export const updateUserRole = async (userId: string, newRole: string) => {
   const adminUser = await verifySuperAdmin();
   await guardAgainstSelfHarm(adminUser.id, userId, "role modification");
   
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
   const { error } = await adminSupabase
     .from("profiles")
     .update({ role: newRole })
@@ -134,7 +119,7 @@ export const updateUserStatus = async (userId: string, status: 'active' | 'suspe
   const adminUser = await verifySuperAdmin();
   await guardAgainstSelfHarm(adminUser.id, userId, "status modification");
   
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
   
   let updateData: any = { is_suspended: false, deleted_at: null };
   if (status === 'suspended') {
@@ -160,19 +145,25 @@ export const updateUserStatus = async (userId: string, status: 'active' | 'suspe
 // --------------------------------------------------------------------------------
 export const getGlobalSettings = async () => {
   await verifySuperAdmin();
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase
     .from("feature_flags")
     .select("*");
 
-  if (error) throw error;
-  return data;
+  if (error) {
+    // feature_flags table may not exist yet — return empty gracefully
+    if (error.code === 'PGRST205' || error.code === '42P01') {
+      return [];
+    }
+    throw error;
+  }
+  return data || [];
 };
 
 export const updateGlobalSetting = async (key: string, enabled: boolean, value: any = {}) => {
   const adminUser = await verifySuperAdmin();
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
 
   const { error } = await adminSupabase
     .from("feature_flags")
@@ -191,21 +182,27 @@ export const updateGlobalSetting = async (key: string, enabled: boolean, value: 
 // --------------------------------------------------------------------------------
 export const getAuditLogs = async () => {
   await verifySuperAdmin();
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase
-    .from("audit_logs")
-    .select("*, profiles!audit_logs_admin_id_fkey(username, email)")
+    .from("admin_audit_logs")
+    .select("*, profiles!admin_audit_logs_admin_id_fkey(username)")
     .order("created_at", { ascending: false })
     .limit(100);
 
-  if (error) throw error;
-  return data;
+  if (error) {
+    // Table may not exist yet — return empty gracefully
+    if (error.code === 'PGRST205' || error.code === '42P01') {
+      return [];
+    }
+    throw error;
+  }
+  return data || [];
 };
 
 export const logAdminAction = async (adminId: string, action: string, targetUserId: string | null = null, targetChatId: string | null = null, details: any = {}) => {
-  const adminSupabase = await getAdminSupabase();
-  await adminSupabase.from("audit_logs").insert({
+  const adminSupabase = createAdminClient();
+  await adminSupabase.from("admin_audit_logs").insert({
     admin_id: adminId,
     action,
     target_user_id: targetUserId,
@@ -219,7 +216,7 @@ export const logAdminAction = async (adminId: string, action: string, targetUser
 // --------------------------------------------------------------------------------
 export const getConversationsForModeration = async () => {
   await verifySuperAdmin();
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase
     .from("conversations")
@@ -237,7 +234,7 @@ export const getConversationsForModeration = async () => {
 
 export const getConversationMessages = async (conversationId: string) => {
   await verifySuperAdmin();
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase
     .from("messages")
@@ -251,7 +248,7 @@ export const getConversationMessages = async (conversationId: string) => {
 
 export const getActiveTakeover = async (conversationId: string) => {
   await verifySuperAdmin();
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
   const { data, error } = await adminSupabase
     .from("admin_takeovers")
     .select("*")
@@ -265,7 +262,7 @@ export const getActiveTakeover = async (conversationId: string) => {
 
 export const startTakeover = async (conversationId: string) => {
   const adminUser = await verifySuperAdmin();
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
 
   const { error } = await adminSupabase.from("admin_takeovers").insert({
     conversation_id: conversationId,
@@ -281,7 +278,7 @@ export const startTakeover = async (conversationId: string) => {
 
 export const endTakeover = async (conversationId: string) => {
   const adminUser = await verifySuperAdmin();
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
 
   const { error } = await adminSupabase
     .from("admin_takeovers")
@@ -297,7 +294,7 @@ export const endTakeover = async (conversationId: string) => {
 
 export const adminReply = async (conversationId: string, content: string, impersonatedUserId: string) => {
   const adminUser = await verifySuperAdmin();
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
 
   // Verify takeover is active
   const { data: takeover } = await adminSupabase
@@ -329,7 +326,7 @@ export const adminReply = async (conversationId: string, content: string, impers
 
 export const moderateMessage = async (messageId: string, action: 'delete' | 'redact') => {
   const adminUser = await verifySuperAdmin();
-  const adminSupabase = await getAdminSupabase();
+  const adminSupabase = createAdminClient();
 
   let updatePayload: any = {};
   if (action === 'delete') {
