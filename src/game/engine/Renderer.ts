@@ -314,10 +314,15 @@ export class Renderer {
         const BASE_IMG_HEIGHT = 1024;
         let scale = TARGET_STAND_HEIGHT / BASE_IMG_HEIGHT;
         
-        // Male character has more transparent padding in the original images, so we boost its scale
-        // to visually match the female character's size
+        // Fine-tune scale for male character per-frame due to inconsistent padding in AI generations
         if (player.character === 'male') {
-          scale *= 1.35; // 35% size boost
+          if (imgToDraw === sprites['sprite1']) {
+            scale *= 1.15; // Idle
+          } else if (imgToDraw === sprites['sprite2'] || imgToDraw === sprites['sprite4'] || imgToDraw === sprites['sprite5']) {
+            scale *= 1.0;  // Jump, Mid-air, Land (No boost, these fill the frame)
+          } else {
+            scale *= 1.1;  // Running frames (Slight boost)
+          }
         }
         
         const drawWidth = imgToDraw.width * scale;
