@@ -308,10 +308,16 @@ export class Renderer {
         const faceDir = b.facingRight ? 1 : -1;
         ctx.scale(faceDir, 1);
 
-        const drawHeight = 90;
-        const drawWidth = imgToDraw.width && imgToDraw.height ? drawHeight * (imgToDraw.width / imgToDraw.height) : 90;
+        // Uniform scale factor: assuming 1024 is the max dimension of the source AI images
+        // We want a 1024px tall image to be 90px on screen.
+        const TARGET_STAND_HEIGHT = 90;
+        const BASE_IMG_HEIGHT = 1024;
+        const scale = TARGET_STAND_HEIGHT / BASE_IMG_HEIGHT;
         
-        // Align the bottom of the sprite (drawHeight/2) to the bottom of the hitbox (h/2 = 20)
+        const drawWidth = imgToDraw.width * scale;
+        const drawHeight = imgToDraw.height * scale;
+        
+        // Align the bottom of the sprite to the bottom of the hitbox
         const yOffset = (h / 2) - (drawHeight / 2);
         
         ctx.drawImage(imgToDraw, -drawWidth / 2, -drawHeight / 2 + yOffset, drawWidth, drawHeight);
