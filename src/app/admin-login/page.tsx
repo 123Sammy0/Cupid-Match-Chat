@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
       }
 
       // Check if the user is an admin
-      const { data: profile } = await supabase
+      const { data: profile, error: profErr } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", authData.user.id)
@@ -41,8 +41,7 @@ export default function AdminLoginPage() {
         throw new Error("Access denied. Admin privileges required.");
       }
 
-      router.push("/admin");
-      router.refresh();
+      window.location.href = "/admin";
     } catch (err: any) {
       setError(err.message || "Failed to authenticate.");
     } finally {

@@ -47,9 +47,6 @@ function MobileMenuToggle() {
   return (
     <button
       className="md:hidden p-2 text-zinc-400 hover:text-white transition-colors rounded-lg hover:bg-zinc-800"
-      onClick={() => {
-        // This won't work in server component, handled by AdminSidebarClient
-      }}
       aria-label="Toggle sidebar"
       id="admin-mobile-menu-toggle"
     >

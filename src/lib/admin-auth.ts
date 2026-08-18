@@ -22,11 +22,12 @@ export const verifyAdmin = async () => {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+
   if (!user) redirect("/admin-login");
 
   const adminSupabase = createAdminClient();
-  const { data: profile } = await adminSupabase
+  const { data: profile, error: adminErr } = await adminSupabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
