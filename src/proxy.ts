@@ -22,7 +22,7 @@ export async function proxy(request: NextRequest) {
   const isAdminRoute = request.nextUrl.pathname.startsWith('/admin') && request.nextUrl.pathname !== '/admin-login'
 
   // If accessing auth, room, settings, or admin but hasn't passed gate -> redirect to homepage (stealth mode)
-  if (!gatePassed && (isAuthRoute || isRoomRoute || isSettingsRoute || isAdminRoute || request.nextUrl.pathname === '/admin-login')) {
+  if (!gatePassed && (isAuthRoute || isRoomRoute || isSettingsRoute || isAdminRoute)) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 

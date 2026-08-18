@@ -1,10 +1,10 @@
 import { ReactNode } from "react";
 import Link from "next/link";
-import { verifySuperAdmin } from "@/app/actions/admin";
+import { verifyAdmin } from "@/app/actions/admin";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   // Pre-flight check: Verify super admin access before rendering anything in the layout
-  await verifySuperAdmin();
+  await verifyAdmin();
 
   return (
     <div className="flex h-screen bg-zinc-950 text-white overflow-hidden">

@@ -146,11 +146,12 @@ export default function UserManagementPage() {
                           value={user.role || 'user'}
                           onChange={(e) => handleRoleChange(user.id, e.target.value)}
                           className={`px-2.5 py-1.5 rounded-md text-xs font-medium focus:outline-none appearance-none cursor-pointer
-                            ${user.role === 'super_admin' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-zinc-800 text-zinc-300 border border-zinc-700'}
+                            ${user.role === 'admin' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-zinc-800 text-zinc-300 border border-zinc-700'}
                           `}
                         >
                           <option value="user">User</option>
-                          <option value="super_admin">Super Admin</option>
+                          <option value="partner">Partner</option>
+                          <option value="admin">Admin</option>
                         </select>
                       </td>
                       <td className="px-6 py-4">

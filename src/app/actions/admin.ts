@@ -6,8 +6,8 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-// Foundational Security Guard: Checks if the current user is a super_admin
-export const verifySuperAdmin = async () => {
+// Foundational Security Guard: Checks if the current user is an admin
+export const verifyAdmin = async () => {
   const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,7 +29,7 @@ export const verifySuperAdmin = async () => {
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "super_admin" && user.email !== "mdsaakib002@gmail.com") {
+  if (profile?.role !== "admin") {
     redirect("/");
   }
 
@@ -47,7 +47,7 @@ export const guardAgainstSelfHarm = async (adminId: string, targetId: string, ac
 // ADMIN METRICS
 // --------------------------------------------------------------------------------
 export const getDashboardMetrics = async () => {
-  await verifySuperAdmin();
+  await verifyAdmin();
   const adminSupabase = createAdminClient();
 
   // We could use DB functions for this, but for simplicity we run basic counts.
@@ -79,7 +79,7 @@ export const getDashboardMetrics = async () => {
 // ADMIN USERS
 // --------------------------------------------------------------------------------
 export const getAdminUsers = async () => {
-  await verifySuperAdmin();
+  await verifyAdmin();
   const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase
@@ -100,7 +100,7 @@ export const getAdminUsers = async () => {
 };
 
 export const updateUserRole = async (userId: string, newRole: string) => {
-  const adminUser = await verifySuperAdmin();
+  const adminUser = await verifyAdmin();
   await guardAgainstSelfHarm(adminUser.id, userId, "role modification");
   
   const adminSupabase = createAdminClient();
@@ -117,7 +117,7 @@ export const updateUserRole = async (userId: string, newRole: string) => {
 };
 
 export const updateUserStatus = async (userId: string, status: 'active' | 'suspended' | 'banned') => {
-  const adminUser = await verifySuperAdmin();
+  const adminUser = await verifyAdmin();
   await guardAgainstSelfHarm(adminUser.id, userId, "status modification");
   
   const adminSupabase = createAdminClient();
@@ -145,7 +145,7 @@ export const updateUserStatus = async (userId: string, status: 'active' | 'suspe
 // GLOBAL SETTINGS
 // --------------------------------------------------------------------------------
 export const getGlobalSettings = async () => {
-  await verifySuperAdmin();
+  await verifyAdmin();
   const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase
@@ -163,7 +163,7 @@ export const getGlobalSettings = async () => {
 };
 
 export const updateGlobalSetting = async (key: string, enabled: boolean, value: any = {}) => {
-  const adminUser = await verifySuperAdmin();
+  const adminUser = await verifyAdmin();
   const adminSupabase = createAdminClient();
 
   const { error } = await adminSupabase
@@ -182,7 +182,7 @@ export const updateGlobalSetting = async (key: string, enabled: boolean, value: 
 // AUDIT LOGGING
 // --------------------------------------------------------------------------------
 export const getAuditLogs = async () => {
-  await verifySuperAdmin();
+  await verifyAdmin();
   const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase
@@ -216,7 +216,7 @@ export const logAdminAction = async (adminId: string, action: string, targetUser
 // ADMIN CHAT CONTROL & MODERATION
 // --------------------------------------------------------------------------------
 export const getConversationsForModeration = async () => {
-  await verifySuperAdmin();
+  await verifyAdmin();
   const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase
@@ -235,7 +235,7 @@ export const getConversationsForModeration = async () => {
 };
 
 export const getConversationMessages = async (conversationId: string) => {
-  await verifySuperAdmin();
+  await verifyAdmin();
   const adminSupabase = createAdminClient();
 
   const { data, error } = await adminSupabase
@@ -251,7 +251,7 @@ export const getConversationMessages = async (conversationId: string) => {
 };
 
 export const getActiveTakeover = async (conversationId: string) => {
-  await verifySuperAdmin();
+  await verifyAdmin();
   const adminSupabase = createAdminClient();
   const { data, error } = await adminSupabase
     .from("admin_takeovers")
@@ -265,7 +265,7 @@ export const getActiveTakeover = async (conversationId: string) => {
 };
 
 export const startTakeover = async (conversationId: string) => {
-  const adminUser = await verifySuperAdmin();
+  const adminUser = await verifyAdmin();
   const adminSupabase = createAdminClient();
 
   const { error } = await adminSupabase.from("admin_takeovers").insert({
@@ -281,7 +281,7 @@ export const startTakeover = async (conversationId: string) => {
 };
 
 export const endTakeover = async (conversationId: string) => {
-  const adminUser = await verifySuperAdmin();
+  const adminUser = await verifyAdmin();
   const adminSupabase = createAdminClient();
 
   const { error } = await adminSupabase
@@ -297,7 +297,7 @@ export const endTakeover = async (conversationId: string) => {
 };
 
 export const adminReply = async (conversationId: string, content: string, impersonatedUserId: string) => {
-  const adminUser = await verifySuperAdmin();
+  const adminUser = await verifyAdmin();
   const adminSupabase = createAdminClient();
 
   // Verify takeover is active
@@ -329,7 +329,7 @@ export const adminReply = async (conversationId: string, content: string, impers
 };
 
 export const moderateMessage = async (messageId: string, action: 'delete' | 'redact') => {
-  const adminUser = await verifySuperAdmin();
+  const adminUser = await verifyAdmin();
   const adminSupabase = createAdminClient();
 
   let updatePayload: any = {};

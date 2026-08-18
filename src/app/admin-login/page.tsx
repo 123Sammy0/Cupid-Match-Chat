@@ -6,8 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("mdsaakib002@gmail.com");
-  const [password, setPassword] = useState("asdqwe123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -18,26 +18,10 @@ export default function AdminLoginPage() {
 
     try {
       const supabase = createClient();
-      let { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
-      // If login fails for the permanent admin, it means they haven't registered this email in Supabase yet.
-      // We will automatically sign them up.
-      if (authError && email === "mdsaakib002@gmail.com") {
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        
-        if (signUpError) throw signUpError;
-        if (!signUpData.user) throw new Error("Account created but email confirmation required. Please check your email.");
-        
-        // After signup, we need to log them in (if email confirmations are off, this works immediately)
-        authData = signUpData;
-        authError = null;
-      }
 
       if (authError) throw authError;
 
@@ -45,16 +29,16 @@ export default function AdminLoginPage() {
         throw new Error("Authentication failed. No user returned.");
       }
 
-      // Check if the user is a super_admin
+      // Check if the user is an admin
       const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", authData.user.id)
         .single();
 
-      if (profile?.role !== "super_admin" && authData.user.email !== "mdsaakib002@gmail.com") {
+      if (profile?.role !== "admin") {
         await supabase.auth.signOut();
-        throw new Error("Access denied. Super Admin privileges required.");
+        throw new Error("Access denied. Admin privileges required.");
       }
 
       router.push("/admin");
@@ -76,7 +60,7 @@ export default function AdminLoginPage() {
               <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-text-main">Super Admin Portal</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-text-main">Admin Portal</h1>
           <p className="text-sm text-text-sub mt-2">Restricted Access Only</p>
         </div>
 
