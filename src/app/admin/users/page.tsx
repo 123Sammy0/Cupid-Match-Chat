@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAdminUsers, updateUserRole, updateUserStatus } from "@/app/actions/admin";
+import { getAdminUsers, updateUserRole, updateUserStatus, deleteUser } from "@/app/actions/admin";
 
 export default function UserManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,6 +50,19 @@ export default function UserManagementPage() {
       await loadUsers(); // Refresh
     } catch (e: any) {
       alert(`Error: ${e.message}`);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm("Are you sure you want to permanently delete this user? Their account will be deactivated and they will not be able to log in. This action cannot be undone.")) return;
+    setProcessingId(userId);
+    try {
+      await deleteUser(userId);
+      await loadUsers(); // Refresh
+    } catch (e: any) {
+      alert(`Error deleting user: ${e.message}`);
     } finally {
       setProcessingId(null);
     }
@@ -170,8 +183,15 @@ export default function UserManagementPage() {
                           <option value="banned">Banned</option>
                         </select>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-xs text-zinc-500 mr-4">{user.messagesCount} msgs</span>
+                      <td className="px-6 py-4 text-right flex items-center justify-end gap-3">
+                        <span className="text-xs text-zinc-500">{user.messagesCount} msgs</span>
+                        <button
+                          disabled={processingId === user.id}
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="px-2 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-medium rounded border border-red-500/20 transition-colors disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   );

@@ -58,25 +58,44 @@ export default function AdminSettingsPage() {
         ) : (
           <div className="flex flex-col gap-6">
             {settings.map(setting => (
-              <div key={setting.key} className="flex items-center justify-between border-b border-zinc-800 pb-6 last:border-0 last:pb-0">
-                <div className="flex flex-col max-w-[70%]">
-                  <h3 className="text-lg font-semibold capitalize text-white">{setting.key.replace(/_/g, ' ')}</h3>
-                  <p className="text-sm text-zinc-400 mt-1 leading-relaxed">{setting.description}</p>
+              <div key={setting.key} className="flex flex-col border-b border-zinc-800 pb-6 last:border-0 last:pb-0">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col max-w-[70%]">
+                    <h3 className="text-lg font-semibold capitalize text-white">{setting.key.replace(/_/g, ' ')}</h3>
+                    <p className="text-sm text-zinc-400 mt-1 leading-relaxed">{setting.description}</p>
+                  </div>
+                  
+                  <button
+                    disabled={processingKey === setting.key}
+                    onClick={() => handleToggle(setting.key, setting.enabled, setting.value)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-zinc-900 ${
+                      setting.enabled ? 'bg-emerald-500' : 'bg-zinc-700'
+                    } ${processingKey === setting.key ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        setting.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
                 </div>
                 
-                <button
-                  disabled={processingKey === setting.key}
-                  onClick={() => handleToggle(setting.key, setting.enabled, setting.value)}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-zinc-900 ${
-                    setting.enabled ? 'bg-emerald-500' : 'bg-zinc-700'
-                  } ${processingKey === setting.key ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      setting.enabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
+                {setting.key === 'gate_password' && (
+                  <div className="mt-4 flex items-center gap-3">
+                    <input 
+                      type="text"
+                      className="bg-zinc-950 border border-zinc-800 text-sm rounded-lg px-3 py-2 text-white w-48 focus:outline-none focus:border-accent"
+                      defaultValue={setting.value?.password || ''}
+                      onBlur={(e) => {
+                        if (e.target.value !== setting.value?.password) {
+                          handleToggle(setting.key, setting.enabled, { ...setting.value, password: e.target.value });
+                        }
+                      }}
+                      placeholder="Enter new gate password"
+                    />
+                    <span className="text-xs text-zinc-500">Click outside to save</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>

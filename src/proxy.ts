@@ -63,16 +63,41 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 
-  if (user && isAuthRoute) {
-    // Already logged in, redirect to room selection
-    return NextResponse.redirect(new URL('/room', request.url))
+  // 3.5 Global Suspension & Deletion Check
+  let isSuspendedOrDeleted = false;
+  let role = 'user';
+  if (user) {
+    const { data: profile } = await supabase.from('profiles').select('active, is_suspended, deleted_at, role').eq('id', user.id).single()
+    
+    if (profile) {
+      role = profile.role || 'user';
+    }
+
+    if (!profile || !profile.active || profile.is_suspended || profile.deleted_at) {
+      isSuspendedOrDeleted = true;
+      // If user is suspended, deleted, or deactivated, force them to login page where they will be blocked
+      if (isRoomRoute || isAdminRoute || isSettingsRoute) {
+        return NextResponse.redirect(new URL('/auth', request.url))
+      }
+    }
   }
 
-  // 4. Admin route protection
-  if (user && isAdminRoute) {
-    const { data: profile } = await supabase.from('profiles').select('role, active').eq('id', user.id).single()
-    if (!profile || profile.role !== 'admin' || !profile.active) {
-      return NextResponse.redirect(new URL('/room', request.url))
+  // 4. Strict Surface Isolation
+  if (user && !isSuspendedOrDeleted) {
+    if (role === 'admin') {
+      // Admins are NOT allowed in normal user routes
+      if (isRoomRoute || isAuthRoute || isSettingsRoute) {
+        return NextResponse.redirect(new URL('/admin', request.url));
+      }
+    } else {
+      // Normal users are NOT allowed in admin routes
+      if (isAdminRoute) {
+        return NextResponse.redirect(new URL('/room', request.url));
+      }
+      // Logged in normal users shouldn't be on auth page
+      if (isAuthRoute) {
+        return NextResponse.redirect(new URL('/room', request.url));
+      }
     }
   }
 

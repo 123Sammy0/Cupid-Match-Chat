@@ -61,7 +61,10 @@ export default function AuditLogsPage() {
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-zinc-500">No logs found.</td>
+                  <td colSpan={5} className="px-6 py-8 text-center">
+                    <span className="text-zinc-500">No logs found.</span>
+                    <p className="text-xs text-orange-500/80 mt-2">[UNVERIFIED: Audit logs table may not exist in database]</p>
+                  </td>
                 </tr>
               ) : (
                 logs.map((log) => (

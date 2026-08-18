@@ -14,11 +14,14 @@ export async function searchUsers(query: string) {
   const adminSupabase = createAdminClient();
 
   // Exact match for privacy (users must know the exact username)
+  // Exclude deleted and suspended users from search results
   const { data, error } = await adminSupabase
     .from('profiles')
     .select('id, username, avatar_url')
     .eq('username', query.toLowerCase().replace(/\s+/g, ''))
     .neq('id', user.id)
+    .is('deleted_at', null)
+    .eq('is_suspended', false)
     .limit(1);
 
   if (error && error.code === '42703') {
@@ -28,6 +31,8 @@ export async function searchUsers(query: string) {
       .select('id, username')
       .eq('username', query.toLowerCase().replace(/\s+/g, ''))
       .neq('id', user.id)
+      .is('deleted_at', null)
+      .eq('is_suspended', false)
       .limit(1);
     return fallbackData || [];
   }

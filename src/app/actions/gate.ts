@@ -1,9 +1,17 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { createAdminClient } from "@/lib/supabase/server";
 
 export async function verifyAccessCode(pin: string) {
-  const gateCode = process.env.GATEWAY_PASSWORD || "1212";
+  const adminSupabase = createAdminClient();
+  const { data: flag } = await adminSupabase.from("feature_flags").select("value").eq("key", "gate_password").single();
+  
+  let gateCode = process.env.GATEWAY_PASSWORD || "1212";
+  if (flag && flag.value && typeof flag.value.password === 'string') {
+    gateCode = flag.value.password;
+  }
+
   if (pin === gateCode) {
     // Set cookie
     const cookieStore = await cookies();

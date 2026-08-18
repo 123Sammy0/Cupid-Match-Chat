@@ -17,11 +17,23 @@ export async function loginAction(username: string, password: string) {
       return { success: false, message: "The login details don’t match." };
     }
 
-    // 3. Check active state
-    const { data: profile } = await supabase.from('profiles').select('active').eq('id', data.user.id).single();
-    if (!profile || !profile.active) {
+    // 3. Check active state and suspension
+    const { data: profile } = await supabase.from('profiles').select('active, is_suspended, deleted_at').eq('id', data.user.id).single();
+    if (!profile) {
+      await authClient.auth.signOut();
+      return { success: false, message: "Account profile missing." };
+    }
+    if (!profile.active) {
       await authClient.auth.signOut();
       return { success: false, message: "Account disabled." };
+    }
+    if (profile.deleted_at) {
+      await authClient.auth.signOut();
+      return { success: false, message: "Account has been deleted." };
+    }
+    if (profile.is_suspended) {
+      await authClient.auth.signOut();
+      return { success: false, message: "Account is currently suspended." };
     }
     
     // 4. Update last_login

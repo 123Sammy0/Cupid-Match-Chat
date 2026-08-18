@@ -1,97 +1,154 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, useEffect } from "react";
+import { getGlobalSettings, updateGlobalSetting } from "@/app/actions/admin";
 
 export default function RoomManagementPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  
-  // Mock Data
-  const mockRooms = [
-    { id: "room_1", code: "LOVE-1234", participants: 2, messages: 154, created: "2 days ago", locked: false },
-    { id: "room_2", code: "CHAT-9000", participants: 2, messages: 32, created: "5 days ago", locked: true },
-    { id: "room_3", code: "SECRET-55", participants: 2, messages: 890, created: "1 week ago", locked: false },
-  ];
+  const [gatePassword, setGatePassword] = useState("");
+  const [gateEnabled, setGateEnabled] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const loadGateConfig = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      const settings = await getGlobalSettings();
+      const gateSetting = settings.find((s: any) => s.key === 'gate_password');
+      if (gateSetting) {
+        setGatePassword(gateSetting.value?.password || '');
+        setGateEnabled(gateSetting.enabled);
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadGateConfig();
+  }, []);
+
+  const handleSaveGatePassword = async () => {
+    if (!gatePassword.trim()) {
+      alert("Gate password cannot be empty.");
+      return;
+    }
+    setIsSaving(true);
+    setSaveSuccess(false);
+    try {
+      await updateGlobalSetting('gate_password', gateEnabled, { password: gatePassword });
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (e: any) {
+      alert(`Failed to update gate password: ${e.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Room Management</h1>
-          <p className="text-zinc-400 mt-1">Manage private chat rooms and Gate Entry passwords.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-            Change Gate Password
-          </button>
-        </div>
+    <div className="flex flex-col gap-6 max-w-4xl mx-auto">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Gate & Access Control</h1>
+        <p className="text-zinc-400 mt-1">Manage the gate access code that users must enter before reaching the login screen.</p>
       </div>
 
-      {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <input 
-            type="text" 
-            placeholder="Search by Room Code..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all"
-          />
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      {error && (
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl text-sm font-medium">
+          {error}
+        </div>
+      )}
+
+      {/* Gate Password Management */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">Gate Access Code</h2>
+            <p className="text-sm text-zinc-400">Users must enter this code on the gate page to access the app.</p>
           </div>
         </div>
-        <select className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none">
-          <option value="all">All Rooms</option>
-          <option value="active">Active Rooms</option>
-          <option value="locked">Locked Rooms</option>
-        </select>
+
+        {isLoading ? (
+          <div className="animate-pulse text-zinc-500">Loading gate configuration...</div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex-1 w-full">
+                <label className="text-sm text-zinc-400 mb-1 block">Current Gate Password</label>
+                <input
+                  type="text"
+                  value={gatePassword}
+                  onChange={(e) => setGatePassword(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-4 py-3 text-lg font-mono tracking-widest focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                  placeholder="Enter gate password"
+                />
+              </div>
+              <div className="flex-shrink-0 self-end">
+                <button
+                  onClick={handleSaveGatePassword}
+                  disabled={isSaving}
+                  className={`px-6 py-3 text-sm font-bold rounded-lg transition-all shadow-lg disabled:opacity-50 ${
+                    saveSuccess
+                      ? 'bg-emerald-500 text-white shadow-emerald-500/20'
+                      : 'bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/20'
+                  }`}
+                >
+                  {isSaving ? "Saving..." : saveSuccess ? "✓ Saved!" : "Update Password"}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-zinc-950 rounded-lg border border-zinc-800">
+              <div>
+                <span className="text-sm font-medium text-white">Gate Enabled</span>
+                <p className="text-xs text-zinc-500 mt-0.5">When disabled, users bypass the gate screen entirely.</p>
+              </div>
+              <button
+                onClick={async () => {
+                  const newState = !gateEnabled;
+                  setGateEnabled(newState);
+                  try {
+                    await updateGlobalSetting('gate_password', newState, { password: gatePassword });
+                  } catch (e: any) {
+                    setGateEnabled(!newState);
+                    alert(`Failed: ${e.message}`);
+                  }
+                }}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                  gateEnabled ? 'bg-emerald-500' : 'bg-zinc-700'
+                }`}
+              >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+                  gateEnabled ? 'translate-x-5' : 'translate-x-0'
+                }`} />
+              </button>
+            </div>
+
+            <div className="p-3 bg-zinc-950 rounded-lg border border-zinc-800 text-xs text-zinc-500">
+              <strong className="text-zinc-400">Data source:</strong> <code className="text-emerald-400">public.feature_flags</code> where key = &apos;gate_password&apos;.
+              The gate page reads this value in real-time via a server action.
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Rooms Table */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-zinc-950/50 text-zinc-400 border-b border-zinc-800">
-              <tr>
-                <th className="px-6 py-4 font-medium">Room Code</th>
-                <th className="px-6 py-4 font-medium text-center">Participants</th>
-                <th className="px-6 py-4 font-medium text-center">Total Messages</th>
-                <th className="px-6 py-4 font-medium">Created</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800/50">
-              {mockRooms.map((room) => (
-                <tr key={room.id} className={`hover:bg-zinc-800/30 transition-colors ${room.locked ? 'bg-red-500/5' : ''}`}>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      {room.locked && <svg className="text-red-500" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
-                      <span className="font-mono font-bold text-white tracking-wide">{room.code}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-zinc-950 border border-zinc-800 font-semibold">
-                      {room.participants}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center font-semibold text-zinc-300">{room.messages}</td>
-                  <td className="px-6 py-4 text-zinc-500">{room.created}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link href={`/admin/chats?room=${room.code}`} className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-xs font-medium transition-colors">
-                        View Chat
-                      </Link>
-                      <button className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${room.locked ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white' : 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white'}`}>
-                        {room.locked ? 'Unlock' : 'Lock'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* Info Card */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+        <h2 className="text-lg font-semibold mb-3">About Rooms</h2>
+        <p className="text-sm text-zinc-400 leading-relaxed">
+          This application uses a conversation-based architecture (not room codes). Private conversations are created
+          when users search for and connect with each other. Room management is handled through the
+          <a href="/admin/chats" className="text-blue-400 hover:text-blue-300 ml-1">Chat Monitor</a> section.
+        </p>
       </div>
     </div>
   );
