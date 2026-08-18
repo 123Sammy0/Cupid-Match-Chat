@@ -23,6 +23,12 @@ export default function GlobalPresence() {
         setUserId(session.user.id);
       } else {
         setUserId(null);
+        if (event === 'SIGNED_OUT') {
+          try {
+            sessionStorage.clear();
+            localStorage.clear();
+          } catch (e) {}
+        }
       }
     });
 

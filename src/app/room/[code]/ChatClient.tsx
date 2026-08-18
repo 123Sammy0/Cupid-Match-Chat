@@ -421,13 +421,6 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       channelRef.current = roomChannel;
 
       roomChannel
-        .on('broadcast', { event: 'new_message' }, (payload: any) => {
-          const msg = payload.payload;
-          if (msg.sender_id !== user.id) {
-            setMessages(prev => prev.some((m: any) => m.id === msg.id) ? prev : [...prev, msg]);
-            markConversationRead(conversationId);
-          }
-        })
         .on('broadcast', { event: 'typing' }, (payload: any) => {
           if (payload.payload?.user_id === otherUser?.id) {
             setOtherUserTyping(payload.payload.isTyping);
@@ -615,7 +608,6 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     };
 
     setLocalMessages((prev) => [...prev, { ...payload, localStatus: 'sending' }]);
-    channelRef.current?.send({ type: 'broadcast', event: 'new_message', payload });
 
     // Send as 'image' to DB to bypass constraint, since content JSON has type: type.
     const insertResult = await sendMessageServer(conversationId, finalContent, 'image', msgId, expiresAt);
@@ -678,10 +670,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     setLocalMessages((prev) => [...prev, { ...payload, localStatus: 'sending' }]);
     console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] setLocalMessages called (React will batch & paint async)`);
 
-    // Phase 5 — Broadcast send timing
+    // Phase 5 — Broadcast send timing (REMOVED: we rely on postgres_changes for security)
     const tBroadcast = performance.now();
-    channelRef.current?.send({ type: 'broadcast', event: 'new_message', payload });
-    console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] broadcast .send() dispatched (${(performance.now()-tBroadcast).toFixed(1)}ms for send call itself)`);
+    console.log(`[T+${(performance.now()-t0).toFixed(1)}ms] broadcast skipped for security`);
 
     // DB insert via server action (bypasses browser JWT race condition)
     const tInsert = performance.now();

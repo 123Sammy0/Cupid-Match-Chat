@@ -8,6 +8,9 @@ export async function proxy(request: NextRequest) {
     },
   })
 
+  // Zero-friction update architecture: ensure HTML documents are not heavily cached
+  response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate')
+
   // 1. Check if trying to access private routes without passing the gate
   const gatePassed = request.cookies.get('gate_passed')?.value
   const isGateRoute = request.nextUrl.pathname === '/gate'
@@ -15,11 +18,17 @@ export async function proxy(request: NextRequest) {
   const isApiRoute = request.nextUrl.pathname.startsWith('/api')
   const isAuthRoute = request.nextUrl.pathname.startsWith('/auth')
   const isRoomRoute = request.nextUrl.pathname.startsWith('/room')
+  const isSettingsRoute = request.nextUrl.pathname.startsWith('/settings')
   const isAdminRoute = request.nextUrl.pathname.startsWith('/admin') && request.nextUrl.pathname !== '/admin-login'
 
-  // If accessing auth, room, or admin but hasn't passed gate -> redirect to homepage (stealth mode)
-  if (!gatePassed && (isAuthRoute || isRoomRoute || isAdminRoute || request.nextUrl.pathname === '/admin-login')) {
+  // If accessing auth, room, settings, or admin but hasn't passed gate -> redirect to homepage (stealth mode)
+  if (!gatePassed && (isAuthRoute || isRoomRoute || isSettingsRoute || isAdminRoute || request.nextUrl.pathname === '/admin-login')) {
     return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  // Allow cron API routes to bypass gate/auth checks since they use a secret token
+  if (request.nextUrl.pathname.startsWith('/api/cron')) {
+    return response;
   }
 
   // 2. Refresh Supabase session
@@ -49,8 +58,8 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // 3. Protect routes based on authentication
-  if (!user && (isRoomRoute || isAdminRoute)) {
-    // Need to be logged in to access room or admin
+  if (!user && (isRoomRoute || isAdminRoute || isSettingsRoute)) {
+    // Need to be logged in to access room, settings, or admin
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 
