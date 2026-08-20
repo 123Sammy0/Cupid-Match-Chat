@@ -619,13 +619,15 @@ export const getSystemHealth = async () => {
     results.storage = { status: 'error', latencyMs: Date.now() - storageStart, detail: e.message };
   }
 
-  // 4. Realtime (basic connectivity test via DB query timing)
+  // 4. Messaging DB check (NOTE: This tests DB connectivity for the messages table,
+  // NOT actual WebSocket/realtime channel health. True realtime health requires a
+  // client-side WebSocket connectivity check.)
   const rtStart = Date.now();
   try {
     const { error } = await adminSupabase.from('messages').select('id', { head: true });
-    results.realtime = { status: error ? 'degraded' : 'operational', latencyMs: Date.now() - rtStart, detail: error?.message || 'Based on DB connectivity' };
+    results.messaging_db = { status: error ? 'degraded' : 'operational', latencyMs: Date.now() - rtStart, detail: error?.message || 'Messages table accessible' };
   } catch (e: any) {
-    results.realtime = { status: 'error', latencyMs: Date.now() - rtStart, detail: e.message };
+    results.messaging_db = { status: 'error', latencyMs: Date.now() - rtStart, detail: e.message };
   }
 
   // 5. API (we're running this action, so API is operational)

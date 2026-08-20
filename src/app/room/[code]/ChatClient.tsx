@@ -11,6 +11,7 @@ import AvatarImage from "@/app/components/AvatarImage";
 import { LazyImage } from "@/app/components/LazyImage";
 import dynamic from 'next/dynamic';
 import GifPicker from "@/components/GifPicker";
+import { getConnectionManager, CONNECTION_STATE_EVENT, RECONNECT_COMPLETE_EVENT, type ConnectionState } from "@/lib/realtime/ConnectionManager";
 
 const CameraModal = dynamic(() => import('./CameraModal'), { ssr: false });
 const StickyRushBoard = dynamic(() => import('@/game/components/StickyRushBoard'), { ssr: false });
@@ -171,11 +172,10 @@ const EMOJI_CATEGORIES = [
 ];
 
 export default function ChatClient({ conversationId, user, profile, otherUser }: { conversationId: string, user: any, profile: any, otherUser: any }) {
-  // PHASE 1 — Build verification marker (remove after confirming new deploy)
-  console.log('[BUILD_CHECK] ChatClient loaded', Date.now());
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [otherUserOnline, setOtherUserOnline] = useState(false);
+  const [connectionState, setConnectionState] = useState<ConnectionState>('connecting');
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
@@ -347,8 +347,39 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
     const handleFocus = () => markConversationRead(conversationId);
     window.addEventListener('focus', handleFocus);
 
-    // Safety-net poll every 15 seconds
-    const pollInterval = setInterval(fetchMessages, 15000);
+    // Safety-net poll every 30 seconds (fallback only, realtime is primary)
+    const pollInterval = setInterval(fetchMessages, 30000);
+
+    // ─── CONNECTION STATE TRACKING ──────────────────────────────────────────
+    const connManager = getConnectionManager();
+    setConnectionState(connManager.getState());
+    const unsubConnState = connManager.onStateChange((state: ConnectionState) => {
+      if (isMounted) setConnectionState(state);
+    });
+
+    // ─── RECONNECT GAP-FILL ─────────────────────────────────────────────────
+    const handleReconnectComplete = async (e: any) => {
+      if (!isMounted) return;
+      const { lastEventTimestamp } = e.detail;
+      console.log('[RECONNECT] Gap-filling from:', lastEventTimestamp);
+      try {
+        const result = await getMessages(conversationId);
+        if (result.success && result.messages) {
+          setMessages(prev => {
+            const existingIds = new Set(prev.map((m: any) => m.id));
+            const newMsgs = result.messages.filter((m: any) => !existingIds.has(m.id));
+            if (newMsgs.length === 0) return prev;
+            return [...prev, ...newMsgs].sort((a: any, b: any) => 
+              new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
+            );
+          });
+          setLocalMessages(prev => prev.filter(m => !result.messages.some((d: any) => d.id === m.id)));
+        }
+      } catch (err) {
+        console.error('[RECONNECT] Gap-fill failed:', err);
+      }
+    };
+    window.addEventListener(RECONNECT_COMPLETE_EVENT, handleReconnectComplete);
 
     // ─── REALTIME AUTH: must fully resolve BEFORE channels subscribe ──────────
     // Previous bug: initRealtime() was called without await, so channels
@@ -450,6 +481,10 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           filter: `conversation_id=eq.${conversationId}`
         }, (payload: any) => {
           console.log(`[REALTIME] postgres_changes INSERT fired for msg id=${payload.new.id} sender=${payload.new.sender_id}`, Date.now());
+          // Record event timestamp for gap-fill on reconnect
+          const connMgr = getConnectionManager();
+          if (payload.new.sent_at) connMgr.recordEventTimestamp(payload.new.sent_at);
+
           const username = payload.new.sender_id === user.id ? profile?.username : otherUser?.username;
           setMessages(prev => {
             const index = prev.findIndex((m: any) => m.id === payload.new.id);
@@ -461,6 +496,8 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                 is_delivered: payload.new.is_delivered, 
                 is_edited: payload.new.is_edited,
                 is_deleted: payload.new.is_deleted,
+                status: payload.new.status || m.status,
+                version: payload.new.version || m.version,
                 reactions: payload.new.reactions || m.reactions 
               } : m);
             }
@@ -478,7 +515,16 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`
         }, (payload: any) => {
-          setMessages(prev => prev.map((m: any) => m.id === payload.new.id ? { ...m, ...payload.new } : m));
+          // Event ordering: reject stale updates by comparing version
+          setMessages(prev => prev.map((m: any) => {
+            if (m.id !== payload.new.id) return m;
+            // If the incoming version is older or equal, ignore it
+            if (typeof m.version === 'number' && typeof payload.new.version === 'number' && payload.new.version <= m.version) {
+              console.log(`[REALTIME] Stale UPDATE ignored: msg=${m.id} local_v=${m.version} remote_v=${payload.new.version}`);
+              return m;
+            }
+            return { ...m, ...payload.new };
+          }));
         })
         .on('postgres_changes', {
           event: 'DELETE',
@@ -509,6 +555,9 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
         })
         .subscribe((status: string, err?: Error) => {
           console.log('[REALTIME] dbChannel status:', status, err ?? '');
+          // Feed into ConnectionManager
+          const connMgr = getConnectionManager();
+          connMgr.handleChannelStatus(status, err);
         });
 
       realtimeSetupDone = true;
@@ -520,9 +569,11 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       isMounted = false;
       clearInterval(pollInterval);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener(RECONNECT_COMPLETE_EVENT, handleReconnectComplete);
       if (typeof window !== 'undefined' && handleSyncRef) {
         window.removeEventListener('global_presence_sync', handleSyncRef);
       }
+      unsubConnState();
       if (authSub) authSub.unsubscribe();
       if (myTypingTimeoutRef.current) clearTimeout(myTypingTimeoutRef.current);
       if (theirTypingTimeoutRef.current) clearTimeout(theirTypingTimeoutRef.current);
@@ -544,12 +595,13 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   };
 
   useEffect(() => {
-    // When the other user goes offline, their last_seen is effectively NOW.
-    // Optimistically update it to ensure high precision without another DB roundtrip.
-    if (!otherUserOnline && otherUser?.id) {
-      setOtherUserLastSeen(new Date().toISOString());
+    // When the other user goes offline via presence, record the timestamp.
+    // Only set if we had previously confirmed them online (avoids overwriting server data with guesses).
+    if (!otherUserOnline && otherUser?.id && otherUserLastSeen) {
+      // Don't overwrite — keep the last known server timestamp.
+      // The server heartbeat already set last_seen accurately.
     }
-  }, [otherUserOnline, otherUser?.id]);
+  }, [otherUserOnline, otherUser?.id, otherUserLastSeen]);
 
   useEffect(() => {
     scrollToBottom(shouldForceScrollRef.current);
@@ -736,13 +788,14 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
   };
 
   const formatLastSeen = (isoString?: string | null) => {
+    // NEVER return 'Online' here — online status must come from presence channel only.
     if (!isoString) return 'Offline';
     const date = new Date(isoString);
     const now = new Date();
     const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
     
-    if (diff < 60) return `Online`;
-    if (diff < 3600) return `Last seen ${Math.floor(diff / 60)} minutes ago`;
+    if (diff < 60) return `Last seen just now`;
+    if (diff < 3600) return `Last seen ${Math.floor(diff / 60)}m ago`;
     
     const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
     const isYesterday = new Date(now.getTime() - 86400000).getDate() === date.getDate();
@@ -1256,10 +1309,31 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
       viewport.removeEventListener('scroll', handleResize);
     };
   }, []);
-  const isPracticallyOnline = otherUserOnline || (otherUserLastSeen ? (new Date().getTime() - new Date(otherUserLastSeen).getTime()) < 60000 : false);
+  // Online status MUST come from the Supabase Presence channel only.
+  // Never fall back to stale last_seen timestamps — that produces fake "Online" status.
+  const isPracticallyOnline = otherUserOnline;
+
+  // Connection state banner text
+  const connectionBannerText = connectionState === 'reconnecting' ? 'Reconnecting...' 
+    : connectionState === 'disconnected' ? 'Connection lost' 
+    : connectionState === 'connecting' ? 'Connecting...' 
+    : null;
 
   return (
     <div id="chat-viewport-wrapper" className="w-full h-full flex flex-col relative overflow-hidden bg-base">
+      {/* Connection State Banner */}
+      {connectionBannerText && (
+        <div className={`w-full text-center text-[12px] font-semibold py-1.5 z-50 animate-in slide-in-from-top-2 duration-200 ${
+          connectionState === 'disconnected' 
+            ? 'bg-red-500 text-white' 
+            : 'bg-amber-400 text-amber-900'
+        }`}>
+          {connectionState === 'reconnecting' && (
+            <span className="inline-block w-3 h-3 border-2 border-amber-900/30 border-t-amber-900 rounded-full animate-spin mr-1.5 align-middle" />
+          )}
+          {connectionBannerText}
+        </div>
+      )}
       {/* Call Modal */}
       {showCallModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCallModal(null)}>
@@ -1296,7 +1370,7 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
             <div className="text-center w-full mt-2">
               <h2 className="font-bold text-[24px] text-black break-words">{otherUser?.username || 'Unknown'}</h2>
               <p className="text-black text-sm font-semibold mt-1">
-                {otherUserOnline ? '🟢 Online now' : '⚪ Offline'}
+                {connectionState !== 'connected' ? '⚠️ Status unavailable' : otherUserOnline ? '🟢 Online now' : '⚪ Offline'}
               </p>
             </div>
             <div className="w-full bg-slate-50 p-4 rounded-2xl mt-2 border border-slate-100">
@@ -1453,12 +1527,12 @@ export default function ChatClient({ conversationId, user, profile, otherUser }:
                     <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-bold text-2xl shadow-sm overflow-hidden">
                       <AvatarImage url={otherUser?.avatar_url} username={otherUser?.username} />
                 </div>
-              {isPracticallyOnline && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"/>}
+              {isPracticallyOnline && connectionState === 'connected' && <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"/>}
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-[15px] text-black leading-tight">{otherUser?.username || 'Unknown'}</span>
               <span className="text-[11px] text-gray-400 font-semibold" suppressHydrationWarning>
-                {otherUserTyping ? '✍️ typing...' : isPracticallyOnline ? 'Online' : formatLastSeen(otherUserLastSeen)}
+                {connectionState !== 'connected' ? 'Status unavailable' : otherUserTyping ? '✍️ typing...' : isPracticallyOnline ? 'Online' : formatLastSeen(otherUserLastSeen)}
               </span>
             </div>
           </div>

@@ -35,7 +35,7 @@ export default function SystemHealthPage() {
   const serviceMap: Record<string, { label: string; description: string }> = {
     database: { label: "Supabase Database", description: "Core PostgreSQL database and RLS policies." },
     auth: { label: "Authentication", description: "GoTrue authentication service." },
-    realtime: { label: "Realtime Channels", description: "WebSocket connections for live typing and online status." },
+    messaging_db: { label: "Messaging DB", description: "Direct connectivity to the messages table." },
     storage: { label: "Media Storage", description: "S3-compatible object storage for images and videos." },
     api: { label: "Next.js API Routes", description: "Serverless functions for application logic." },
   };

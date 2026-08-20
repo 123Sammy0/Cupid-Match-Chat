@@ -3,8 +3,20 @@
 import type { User, Session } from "@supabase/supabase-js";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { updateLastSeen, markConversationDelivered, markAllConversationsDelivered } from "@/app/actions/chat";
+import { markConversationDelivered, markAllConversationsDelivered } from "@/app/actions/chat";
+import { getConnectionManager, CONNECTION_STATE_EVENT, type ConnectionState } from "@/lib/realtime/ConnectionManager";
 
+/**
+ * GlobalPresence — App-wide presence + delivery tracking + connection state management.
+ *
+ * Mounted in the root layout. Responsibilities:
+ * - Manage Supabase Presence channel (track/untrack user)
+ * - Send heartbeat to /api/presence every 30s
+ * - Handle visibility changes (background/foreground)
+ * - Dispatch global_presence_sync events for other components
+ * - Dispatch global_connection_state events via ConnectionManager
+ * - Track message deliveries
+ */
 export default function GlobalPresence() {
   const channelRef = useRef<any>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -40,6 +52,7 @@ export default function GlobalPresence() {
   useEffect(() => {
     if (!userId) return;
     const supabase = createClient();
+    const connManager = getConnectionManager();
 
     const setup = async () => {
       // Step 1: Set realtime auth BEFORE subscribing to any channels
@@ -53,6 +66,14 @@ export default function GlobalPresence() {
           supabase.realtime.setAuth(newSession.access_token);
         }
       });
+
+      // --- Signal presence API: connect ---
+      const connectionId = crypto.randomUUID();
+      fetch('/api/presence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'connect', connectionId }),
+      }).catch(() => {});
 
       // --- Global presence channel ---
       const existingPresence = supabase.getChannels().find((c: any) => c.topic === 'realtime:global_presence');
@@ -85,7 +106,10 @@ export default function GlobalPresence() {
             window.dispatchEvent(new CustomEvent('global_presence_sync', { detail: state }));
           }
         })
-        .subscribe(async (status: string) => {
+        .subscribe(async (status: string, err?: Error) => {
+          // Feed channel status into ConnectionManager
+          connManager.handleChannelStatus(status, err);
+
           if (status === 'SUBSCRIBED') {
             await channel.track({ user_id: userId, online_at: new Date().toISOString() });
           }
@@ -108,50 +132,79 @@ export default function GlobalPresence() {
         })
         .subscribe();
 
-      // --- Last seen heartbeat (every 30 seconds) ---
-      updateLastSeen().catch(() => {});
-      const heartbeat = setInterval(() => {
-        updateLastSeen().catch(() => {});
-      }, 30000);
+      // --- Heartbeat: every 30 seconds ---
+      // Uses the proper /api/presence endpoint with 'heartbeat' action
+      const sendHeartbeat = () => {
+        fetch('/api/presence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'heartbeat' }),
+        }).catch(() => {});
+      };
+
+      sendHeartbeat(); // Initial heartbeat
+      const heartbeat = setInterval(sendHeartbeat, 30000);
 
       // --- Visibility / unload handlers ---
-      const handleLeave = () => {
+      const handleVisibility = () => {
         if (document.visibilityState === 'hidden') {
-          fetch('/api/presence', { method: 'POST', body: JSON.stringify({ userId }), keepalive: true }).catch(() => {});
+          // Going to background — signal disconnect
+          fetch('/api/presence', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'disconnect' }),
+            keepalive: true,
+          }).catch(() => {});
         } else if (document.visibilityState === 'visible') {
-          // Re-track presence when coming back
+          // Coming back to foreground — re-track + send connect
+          fetch('/api/presence', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'connect', connectionId }),
+          }).catch(() => {});
+
           if (channelRef.current) {
             channelRef.current.track({ user_id: userId, online_at: new Date().toISOString() }).catch(() => {});
           }
-          updateLastSeen().catch(() => {});
         }
       };
 
       const handleUnload = () => {
-        fetch('/api/presence', { method: 'POST', body: JSON.stringify({ userId }), keepalive: true }).catch(() => {});
+        fetch('/api/presence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'disconnect' }),
+          keepalive: true,
+        }).catch(() => {});
       };
 
-      document.addEventListener('visibilitychange', handleLeave);
+      document.addEventListener('visibilitychange', handleVisibility);
       window.addEventListener('pagehide', handleUnload);
       window.addEventListener('beforeunload', handleUnload);
 
       return () => {
         clearInterval(heartbeat);
         authSub?.unsubscribe();
-        document.removeEventListener('visibilitychange', handleLeave);
+        document.removeEventListener('visibilitychange', handleVisibility);
         window.removeEventListener('pagehide', handleUnload);
         window.removeEventListener('beforeunload', handleUnload);
-        fetch('/api/presence', { method: 'POST', body: JSON.stringify({ userId }), keepalive: true }).catch(() => {});
+        // Final disconnect signal
+        fetch('/api/presence', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'disconnect' }),
+          keepalive: true,
+        }).catch(() => {});
         supabase.removeChannel(deliveryChannel);
       };
     };
 
     let isMounted = true;
     let cleanupFn: (() => void) | undefined;
-    
-    setup().then(fn => { 
+
+    setup().then(fn => {
       if (isMounted) {
-        cleanupFn = fn; 
+        cleanupFn = fn;
       } else {
         // Component unmounted before setup finished. Clean up immediately.
         fn();

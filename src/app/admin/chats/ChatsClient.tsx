@@ -9,19 +9,123 @@ import {
   moderateMessage,
   getActiveTakeover
 } from "@/app/actions/admin";
+import { createClient } from "@/lib/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 
+/**
+ * Admin Chats Client — with real-time message updates and takeover sync.
+ * 
+ * Subscribes to:
+ * - postgres_changes on messages for the selected conversation
+ * - postgres_changes on admin_takeovers for cross-device takeover sync
+ */
 export default function ChatsClient({ initialConversations }: { initialConversations: any[] }) {
   const [selectedChat, setSelectedChat] = useState<any | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [takeoverActive, setTakeoverActive] = useState(false);
   const [replyText, setReplyText] = useState("");
+  const [realtimeStatus, setRealtimeStatus] = useState<string>('disconnected');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const channelRef = useRef<any>(null);
+  const takeoverChannelRef = useRef<any>(null);
 
   // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Cleanup channels on unmount
+  useEffect(() => {
+    return () => {
+      const supabase = createClient();
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+      if (takeoverChannelRef.current) supabase.removeChannel(takeoverChannelRef.current);
+    };
+  }, []);
+
+  const setupRealtimeForChat = async (chatId: string) => {
+    const supabase = createClient();
+
+    // Set auth token
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      await supabase.realtime.setAuth(session.access_token);
+    }
+
+    // Clean up previous channel
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    // Subscribe to message changes for this conversation
+    const channelName = `admin_chat:${chatId}`;
+    const existing = supabase.getChannels().find((c: any) => c.topic === `realtime:${channelName}`);
+    if (existing) supabase.removeChannel(existing);
+
+    const channel = supabase.channel(channelName)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${chatId}`
+      }, (payload: any) => {
+        setMessages(prev => {
+          // Deduplicate by id
+          if (prev.some(m => m.id === payload.new.id)) return prev;
+          return [...prev, payload.new];
+        });
+      })
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${chatId}`
+      }, (payload: any) => {
+        setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m));
+      })
+      .on('postgres_changes', {
+        event: 'DELETE',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${chatId}`
+      }, (payload: any) => {
+        setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+      })
+      .subscribe((status: string) => {
+        setRealtimeStatus(status === 'SUBSCRIBED' ? 'connected' : status.toLowerCase());
+      });
+
+    channelRef.current = channel;
+
+    // Subscribe to admin_takeovers for cross-device sync
+    if (takeoverChannelRef.current) {
+      supabase.removeChannel(takeoverChannelRef.current);
+      takeoverChannelRef.current = null;
+    }
+
+    const takeoverChannelName = `admin_takeover:${chatId}`;
+    const existingTakeover = supabase.getChannels().find((c: any) => c.topic === `realtime:${takeoverChannelName}`);
+    if (existingTakeover) supabase.removeChannel(existingTakeover);
+
+    const takeoverChannel = supabase.channel(takeoverChannelName)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'admin_takeovers',
+        filter: `conversation_id=eq.${chatId}`
+      }, (payload: any) => {
+        if (payload.eventType === 'INSERT' && payload.new.status === 'active') {
+          setTakeoverActive(true);
+        } else if (payload.eventType === 'UPDATE' && payload.new.status === 'ended') {
+          setTakeoverActive(false);
+        }
+      })
+      .subscribe();
+
+    takeoverChannelRef.current = takeoverChannel;
+  };
 
   const loadMessages = async (chat: any) => {
     setSelectedChat(chat);
@@ -32,6 +136,8 @@ export default function ChatsClient({ initialConversations }: { initialConversat
       setMessages(msgs);
       const takeover = await getActiveTakeover(chat.id);
       if (takeover) setTakeoverActive(true);
+      // Setup realtime for this chat
+      await setupRealtimeForChat(chat.id);
     } catch (err) {
       console.error(err);
     } finally {
@@ -70,9 +176,7 @@ export default function ChatsClient({ initialConversations }: { initialConversat
     try {
       await adminReply(selectedChat.id, replyText, impersonatedUserId);
       setReplyText("");
-      // Reload messages
-      const msgs = await getConversationMessages(selectedChat.id);
-      setMessages(msgs);
+      // Messages will arrive via realtime subscription — no manual reload needed
     } catch (err) {
       alert("Failed to reply: " + (err as Error).message);
     }
@@ -82,8 +186,7 @@ export default function ChatsClient({ initialConversations }: { initialConversat
     if (!confirm(`Are you sure you want to ${action} this message?`)) return;
     try {
       await moderateMessage(msgId, action);
-      const msgs = await getConversationMessages(selectedChat!.id);
-      setMessages(msgs);
+      // Update will arrive via realtime subscription
     } catch (err) {
       alert("Failed to moderate message");
     }
@@ -128,6 +231,12 @@ export default function ChatsClient({ initialConversations }: { initialConversat
                   {selectedChat.conversation_participants.map((p: any) => p.profiles.username).join(" & ")}
                 </h2>
                 {takeoverActive && <span className="text-red-400 text-sm font-bold mt-1 block">TAKEOVER ACTIVE</span>}
+                {/* Realtime status indicator */}
+                <span className={`text-[10px] font-mono mt-0.5 block ${
+                  realtimeStatus === 'connected' ? 'text-emerald-400' : 'text-amber-400'
+                }`}>
+                  ● {realtimeStatus === 'connected' ? 'Live' : realtimeStatus}
+                </span>
               </div>
               <div>
                 {takeoverActive ? (
@@ -168,6 +277,16 @@ export default function ChatsClient({ initialConversations }: { initialConversat
                     <div className="text-xs text-zinc-500 mt-1 flex items-center gap-2">
                       <span className="font-medium text-zinc-400">{msg.profiles?.username}</span>
                       <span>{new Date(msg.sent_at).toLocaleTimeString()}</span>
+                      {/* Message status indicator */}
+                      {msg.status && (
+                        <span className={`text-[10px] font-mono ${
+                          msg.status === 'delivered' || msg.status === 'read' ? 'text-blue-400' :
+                          msg.status === 'failed' ? 'text-red-400' :
+                          'text-zinc-500'
+                        }`}>
+                          [{msg.status}]
+                        </span>
+                      )}
                       
                       {/* Moderation Controls on Hover */}
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 ml-4">

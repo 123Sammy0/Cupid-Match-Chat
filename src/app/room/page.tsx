@@ -6,6 +6,7 @@ import { getConversations, getPendingRequests, acceptChatRequest, rejectChatRequ
 import NewChatModal from "@/components/NewChatModal";
 import { createClient } from "@/lib/supabase/client";
 import AvatarImage from "@/app/components/AvatarImage";
+import { getConnectionManager, CONNECTION_STATE_EVENT, type ConnectionState } from "@/lib/realtime/ConnectionManager";
 
 export default function ChatHome() {
   const router = useRouter();
@@ -16,6 +17,9 @@ export default function ChatHome() {
   const [longPressId, setLongPressId] = useState<string | null>(null);
   const [tappedConvId, setTappedConvId] = useState<string | null>(null);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Real presence state from Supabase Presence channel (NOT from stale last_seen)
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  const [connectionState, setConnectionState] = useState<ConnectionState>('connecting');
 
   const loadData = async (silent = false) => {
     if (!silent) {
@@ -97,9 +101,37 @@ export default function ChatHome() {
 
     setupRealtime();
 
+    // --- Presence sync listener (from GlobalPresence) ---
+    const handlePresenceSync = (e: any) => {
+      const presenceState = e.detail;
+      const ids = new Set<string>();
+      Object.values(presenceState).forEach((presences: any) => {
+        if (Array.isArray(presences)) {
+          presences.forEach((p: any) => {
+            if (p.user_id) ids.add(p.user_id);
+          });
+        }
+      });
+      setOnlineUserIds(ids);
+    };
+    window.addEventListener('global_presence_sync', handlePresenceSync);
+    // Initialize from existing state if available
+    if ((window as any)._globalPresenceState) {
+      handlePresenceSync({ detail: (window as any)._globalPresenceState });
+    }
+
+    // --- Connection state tracking ---
+    const connManager = getConnectionManager();
+    setConnectionState(connManager.getState());
+    const unsubConn = connManager.onStateChange((state: ConnectionState) => {
+      if (isMounted) setConnectionState(state);
+    });
+
     return () => {
       isMounted = false;
       if (channel) supabase.removeChannel(channel);
+      window.removeEventListener('global_presence_sync', handlePresenceSync);
+      unsubConn();
     };
   }, []);
 
@@ -300,8 +332,8 @@ export default function ChatHome() {
                       <div className="w-12 h-12 bg-accent text-text-main rounded-full flex items-center justify-center font-bold text-2xl shadow-sm relative overflow-hidden border border-border-soft">
                         <AvatarImage url={conv.other_user?.avatar_url} username={conv.other_user?.username} />
                       </div>
-                      {/* Online dot */}
-                      {conv.other_user?.last_seen && (Date.now() - new Date(conv.other_user.last_seen).getTime() < 150000) && (
+                      {/* Online dot — from real Supabase Presence, not stale last_seen */}
+                      {connectionState === 'connected' && onlineUserIds.has(conv.other_user_id) && (
                         <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-success border-2 border-surface rounded-full z-10"></div>
                       )}
                     </div>
